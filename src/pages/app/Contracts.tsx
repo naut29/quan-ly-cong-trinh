@@ -54,6 +54,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
+import { toast } from '@/hooks/use-toast';
 
 // Types
 interface Milestone {
@@ -279,22 +281,25 @@ export default function Contracts() {
   const { hasPermission } = useAuth();
   const canEdit = hasPermission('contracts', 'edit');
 
+  const [contracts, setContracts] = useState<Contract[]>(mockContracts);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<Contract | null>(null);
 
   // Calculate KPIs
-  const totalContractValue = mockContracts.reduce((sum, c) => sum + c.value, 0);
-  const totalPaid = mockContracts.reduce((sum, c) => sum + c.paid, 0);
-  const totalRetention = mockContracts.reduce((sum, c) => sum + c.retention, 0);
-  const activeContracts = mockContracts.filter(c => c.status === 'active').length;
-  const completedContracts = mockContracts.filter(c => c.status === 'completed').length;
-  const overdueMillestones = mockContracts.flatMap(c => c.milestones).filter(m => m.status === 'overdue').length;
+  const totalContractValue = contracts.reduce((sum, c) => sum + c.value, 0);
+  const totalPaid = contracts.reduce((sum, c) => sum + c.paid, 0);
+  const totalRetention = contracts.reduce((sum, c) => sum + c.retention, 0);
+  const activeContracts = contracts.filter(c => c.status === 'active').length;
+  const completedContracts = contracts.filter(c => c.status === 'completed').length;
+  const overdueMillestones = contracts.flatMap(c => c.milestones).filter(m => m.status === 'overdue').length;
 
   // Filter contracts
-  const filteredContracts = mockContracts.filter(contract => {
+  const filteredContracts = contracts.filter(contract => {
     const matchesSearch = contract.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contract.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contract.vendor.toLowerCase().includes(searchTerm.toLowerCase());
@@ -313,6 +318,118 @@ export default function Contracts() {
     return completedMilestones.reduce((sum, m) => sum + m.percentage, 0);
   };
 
+  const handleCreateContract = () => {
+    setEditingContract(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleEditContract = (contract: Contract) => {
+    setEditingContract(contract);
+    setFormDialogOpen(true);
+  };
+
+  const handleFormSubmit = (data: {
+    code: string;
+    name: string;
+    vendor: string;
+    vendorTaxCode: string;
+    type: 'subcontract' | 'supply' | 'service' | 'equipment';
+    category: string;
+    value: number;
+    retentionPercent: number;
+    startDate: Date;
+    endDate: Date;
+    signedDate?: Date;
+    retentionReleaseDate?: Date;
+    status: 'draft' | 'active' | 'completed' | 'terminated' | 'suspended';
+    notes?: string;
+    milestones: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      percentage: number;
+      plannedDate: Date;
+    }>;
+  }) => {
+    if (editingContract) {
+      // Update existing contract
+      const updatedContract: Contract = {
+        ...editingContract,
+        code: data.code,
+        name: data.name,
+        vendor: data.vendor,
+        vendorTaxCode: data.vendorTaxCode,
+        type: data.type,
+        category: data.category,
+        value: data.value,
+        retention: (data.value * data.retentionPercent) / 100,
+        retentionPercent: data.retentionPercent,
+        startDate: data.startDate.toISOString().split('T')[0],
+        endDate: data.endDate.toISOString().split('T')[0],
+        signedDate: data.signedDate?.toISOString().split('T')[0],
+        retentionReleaseDate: data.retentionReleaseDate?.toISOString().split('T')[0],
+        status: data.status,
+        notes: data.notes || '',
+        milestones: data.milestones.map((m, index) => ({
+          ...m,
+          description: m.description || '',
+          amount: (data.value * m.percentage) / 100,
+          plannedDate: m.plannedDate.toISOString().split('T')[0],
+          status: editingContract.milestones[index]?.status || 'pending' as const,
+        })),
+      };
+      
+      setContracts(contracts.map(c => c.id === editingContract.id ? updatedContract : c));
+      toast({
+        title: 'Cập nhật thành công',
+        description: `Hợp đồng ${data.code} đã được cập nhật.`,
+      });
+    } else {
+      // Create new contract
+      const newContract: Contract = {
+        id: `contract-${Date.now()}`,
+        code: data.code,
+        name: data.name,
+        vendor: data.vendor,
+        vendorTaxCode: data.vendorTaxCode,
+        type: data.type,
+        category: data.category,
+        value: data.value,
+        paid: 0,
+        retention: (data.value * data.retentionPercent) / 100,
+        retentionPercent: data.retentionPercent,
+        startDate: data.startDate.toISOString().split('T')[0],
+        endDate: data.endDate.toISOString().split('T')[0],
+        signedDate: data.signedDate?.toISOString().split('T')[0],
+        retentionReleaseDate: data.retentionReleaseDate?.toISOString().split('T')[0],
+        status: data.status,
+        notes: data.notes || '',
+        milestones: data.milestones.map(m => ({
+          ...m,
+          description: m.description || '',
+          amount: (data.value * m.percentage) / 100,
+          plannedDate: m.plannedDate.toISOString().split('T')[0],
+          status: 'pending' as const,
+        })),
+        attachments: [],
+      };
+      
+      setContracts([newContract, ...contracts]);
+      toast({
+        title: 'Tạo thành công',
+        description: `Hợp đồng ${data.code} đã được tạo.`,
+      });
+    }
+  };
+
+  const handleDeleteContract = (contract: Contract) => {
+    setContracts(contracts.filter(c => c.id !== contract.id));
+    toast({
+      title: 'Xóa thành công',
+      description: `Hợp đồng ${contract.code} đã được xóa.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -327,7 +444,7 @@ export default function Contracts() {
             Xuất Excel
           </Button>
           {canEdit && (
-            <Button size="sm">
+            <Button size="sm" onClick={handleCreateContract}>
               <Plus className="h-4 w-4 mr-2" />
               Thêm hợp đồng
             </Button>
@@ -426,6 +543,8 @@ export default function Contracts() {
           <ContractTable 
             contracts={filteredContracts} 
             onSelectContract={setSelectedContract}
+            onEditContract={handleEditContract}
+            onDeleteContract={handleDeleteContract}
             canEdit={canEdit}
             getProgressPercent={getProgressPercent}
           />
@@ -439,6 +558,37 @@ export default function Contracts() {
         </TabsContent>
       </Tabs>
 
+      {/* Contract Form Dialog */}
+      <ContractFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        mode={editingContract ? 'edit' : 'create'}
+        initialData={editingContract ? {
+          code: editingContract.code,
+          name: editingContract.name,
+          vendor: editingContract.vendor,
+          vendorTaxCode: editingContract.vendorTaxCode,
+          type: editingContract.type,
+          category: editingContract.category,
+          value: editingContract.value,
+          retentionPercent: editingContract.retentionPercent,
+          startDate: new Date(editingContract.startDate),
+          endDate: new Date(editingContract.endDate),
+          signedDate: editingContract.signedDate ? new Date(editingContract.signedDate) : undefined,
+          retentionReleaseDate: editingContract.retentionReleaseDate ? new Date(editingContract.retentionReleaseDate) : undefined,
+          status: editingContract.status,
+          notes: editingContract.notes,
+          milestones: editingContract.milestones.map(m => ({
+            id: m.id,
+            name: m.name,
+            description: m.description,
+            percentage: m.percentage,
+            plannedDate: new Date(m.plannedDate),
+          })),
+        } : undefined}
+        onSubmit={handleFormSubmit}
+      />
+
       {/* Contract Detail Dialog */}
       <Dialog open={!!selectedContract} onOpenChange={() => setSelectedContract(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -447,6 +597,10 @@ export default function Contracts() {
               contract={selectedContract} 
               canEdit={canEdit}
               onClose={() => setSelectedContract(null)}
+              onEdit={() => {
+                setSelectedContract(null);
+                handleEditContract(selectedContract);
+              }}
             />
           )}
         </DialogContent>
@@ -459,11 +613,13 @@ export default function Contracts() {
 interface ContractTableProps {
   contracts: Contract[];
   onSelectContract: (contract: Contract) => void;
+  onEditContract: (contract: Contract) => void;
+  onDeleteContract: (contract: Contract) => void;
   canEdit: boolean;
   getProgressPercent: (contract: Contract) => number;
 }
 
-function ContractTable({ contracts, onSelectContract, canEdit, getProgressPercent }: ContractTableProps) {
+function ContractTable({ contracts, onSelectContract, onEditContract, onDeleteContract, canEdit, getProgressPercent }: ContractTableProps) {
   return (
     <div className="rounded-lg border bg-card">
       <Table>
@@ -537,12 +693,12 @@ function ContractTable({ contracts, onSelectContract, canEdit, getProgressPercen
                     </DropdownMenuItem>
                     {canEdit && (
                       <>
-                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditContract(contract); }}>
                           <Edit className="h-4 w-4 mr-2" />
                           Chỉnh sửa
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); onDeleteContract(contract); }}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -651,9 +807,10 @@ interface ContractDetailProps {
   contract: Contract;
   canEdit: boolean;
   onClose: () => void;
+  onEdit: () => void;
 }
 
-function ContractDetail({ contract, canEdit, onClose }: ContractDetailProps) {
+function ContractDetail({ contract, canEdit, onClose, onEdit }: ContractDetailProps) {
   const progressPercent = contract.milestones
     .filter(m => m.status === 'completed')
     .reduce((sum, m) => sum + m.percentage, 0);
@@ -838,7 +995,7 @@ function ContractDetail({ contract, canEdit, onClose }: ContractDetailProps) {
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={onClose}>Đóng</Button>
           {canEdit && (
-            <Button>
+            <Button onClick={onEdit}>
               <Edit className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </Button>
