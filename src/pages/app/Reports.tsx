@@ -41,6 +41,8 @@ import {
 } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/data/mockData';
+import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
+import ExportDialog from '@/components/reports/ExportDialog';
 import {
   BarChart,
   Bar,
@@ -123,6 +125,7 @@ const Reports: React.FC = () => {
   const { id: projectId } = useParams();
   const [activeTab, setActiveTab] = useState('materials');
   const [dateRange, setDateRange] = useState('month');
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Calculate totals
   const totalMaterialVariance = materialUsageData.reduce((sum, m) => sum + (m.variance > 0 ? m.cost * (m.variancePercent / 100) : 0), 0);
@@ -131,6 +134,141 @@ const Reports: React.FC = () => {
   const totalReceivables = receivablesData.filter(r => r.type === 'receivable').reduce((sum, r) => sum + r.amount, 0);
   const totalPayables = receivablesData.filter(r => r.type === 'payable').reduce((sum, r) => sum + r.amount, 0);
   const overdueReceivables = receivablesData.filter(r => r.status === 'overdue' && r.type === 'receivable').reduce((sum, r) => sum + r.amount, 0);
+
+  // Report names mapping
+  const reportNames: Record<string, string> = {
+    materials: 'Báo cáo sử dụng vật tư',
+    norms: 'Báo cáo chênh lệch định mức',
+    budget: 'Báo cáo vượt ngân sách',
+    cashflow: 'Báo cáo dòng tiền',
+    receivables: 'Báo cáo công nợ',
+  };
+
+  // Export handler
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    const today = new Date().toLocaleDateString('vi-VN');
+    const fileName = `${reportNames[activeTab]}_${today.replace(/\//g, '-')}`;
+
+    let exportOptions;
+
+    switch (activeTab) {
+      case 'materials':
+        exportOptions = {
+          title: reportNames[activeTab],
+          subtitle: `Kỳ báo cáo: ${dateRange === 'month' ? 'Tháng này' : dateRange === 'week' ? 'Tuần này' : dateRange === 'quarter' ? 'Quý này' : 'Năm nay'}`,
+          fileName,
+          columns: [
+            { header: 'Mã VT', key: 'code', width: 10 },
+            { header: 'Tên vật tư', key: 'name', width: 25 },
+            { header: 'ĐVT', key: 'unit', width: 8 },
+            { header: 'Kế hoạch', key: 'planned', width: 12 },
+            { header: 'Thực tế', key: 'actual', width: 12 },
+            { header: 'Chênh lệch', key: 'variance', width: 12 },
+            { header: '%', key: 'variancePercent', width: 8 },
+            { header: 'Giá trị', key: 'costFormatted', width: 18 },
+          ],
+          data: materialUsageData.map(m => ({
+            ...m,
+            costFormatted: formatCurrencyForExport(m.cost),
+            variancePercent: `${m.variancePercent > 0 ? '+' : ''}${m.variancePercent.toFixed(1)}%`,
+          })),
+        };
+        break;
+
+      case 'norms':
+        exportOptions = {
+          title: reportNames[activeTab],
+          subtitle: `Kỳ báo cáo: ${dateRange === 'month' ? 'Tháng này' : dateRange === 'week' ? 'Tuần này' : dateRange === 'quarter' ? 'Quý này' : 'Năm nay'}`,
+          fileName,
+          columns: [
+            { header: 'Mã định mức', key: 'normCode', width: 12 },
+            { header: 'Hạng mục công việc', key: 'workItem', width: 25 },
+            { header: 'ĐVT', key: 'unit', width: 10 },
+            { header: 'Định mức KH', key: 'planned', width: 12 },
+            { header: 'Thực tế', key: 'actual', width: 12 },
+            { header: 'Chênh lệch', key: 'variance', width: 12 },
+            { header: 'Trạng thái', key: 'statusLabel', width: 12 },
+          ],
+          data: normVarianceData.map(n => ({
+            ...n,
+            statusLabel: n.status === 'over' ? 'Vượt ĐM' : 'Tiết kiệm',
+          })),
+        };
+        break;
+
+      case 'budget':
+        exportOptions = {
+          title: reportNames[activeTab],
+          subtitle: `Kỳ báo cáo: ${dateRange === 'month' ? 'Tháng này' : dateRange === 'week' ? 'Tuần này' : dateRange === 'quarter' ? 'Quý này' : 'Năm nay'}`,
+          fileName,
+          columns: [
+            { header: 'Hạng mục', key: 'category', width: 20 },
+            { header: 'Dự toán', key: 'budgetFormatted', width: 18 },
+            { header: 'Thực tế', key: 'actualFormatted', width: 18 },
+            { header: 'Chênh lệch', key: 'varianceFormatted', width: 18 },
+            { header: '%', key: 'percentLabel', width: 10 },
+          ],
+          data: budgetOverrunData.map(b => ({
+            ...b,
+            budgetFormatted: formatCurrencyForExport(b.budget),
+            actualFormatted: formatCurrencyForExport(b.actual),
+            varianceFormatted: formatCurrencyForExport(b.variance),
+            percentLabel: `${b.percent > 0 ? '+' : ''}${b.percent}%`,
+          })),
+        };
+        break;
+
+      case 'cashflow':
+        exportOptions = {
+          title: reportNames[activeTab],
+          subtitle: `Kỳ báo cáo: ${dateRange === 'month' ? 'Tháng này' : dateRange === 'week' ? 'Tuần này' : dateRange === 'quarter' ? 'Quý này' : 'Năm nay'}`,
+          fileName,
+          columns: [
+            { header: 'Tháng', key: 'month', width: 10 },
+            { header: 'Thu', key: 'inflowFormatted', width: 18 },
+            { header: 'Chi', key: 'outflowFormatted', width: 18 },
+            { header: 'Số dư', key: 'balanceFormatted', width: 18 },
+          ],
+          data: cashFlowData.map(c => ({
+            ...c,
+            inflowFormatted: formatCurrencyForExport(c.inflow * 1000000),
+            outflowFormatted: formatCurrencyForExport(c.outflow * 1000000),
+            balanceFormatted: formatCurrencyForExport(c.balance * 1000000),
+          })),
+        };
+        break;
+
+      case 'receivables':
+        exportOptions = {
+          title: reportNames[activeTab],
+          subtitle: `Kỳ báo cáo: ${dateRange === 'month' ? 'Tháng này' : dateRange === 'week' ? 'Tuần này' : dateRange === 'quarter' ? 'Quý này' : 'Năm nay'}`,
+          fileName,
+          columns: [
+            { header: 'Đối tác', key: 'partner', width: 25 },
+            { header: 'Loại', key: 'typeLabel', width: 12 },
+            { header: 'Số tiền', key: 'amountFormatted', width: 18 },
+            { header: 'Hạn thanh toán', key: 'dueDate', width: 15 },
+            { header: 'Trạng thái', key: 'statusLabel', width: 15 },
+          ],
+          data: receivablesData.map(r => ({
+            ...r,
+            typeLabel: r.type === 'receivable' ? 'Phải thu' : 'Phải trả',
+            amountFormatted: formatCurrencyForExport(r.amount),
+            statusLabel: r.status === 'overdue' ? `Quá hạn ${r.daysOverdue} ngày` : r.status === 'pending' ? 'Chờ thanh toán' : 'Đã lên lịch',
+          })),
+        };
+        break;
+
+      default:
+        return;
+    }
+
+    if (format === 'excel') {
+      exportToExcel(exportOptions);
+    } else {
+      exportToPDF(exportOptions);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -159,12 +297,20 @@ const Reports: React.FC = () => {
           <Button variant="outline" size="icon">
             <Mail className="h-4 w-4" />
           </Button>
-          <Button>
+          <Button onClick={() => setExportDialogOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
             Xuất báo cáo
           </Button>
         </div>
       </div>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={handleExport}
+        reportName={reportNames[activeTab]}
+      />
 
       {/* Report Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
