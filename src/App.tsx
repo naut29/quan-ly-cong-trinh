@@ -19,6 +19,7 @@ import BOQ from "./pages/app/BOQ";
 import Progress from "./pages/app/Progress";
 import Payments from "./pages/app/Payments";
 import Contracts from "./pages/app/Contracts";
+import Reports from "./pages/app/Reports";
 import AdminUsers from "./pages/app/AdminUsers";
 import AdminRoles from "./pages/app/AdminRoles";
 
@@ -60,7 +61,7 @@ const App = () => (
               <Route path="projects/:id/contracts" element={<ProjectGuard><PermissionGuard module="contracts"><Contracts /></PermissionGuard></ProjectGuard>} />
               <Route path="projects/:id/payments" element={<ProjectGuard><PermissionGuard module="payments"><Payments /></PermissionGuard></ProjectGuard>} />
               <Route path="projects/:id/progress" element={<ProjectGuard><PermissionGuard module="progress"><Progress /></PermissionGuard></ProjectGuard>} />
-              <Route path="projects/:id/reports" element={<ProjectGuard><PermissionGuard module="reports"><BOQ /></PermissionGuard></ProjectGuard>} />
+              <Route path="projects/:id/reports" element={<ProjectGuard><PermissionGuard module="reports"><Reports /></PermissionGuard></ProjectGuard>} />
 
               {/* Admin Routes */}
               <Route path="admin/company" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
