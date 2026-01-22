@@ -17,6 +17,7 @@ import {
   Printer,
   Mail,
   Clock,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/expor
 import ExportDialog from '@/components/reports/ExportDialog';
 import EmailReportDialog from '@/components/reports/EmailReportDialog';
 import ScheduleReportDialog from '@/components/reports/ScheduleReportDialog';
+import ReportHistoryDialog from '@/components/reports/ReportHistoryDialog';
 import {
   BarChart,
   Bar,
@@ -130,6 +132,7 @@ const Reports: React.FC = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   // Report types for schedule dialog
   const reportTypeOptions = [
@@ -313,6 +316,10 @@ const Reports: React.FC = () => {
           <Button variant="outline" size="icon" onClick={() => setScheduleDialogOpen(true)} title="Lên lịch gửi">
             <Clock className="h-4 w-4" />
           </Button>
+          <Button variant="outline" onClick={() => setHistoryDialogOpen(true)}>
+            <History className="h-4 w-4 mr-2" />
+            Lịch sử
+          </Button>
           <Button onClick={() => setExportDialogOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
             Xuất báo cáo
@@ -373,6 +380,12 @@ const Reports: React.FC = () => {
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
         reportTypes={reportTypeOptions}
+      />
+
+      {/* Report History Dialog */}
+      <ReportHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
