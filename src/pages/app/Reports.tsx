@@ -44,6 +44,7 @@ import { formatCurrency } from '@/data/mockData';
 import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
 import ExportDialog from '@/components/reports/ExportDialog';
 import EmailReportDialog from '@/components/reports/EmailReportDialog';
+import ScheduleReportDialog from '@/components/reports/ScheduleReportDialog';
 import {
   BarChart,
   Bar,
@@ -128,6 +129,16 @@ const Reports: React.FC = () => {
   const [dateRange, setDateRange] = useState('month');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+
+  // Report types for schedule dialog
+  const reportTypeOptions = [
+    { value: 'materials', label: 'Báo cáo sử dụng vật tư' },
+    { value: 'norms', label: 'Báo cáo chênh lệch định mức' },
+    { value: 'budget', label: 'Báo cáo vượt ngân sách' },
+    { value: 'cashflow', label: 'Báo cáo dòng tiền' },
+    { value: 'receivables', label: 'Báo cáo công nợ' },
+  ];
 
   // Calculate totals
   const totalMaterialVariance = materialUsageData.reduce((sum, m) => sum + (m.variance > 0 ? m.cost * (m.variancePercent / 100) : 0), 0);
@@ -293,11 +304,14 @@ const Reports: React.FC = () => {
               <SelectItem value="year">Năm nay</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" title="In báo cáo">
             <Printer className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setEmailDialogOpen(true)}>
+          <Button variant="outline" size="icon" onClick={() => setEmailDialogOpen(true)} title="Gửi email">
             <Mail className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => setScheduleDialogOpen(true)} title="Lên lịch gửi">
+            <Clock className="h-4 w-4" />
           </Button>
           <Button onClick={() => setExportDialogOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
@@ -354,7 +368,12 @@ const Reports: React.FC = () => {
         }}
       />
 
-      {/* Report Tabs */}
+      {/* Schedule Report Dialog */}
+      <ScheduleReportDialog
+        open={scheduleDialogOpen}
+        onOpenChange={setScheduleDialogOpen}
+        reportTypes={reportTypeOptions}
+      />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="materials" className="gap-2">
