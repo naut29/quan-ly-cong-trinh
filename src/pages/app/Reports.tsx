@@ -43,6 +43,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/data/mockData';
 import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
 import ExportDialog from '@/components/reports/ExportDialog';
+import EmailReportDialog from '@/components/reports/EmailReportDialog';
 import {
   BarChart,
   Bar,
@@ -126,6 +127,7 @@ const Reports: React.FC = () => {
   const [activeTab, setActiveTab] = useState('materials');
   const [dateRange, setDateRange] = useState('month');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   // Calculate totals
   const totalMaterialVariance = materialUsageData.reduce((sum, m) => sum + (m.variance > 0 ? m.cost * (m.variancePercent / 100) : 0), 0);
@@ -294,7 +296,7 @@ const Reports: React.FC = () => {
           <Button variant="outline" size="icon">
             <Printer className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={() => setEmailDialogOpen(true)}>
             <Mail className="h-4 w-4" />
           </Button>
           <Button onClick={() => setExportDialogOpen(true)}>
@@ -310,6 +312,46 @@ const Reports: React.FC = () => {
         onOpenChange={setExportDialogOpen}
         onExport={handleExport}
         reportName={reportNames[activeTab]}
+      />
+
+      {/* Email Dialog */}
+      <EmailReportDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        reportName={reportNames[activeTab]}
+        reportData={{
+          title: reportNames[activeTab],
+          subtitle: `Dự án: ${projectId} • Kỳ báo cáo: ${dateRange === 'week' ? 'Tuần này' : dateRange === 'month' ? 'Tháng này' : dateRange === 'quarter' ? 'Quý này' : 'Năm nay'}`,
+          summary: activeTab === 'materials' 
+            ? [
+                { label: 'Tổng chi phí vật tư', value: formatCurrency(materialUsageData.reduce((s, m) => s + m.cost, 0)) },
+                { label: 'Chênh lệch', value: formatCurrency(totalMaterialVariance) },
+                { label: 'Số loại vật tư vượt', value: `${materialUsageData.filter(m => m.variance > 0).length} loại` },
+              ]
+            : activeTab === 'norms'
+            ? [
+                { label: 'Tổng công việc', value: `${normVarianceData.length} hạng mục` },
+                { label: 'Vượt định mức', value: `${overNormCount} hạng mục` },
+                { label: 'Dưới định mức', value: `${normVarianceData.filter(n => n.status === 'under').length} hạng mục` },
+              ]
+            : activeTab === 'budget'
+            ? [
+                { label: 'Tổng ngân sách', value: formatCurrency(budgetOverrunData.reduce((s, b) => s + b.budget, 0)) },
+                { label: 'Chi phí thực tế', value: formatCurrency(budgetOverrunData.reduce((s, b) => s + b.actual, 0)) },
+                { label: 'Vượt ngân sách', value: formatCurrency(totalBudgetOverrun) },
+              ]
+            : activeTab === 'cashflow'
+            ? [
+                { label: 'Tổng thu', value: formatCurrency(cashFlowData.reduce((s, c) => s + c.inflow, 0) * 1000000) },
+                { label: 'Tổng chi', value: formatCurrency(cashFlowData.reduce((s, c) => s + c.outflow, 0) * 1000000) },
+                { label: 'Số dư cuối kỳ', value: formatCurrency(cashFlowData[cashFlowData.length - 1].balance * 1000000) },
+              ]
+            : [
+                { label: 'Tổng phải thu', value: formatCurrency(totalReceivables) },
+                { label: 'Tổng phải trả', value: formatCurrency(totalPayables) },
+                { label: 'Quá hạn', value: formatCurrency(overdueReceivables) },
+              ],
+        }}
       />
 
       {/* Report Tabs */}
