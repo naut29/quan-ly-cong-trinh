@@ -47,6 +47,9 @@ import { MaterialManagementDialog } from '@/components/materials/MaterialManagem
 import { SupplierManagementDialog } from '@/components/materials/SupplierManagementDialog';
 import { exportToExcel, exportToPDF, formatNumberForExport } from '@/lib/export-utils';
 import { MaterialAdvancedFilter, MaterialFilters, defaultFilters } from '@/components/materials/MaterialAdvancedFilter';
+import { MaterialNormsTab } from '@/components/materials/MaterialNormsTab';
+import { MaterialBySupplierTab } from '@/components/materials/MaterialBySupplierTab';
+import { MaterialByCostCodeTab } from '@/components/materials/MaterialByCostCodeTab';
 
 // Mock material data
 const materialCategories = [
@@ -457,6 +460,7 @@ const Materials: React.FC = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="summary">Tổng hợp</TabsTrigger>
             <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
+            <TabsTrigger value="norms">Định mức</TabsTrigger>
             <TabsTrigger value="suppliers">Theo NCC</TabsTrigger>
             <TabsTrigger value="costcodes">Theo công việc</TabsTrigger>
           </TabsList>
@@ -600,16 +604,16 @@ const Materials: React.FC = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="norms" className="mt-0">
+            <MaterialNormsTab />
+          </TabsContent>
+
           <TabsContent value="suppliers" className="mt-0">
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              <p>Phân tích theo nhà cung cấp...</p>
-            </div>
+            <MaterialBySupplierTab />
           </TabsContent>
 
           <TabsContent value="costcodes" className="mt-0">
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              <p>Phân tích theo công việc...</p>
-            </div>
+            <MaterialByCostCodeTab />
           </TabsContent>
         </Tabs>
       </div>
