@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CostFormDialog, CostEntry } from '@/components/costs/CostFormDialog';
+import { CostImportDialog, ImportedCostEntry } from '@/components/costs/CostImportDialog';
 import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -249,6 +250,7 @@ const Costs: React.FC = () => {
   const [costDialogOpen, setCostDialogOpen] = useState(false);
   const [costDialogMode, setCostDialogMode] = useState<'create' | 'edit'>('create');
   const [selectedCost, setSelectedCost] = useState<CostEntry | undefined>(undefined);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleAddCost = () => {
     setCostDialogMode('create');
@@ -278,6 +280,13 @@ const Costs: React.FC = () => {
         description: `Chi phí ${data.code} đã được cập nhật.`,
       });
     }
+  };
+
+  const handleImport = (data: ImportedCostEntry[]) => {
+    toast({
+      title: 'Import thành công',
+      description: `Đã import ${data.length} chi phí vào hệ thống.`,
+    });
   };
 
   // Filter cost entries
@@ -320,7 +329,7 @@ const Costs: React.FC = () => {
           <p className="text-muted-foreground">Quản lý và theo dõi chi phí dự án</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
@@ -771,6 +780,13 @@ const Costs: React.FC = () => {
         mode={costDialogMode}
         initialData={selectedCost}
         onSubmit={handleCostSubmit}
+      />
+
+      {/* Cost Import Dialog */}
+      <CostImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={handleImport}
       />
     </div>
   );
