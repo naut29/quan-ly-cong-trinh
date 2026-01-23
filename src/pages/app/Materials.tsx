@@ -452,7 +452,11 @@ const Materials: React.FC = () => {
 
         {/* Charts Section */}
         {showCharts && (
-          <MaterialCharts className="mb-6" />
+          <MaterialCharts 
+            className="mb-6" 
+            filters={filters}
+            materials={filteredMaterials}
+          />
         )}
 
         {/* Content Tabs */}

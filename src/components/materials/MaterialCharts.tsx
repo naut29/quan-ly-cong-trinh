@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -25,85 +25,204 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Package, Building2, Warehouse, FolderCode, Layers } from 'lucide-react';
+import { Package, Building2, Warehouse, FolderCode, Layers, AlertCircle } from 'lucide-react';
+import { MaterialFilters } from './MaterialAdvancedFilter';
 
-// Mock data for charts - by time
-const monthlyData = [
-  { month: 'T1', received: 850, issued: 620, stock: 230, value: 2.1 },
-  { month: 'T2', received: 920, issued: 780, stock: 370, value: 2.8 },
-  { month: 'T3', received: 1100, issued: 890, stock: 580, value: 3.5 },
-  { month: 'T4', received: 780, issued: 950, stock: 410, value: 3.1 },
-  { month: 'T5', received: 1250, issued: 1100, stock: 560, value: 4.2 },
-  { month: 'T6', received: 1400, issued: 1200, stock: 760, value: 5.1 },
-  { month: 'T7', received: 1100, issued: 1350, stock: 510, value: 4.3 },
-  { month: 'T8', received: 1600, issued: 1450, stock: 660, value: 5.8 },
-  { month: 'T9', received: 1350, issued: 1280, stock: 730, value: 6.2 },
-  { month: 'T10', received: 1500, issued: 1400, stock: 830, value: 7.1 },
-  { month: 'T11', received: 1200, issued: 1150, stock: 880, value: 7.5 },
-  { month: 'T12', received: 1450, issued: 1320, stock: 1010, value: 8.2 },
+// Category label mapping
+const categoryLabels: Record<string, string> = {
+  steel: 'Thép',
+  concrete: 'Bê tông',
+  foundation: 'Cọc/Móng',
+  formwork: 'Coffa/Giàn giáo',
+  mep: 'MEP',
+  finishing: 'Hoàn thiện',
+  consumables: 'Vật tư phụ',
+};
+
+// Color palette for charts
+const CHART_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--success))',
+  'hsl(var(--warning))',
+  'hsl(var(--info))',
+  'hsl(var(--destructive))',
+  'hsl(var(--muted-foreground))',
 ];
 
-const weeklyData = [
-  { week: 'Tuần 1', received: 320, issued: 280, stock: 40 },
-  { week: 'Tuần 2', received: 450, issued: 390, stock: 100 },
-  { week: 'Tuần 3', received: 380, issued: 420, stock: 60 },
-  { week: 'Tuần 4', received: 520, issued: 460, stock: 120 },
-];
-
-// Data by category
-const categoryData = [
-  { name: 'Thép', value: 45, received: 168000, issued: 140000, stock: 28000, color: 'hsl(var(--primary))' },
-  { name: 'Bê tông', value: 25, received: 3500, issued: 3170, stock: 330, color: 'hsl(var(--warning))' },
-  { name: 'Xi măng', value: 12, received: 2500, issued: 2100, stock: 400, color: 'hsl(var(--success))' },
-  { name: 'Cát đá', value: 10, received: 1800, issued: 1600, stock: 200, color: 'hsl(var(--info))' },
-  { name: 'Khác', value: 8, received: 1200, issued: 980, stock: 220, color: 'hsl(var(--muted-foreground))' },
-];
-
-// Data by supplier
-const supplierData = [
-  { name: 'Hòa Phát Steel', received: 95000, issued: 78000, value: 1.76, materials: 5, color: 'hsl(var(--primary))' },
-  { name: 'Pomina Steel', received: 45000, issued: 38000, value: 0.83, materials: 3, color: 'hsl(var(--success))' },
-  { name: 'BT Việt Đức', received: 2050, issued: 1850, value: 2.31, materials: 2, color: 'hsl(var(--warning))' },
-  { name: 'Holcim VN', received: 1500, issued: 1200, value: 0.54, materials: 4, color: 'hsl(var(--info))' },
-  { name: 'Khác', received: 3200, issued: 2800, value: 0.65, materials: 8, color: 'hsl(var(--muted-foreground))' },
-];
-
-// Data by warehouse
-const warehouseData = [
-  { name: 'Kho A - Chính', received: 120000, issued: 98000, stock: 22000, capacity: 85, color: 'hsl(var(--primary))' },
-  { name: 'Kho B - Phụ', received: 35000, issued: 28000, stock: 7000, capacity: 60, color: 'hsl(var(--success))' },
-  { name: 'Kho C - Tạm', received: 12000, issued: 10500, stock: 1500, capacity: 45, color: 'hsl(var(--warning))' },
-];
-
-// Data by cost code
-const costCodeData = [
-  { name: 'Móng M1-M5', received: 45000, issued: 42000, variance: 2.3, progress: 85, color: 'hsl(var(--primary))' },
-  { name: 'Cột C1-C10', received: 38000, issued: 35500, variance: 1.8, progress: 72, color: 'hsl(var(--success))' },
-  { name: 'Sàn T1-T5', received: 52000, issued: 48000, variance: 3.1, progress: 65, color: 'hsl(var(--warning))' },
-  { name: 'Dầm D1-D8', received: 28000, issued: 26000, variance: 1.5, progress: 58, color: 'hsl(var(--info))' },
-  { name: 'MEP Điện', received: 15000, issued: 12000, variance: 4.2, progress: 40, color: 'hsl(var(--destructive))' },
-];
-
-const topMaterialsData = [
-  { name: 'Thép φ16', received: 95000, issued: 78000 },
-  { name: 'Thép φ12', received: 70000, issued: 62000 },
-  { name: 'BT C30', received: 2050, issued: 1850 },
-  { name: 'BT C25', received: 1450, issued: 1320 },
-  { name: 'Xi măng', received: 1200, issued: 980 },
-];
+export interface MaterialData {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+  category: string;
+  demand: number;
+  purchased: number;
+  received: number;
+  used: number;
+  stock: number;
+  price: number;
+  variance: number;
+}
 
 type GroupByAttribute = 'time' | 'category' | 'supplier' | 'warehouse' | 'costCode';
 
 interface MaterialChartsProps {
   className?: string;
+  filters?: MaterialFilters;
+  materials?: MaterialData[];
 }
 
-export const MaterialCharts: React.FC<MaterialChartsProps> = ({ className }) => {
+// Mock time-based data (can be filtered by category later)
+const generateTimeData = (materials: MaterialData[]) => {
+  // Aggregate data by month based on materials
+  const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
+  const totalIssued = materials.reduce((sum, m) => sum + m.used, 0);
+  const totalStock = materials.reduce((sum, m) => sum + m.stock, 0);
+  
+  // Generate proportional monthly data
+  const monthFactors = [0.06, 0.07, 0.08, 0.06, 0.09, 0.10, 0.08, 0.12, 0.10, 0.11, 0.09, 0.10];
+  
+  return monthFactors.map((factor, idx) => ({
+    month: `T${idx + 1}`,
+    received: Math.round(totalReceived * factor),
+    issued: Math.round(totalIssued * factor),
+    stock: Math.round(totalStock * (0.2 + idx * 0.07)),
+    value: parseFloat((totalReceived * factor * 0.00001).toFixed(1)),
+  }));
+};
+
+const generateWeeklyData = (materials: MaterialData[]) => {
+  const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
+  const totalIssued = materials.reduce((sum, m) => sum + m.used, 0);
+  
+  return [
+    { week: 'Tuần 1', received: Math.round(totalReceived * 0.22), issued: Math.round(totalIssued * 0.20), stock: Math.round(totalReceived * 0.02) },
+    { week: 'Tuần 2', received: Math.round(totalReceived * 0.28), issued: Math.round(totalIssued * 0.25), stock: Math.round(totalReceived * 0.05) },
+    { week: 'Tuần 3', received: Math.round(totalReceived * 0.24), issued: Math.round(totalIssued * 0.28), stock: Math.round(totalReceived * 0.01) },
+    { week: 'Tuần 4', received: Math.round(totalReceived * 0.26), issued: Math.round(totalIssued * 0.27), stock: Math.round(totalReceived * 0.03) },
+  ];
+};
+
+export const MaterialCharts: React.FC<MaterialChartsProps> = ({ 
+  className, 
+  filters,
+  materials = [] 
+}) => {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
   const [groupBy, setGroupBy] = useState<GroupByAttribute>('time');
 
-  const chartData = timeRange === 'week' ? weeklyData : monthlyData;
+  // Check if filters are active
+  const hasActiveFilters = useMemo(() => {
+    if (!filters) return false;
+    return (
+      filters.search !== '' ||
+      filters.categories.length > 0 ||
+      filters.stockStatus !== 'all' ||
+      filters.units.length > 0 ||
+      filters.priceMin !== '' ||
+      filters.priceMax !== '' ||
+      filters.stockMin !== '' ||
+      filters.stockMax !== '' ||
+      filters.varianceStatus !== 'all'
+    );
+  }, [filters]);
+
+  // Generate chart data from filtered materials
+  const chartData = useMemo(() => {
+    if (materials.length === 0) {
+      return timeRange === 'week' ? [] : [];
+    }
+    return timeRange === 'week' ? generateWeeklyData(materials) : generateTimeData(materials);
+  }, [materials, timeRange]);
+
   const xKey = timeRange === 'week' ? 'week' : 'month';
+
+  // Generate category data from filtered materials
+  const categoryData = useMemo(() => {
+    const categoryMap = new Map<string, { received: number; issued: number; stock: number; value: number }>();
+    
+    materials.forEach(m => {
+      const existing = categoryMap.get(m.category) || { received: 0, issued: 0, stock: 0, value: 0 };
+      categoryMap.set(m.category, {
+        received: existing.received + m.received,
+        issued: existing.issued + m.used,
+        stock: existing.stock + m.stock,
+        value: existing.value + (m.received * m.price),
+      });
+    });
+
+    const totalValue = Array.from(categoryMap.values()).reduce((sum, cat) => sum + cat.value, 0);
+
+    return Array.from(categoryMap.entries()).map(([category, data], index) => ({
+      name: categoryLabels[category] || category,
+      received: data.received,
+      issued: data.issued,
+      stock: data.stock,
+      value: Math.round((data.value / totalValue) * 100) || 0,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+  }, [materials]);
+
+  // Generate top materials data
+  const topMaterialsData = useMemo(() => {
+    return [...materials]
+      .sort((a, b) => b.received - a.received)
+      .slice(0, 5)
+      .map(m => ({
+        name: m.code,
+        received: m.received,
+        issued: m.used,
+      }));
+  }, [materials]);
+
+  // Mock data for supplier, warehouse, cost code (can be enhanced with real relationships)
+  const supplierData = useMemo(() => {
+    // Group by category as proxy for supplier grouping
+    const groups = categoryData.slice(0, 5).map((cat, idx) => ({
+      name: ['Hòa Phát Steel', 'Pomina Steel', 'BT Việt Đức', 'Holcim VN', 'Khác'][idx] || cat.name,
+      received: cat.received,
+      issued: cat.issued,
+      value: parseFloat((cat.received * 0.00002).toFixed(2)),
+      color: CHART_COLORS[idx % CHART_COLORS.length],
+    }));
+    return groups.length > 0 ? groups : [{ name: 'Không có dữ liệu', received: 0, issued: 0, value: 0, color: CHART_COLORS[0] }];
+  }, [categoryData]);
+
+  const warehouseData = useMemo(() => {
+    const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
+    const totalIssued = materials.reduce((sum, m) => sum + m.used, 0);
+    const totalStock = materials.reduce((sum, m) => sum + m.stock, 0);
+    
+    if (totalReceived === 0) {
+      return [{ name: 'Không có dữ liệu', received: 0, issued: 0, stock: 0, capacity: 0, color: CHART_COLORS[0] }];
+    }
+    
+    return [
+      { name: 'Kho A - Chính', received: Math.round(totalReceived * 0.7), issued: Math.round(totalIssued * 0.7), stock: Math.round(totalStock * 0.7), capacity: 85, color: CHART_COLORS[0] },
+      { name: 'Kho B - Phụ', received: Math.round(totalReceived * 0.2), issued: Math.round(totalIssued * 0.2), stock: Math.round(totalStock * 0.2), capacity: 60, color: CHART_COLORS[1] },
+      { name: 'Kho C - Tạm', received: Math.round(totalReceived * 0.1), issued: Math.round(totalIssued * 0.1), stock: Math.round(totalStock * 0.1), capacity: 45, color: CHART_COLORS[2] },
+    ];
+  }, [materials]);
+
+  const costCodeData = useMemo(() => {
+    const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
+    const totalIssued = materials.reduce((sum, m) => sum + m.used, 0);
+    const avgVariance = materials.length > 0 
+      ? materials.reduce((sum, m) => sum + m.variance, 0) / materials.length 
+      : 0;
+    
+    if (totalReceived === 0) {
+      return [{ name: 'Không có dữ liệu', received: 0, issued: 0, variance: 0, progress: 0, color: CHART_COLORS[0] }];
+    }
+    
+    return [
+      { name: 'Móng M1-M5', received: Math.round(totalReceived * 0.25), issued: Math.round(totalIssued * 0.24), variance: parseFloat((avgVariance * 0.8).toFixed(1)), progress: 85, color: CHART_COLORS[0] },
+      { name: 'Cột C1-C10', received: Math.round(totalReceived * 0.21), issued: Math.round(totalIssued * 0.20), variance: parseFloat((avgVariance * 0.6).toFixed(1)), progress: 72, color: CHART_COLORS[1] },
+      { name: 'Sàn T1-T5', received: Math.round(totalReceived * 0.29), issued: Math.round(totalIssued * 0.28), variance: parseFloat((avgVariance * 1.1).toFixed(1)), progress: 65, color: CHART_COLORS[2] },
+      { name: 'Dầm D1-D8', received: Math.round(totalReceived * 0.16), issued: Math.round(totalIssued * 0.15), variance: parseFloat((avgVariance * 0.5).toFixed(1)), progress: 58, color: CHART_COLORS[3] },
+      { name: 'MEP Điện', received: Math.round(totalReceived * 0.09), issued: Math.round(totalIssued * 0.07), variance: parseFloat((avgVariance * 1.5).toFixed(1)), progress: 40, color: CHART_COLORS[4] },
+    ];
+  }, [materials]);
 
   const groupByOptions = [
     { value: 'time', label: 'Theo thời gian', icon: Layers },
@@ -113,204 +232,230 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({ className }) => 
     { value: 'costCode', label: 'Theo mã CP', icon: FolderCode },
   ];
 
+  // Empty state component
+  const EmptyChart = ({ message }: { message: string }) => (
+    <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground">
+      <AlertCircle className="h-8 w-8 mb-2 opacity-50" />
+      <p className="text-sm">{message}</p>
+    </div>
+  );
+
   const renderTimeCharts = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Area Chart - Nhập xuất theo thời gian */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng nhập xuất theo thời gian</h4>
-        <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorReceived" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorIssued" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--info))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--info))" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey={xKey} 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <YAxis 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-              />
-              <Legend 
-                formatter={(value) => (
-                  <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
-                )}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="received" 
-                name="Nhập kho"
-                stroke="hsl(var(--success))" 
-                fillOpacity={1} 
-                fill="url(#colorReceived)" 
-              />
-              <Area 
-                type="monotone" 
-                dataKey="issued" 
-                name="Xuất kho"
-                stroke="hsl(var(--info))" 
-                fillOpacity={1} 
-                fill="url(#colorIssued)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {chartData.length > 0 ? (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorReceived" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorIssued" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--info))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--info))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey={xKey} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  formatter={(value: number) => value.toLocaleString()}
+                />
+                <Legend 
+                  formatter={(value) => (
+                    <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
+                  )}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="received" 
+                  name="Nhập kho"
+                  stroke="hsl(var(--success))" 
+                  fillOpacity={1} 
+                  fill="url(#colorReceived)" 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="issued" 
+                  name="Xuất kho"
+                  stroke="hsl(var(--info))" 
+                  fillOpacity={1} 
+                  fill="url(#colorIssued)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Không có dữ liệu vật tư phù hợp" />
+        )}
       </div>
 
       {/* Line Chart - Tồn kho theo thời gian */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="font-medium text-sm text-muted-foreground mb-4">Biến động tồn kho</h4>
-        <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey={xKey} 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <YAxis 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-              />
-              <Legend 
-                formatter={(value) => (
-                  <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
-                )}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="stock" 
-                name="Tồn kho"
-                stroke="hsl(var(--warning))" 
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--warning))', strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
-              {timeRange === 'month' && (
+        {chartData.length > 0 ? (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey={xKey} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  formatter={(value: number) => value.toLocaleString()}
+                />
+                <Legend 
+                  formatter={(value) => (
+                    <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
+                  )}
+                />
                 <Line 
                   type="monotone" 
-                  dataKey="value" 
-                  name="Giá trị (tỷ)"
-                  stroke="hsl(var(--primary))" 
+                  dataKey="stock" 
+                  name="Tồn kho"
+                  stroke="hsl(var(--warning))" 
                   strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                  dot={{ fill: 'hsl(var(--warning))', strokeWidth: 2 }}
+                  activeDot={{ r: 6 }}
                 />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+                {timeRange === 'month' && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    name="Giá trị (tỷ)"
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Không có dữ liệu vật tư phù hợp" />
+        )}
       </div>
 
       {/* Pie Chart - Phân bổ theo danh mục */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="font-medium text-sm text-muted-foreground mb-4">Phân bổ theo danh mục vật tư</h4>
-        <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={4}
-                dataKey="value"
-                label={({ name, value }) => `${name}: ${value}%`}
-                labelLine={false}
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value: number) => [`${value}%`, 'Tỷ lệ']}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {categoryData.length > 0 ? (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}%`}
+                  labelLine={false}
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number) => [`${value}%`, 'Tỷ lệ']}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Không có dữ liệu danh mục" />
+        )}
       </div>
 
       {/* Bar Chart - Top vật tư */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="font-medium text-sm text-muted-foreground mb-4">Top vật tư nhập xuất nhiều nhất</h4>
-        <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topMaterialsData} layout="vertical" barGap={0}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                type="number"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <YAxis 
-                type="category"
-                dataKey="name"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-                width={70}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                formatter={(value: number) => value.toLocaleString()}
-              />
-              <Legend 
-                formatter={(value) => (
-                  <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
-                )}
-              />
-              <Bar 
-                dataKey="received" 
-                name="Đã nhập"
-                fill="hsl(var(--success))" 
-                radius={[0, 4, 4, 0]} 
-              />
-              <Bar 
-                dataKey="issued" 
-                name="Đã xuất"
-                fill="hsl(var(--info))" 
-                radius={[0, 4, 4, 0]} 
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {topMaterialsData.length > 0 ? (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topMaterialsData} layout="vertical" barGap={0}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  type="number"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  width={70}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  formatter={(value: number) => value.toLocaleString()}
+                />
+                <Legend 
+                  formatter={(value) => (
+                    <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
+                  )}
+                />
+                <Bar 
+                  dataKey="received" 
+                  name="Đã nhập"
+                  fill="hsl(var(--success))" 
+                  radius={[0, 4, 4, 0]} 
+                />
+                <Bar 
+                  dataKey="issued" 
+                  name="Đã xuất"
+                  fill="hsl(var(--info))" 
+                  radius={[0, 4, 4, 0]} 
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Không có dữ liệu vật tư" />
+        )}
       </div>
     </div>
   );
@@ -320,76 +465,84 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({ className }) => 
       {/* Bar Chart - Nhập xuất theo danh mục */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng nhập xuất theo danh mục</h4>
-        <div className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={categoryData} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="name" 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <YAxis 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-                formatter={(value: number) => value.toLocaleString()}
-              />
-              <Legend formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>} />
-              <Bar dataKey="received" name="Đã nhập" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="issued" name="Đã xuất" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="stock" name="Tồn kho" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {categoryData.length > 0 ? (
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={categoryData} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => value.toLocaleString()}
+                />
+                <Legend formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>} />
+                <Bar dataKey="received" name="Đã nhập" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="issued" name="Đã xuất" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="stock" name="Tồn kho" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Không có dữ liệu danh mục" />
+        )}
       </div>
 
       {/* Pie Chart - Tỷ lệ theo danh mục */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="font-medium text-sm text-muted-foreground mb-4">Tỷ lệ giá trị theo danh mục</h4>
-        <div className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                innerRadius={70}
-                outerRadius={100}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value: number, name: string, props: any) => [`${value}%`, props.payload.name]}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend 
-                layout="vertical" 
-                align="right" 
-                verticalAlign="middle"
-                formatter={(value, entry: any) => (
-                  <span style={{ color: 'hsl(var(--foreground))' }}>
-                    {entry.payload.name}: {entry.payload.value}%
-                  </span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {categoryData.length > 0 ? (
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number, name: string, props: any) => [`${value}%`, props.payload.name]}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend 
+                  layout="vertical" 
+                  align="right" 
+                  verticalAlign="middle"
+                  formatter={(value, entry: any) => (
+                    <span style={{ color: 'hsl(var(--foreground))' }}>
+                      {entry.payload.name}: {entry.payload.value}%
+                    </span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Không có dữ liệu danh mục" />
+        )}
       </div>
     </div>
   );
@@ -653,7 +806,14 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({ className }) => 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <div>
           <h3 className="font-semibold text-foreground">Thống kê vật tư</h3>
-          <p className="text-sm text-muted-foreground">Phân tích dữ liệu nhập xuất tồn theo nhiều chiều</p>
+          <p className="text-sm text-muted-foreground">
+            Phân tích dữ liệu nhập xuất tồn theo nhiều chiều
+            {hasActiveFilters && (
+              <span className="ml-2 text-primary font-medium">
+                • Đang lọc {materials.length} vật tư
+              </span>
+            )}
+          </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
@@ -692,11 +852,16 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({ className }) => 
         </div>
       </div>
 
-      {/* Active Group Indicator */}
-      <div className="mb-4">
+      {/* Active Group & Filter Indicator */}
+      <div className="mb-4 flex flex-wrap gap-2">
         <Badge variant="secondary" className="text-xs">
           Đang xem: {groupByOptions.find(o => o.value === groupBy)?.label}
         </Badge>
+        {hasActiveFilters && (
+          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+            Bộ lọc đang hoạt động
+          </Badge>
+        )}
       </div>
 
       {/* Charts */}
