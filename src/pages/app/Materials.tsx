@@ -12,6 +12,8 @@ import {
   FileSpreadsheet,
   FileText,
   ChevronDown,
+  ChevronUp,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +37,7 @@ import { formatCurrency } from '@/data/mockData';
 import { toast } from '@/hooks/use-toast';
 import { MaterialTransactionDialog, TransactionType } from '@/components/materials/MaterialTransactionDialog';
 import { InventoryCheckDialog } from '@/components/materials/InventoryCheckDialog';
+import { MaterialCharts } from '@/components/materials/MaterialCharts';
 import { exportToExcel, exportToPDF, formatNumberForExport } from '@/lib/export-utils';
 
 // Mock material data
@@ -87,6 +90,7 @@ const Materials: React.FC = () => {
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<TransactionType>('receive');
   const [inventoryDialogOpen, setInventoryDialogOpen] = useState(false);
+  const [showCharts, setShowCharts] = useState(true);
 
   // Open transaction dialog with type
   const handleOpenTransaction = (type: TransactionType) => {
@@ -205,6 +209,15 @@ const Materials: React.FC = () => {
             <p className="page-subtitle">Theo dõi nhập xuất tồn và định mức vật tư</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              onClick={() => setShowCharts(!showCharts)}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Thống kê
+              {showCharts ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
@@ -305,6 +318,11 @@ const Materials: React.FC = () => {
             variant={mockMaterialKPIs.variance > 5 ? 'destructive' : 'success'}
           />
         </div>
+
+        {/* Charts Section */}
+        {showCharts && (
+          <MaterialCharts className="mb-6" />
+        )}
 
         {/* Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
