@@ -665,14 +665,14 @@ const WBS: React.FC = () => {
               <div className="space-y-2">
                 <Label>Công việc cha</Label>
                 <Select
-                  value={formData.parentId}
-                  onValueChange={(value) => setFormData({ ...formData, parentId: value })}
+                  value={formData.parentId || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, parentId: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn công việc cha" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- Cấp cao nhất --</SelectItem>
+                    <SelectItem value="none">-- Cấp cao nhất --</SelectItem>
                     {allItems.map(item => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.code} - {item.name}
