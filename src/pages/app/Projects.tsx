@@ -17,6 +17,7 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
+  ArrowUpDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,8 @@ const Projects: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stageFilter, setStageFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showCharts, setShowCharts] = useState(true);
   
   // Dialog states
@@ -123,14 +126,41 @@ const Projects: React.FC = () => {
     }
   };
 
-  // Filter projects
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.code.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
-    return matchesSearch && matchesStatus && matchesStage;
-  });
+  // Filter and sort projects
+  const filteredProjects = projects
+    .filter(project => {
+      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           project.code.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+      const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
+      return matchesSearch && matchesStatus && matchesStage;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'budget':
+          comparison = a.budget - b.budget;
+          break;
+        case 'progress':
+          comparison = a.progress - b.progress;
+          break;
+        case 'startDate':
+          comparison = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+          break;
+        case 'actual':
+          comparison = a.actual - b.actual;
+          break;
+        case 'name':
+        default:
+          comparison = a.name.localeCompare(b.name, 'vi');
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
 
   const getStatusBadgeType = (status: Project['status']) => {
     switch (status) {
@@ -219,6 +249,34 @@ const Projects: React.FC = () => {
             <SelectItem value="finishing">Hoàn thiện</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Sort Controls */}
+        <div className="flex items-center gap-1">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Theo tên</SelectItem>
+              <SelectItem value="budget">Theo ngân sách</SelectItem>
+              <SelectItem value="actual">Theo thực chi</SelectItem>
+              <SelectItem value="progress">Theo tiến độ</SelectItem>
+              <SelectItem value="startDate">Theo ngày tạo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={toggleSortOrder}
+            title={sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+          >
+            <ArrowUpDown className={cn(
+              "h-4 w-4 transition-transform",
+              sortOrder === 'desc' && "rotate-180"
+            )} />
+          </Button>
+        </div>
 
         <div className="flex items-center gap-1 ml-auto border border-border rounded-lg p-1">
           <Button
