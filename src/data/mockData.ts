@@ -45,6 +45,7 @@ export interface Permission {
   module: string;
   view: boolean;
   edit: boolean;
+  approve?: boolean;
 }
 
 export interface RolePermissions {
@@ -309,6 +310,7 @@ export const moduleNames: Record<string, string> = {
   costs: 'Chi phí',
   contracts: 'Hợp đồng',
   payments: 'Thanh toán',
+  approvals: 'Phê duyệt',
   progress: 'Tiến độ',
   reports: 'Báo cáo',
   admin: 'Quản trị',
@@ -318,11 +320,11 @@ export const moduleNames: Record<string, string> = {
 export const rolePermissions: RolePermissions[] = [
   {
     role: 'super_admin',
-    permissions: Object.keys(moduleNames).map(m => ({ module: m, view: true, edit: true })),
+    permissions: Object.keys(moduleNames).map(m => ({ module: m, view: true, edit: true, approve: true })),
   },
   {
     role: 'company_owner',
-    permissions: Object.keys(moduleNames).map(m => ({ module: m, view: true, edit: true })),
+    permissions: Object.keys(moduleNames).map(m => ({ module: m, view: true, edit: true, approve: true })),
   },
   {
     role: 'project_manager',
@@ -336,6 +338,7 @@ export const rolePermissions: RolePermissions[] = [
       { module: 'costs', view: true, edit: true },
       { module: 'contracts', view: true, edit: false },
       { module: 'payments', view: true, edit: false },
+      { module: 'approvals', view: true, edit: true, approve: false },
       { module: 'progress', view: true, edit: true },
       { module: 'reports', view: true, edit: false },
       { module: 'admin', view: false, edit: false },
@@ -353,6 +356,7 @@ export const rolePermissions: RolePermissions[] = [
       { module: 'costs', view: true, edit: true },
       { module: 'contracts', view: true, edit: false },
       { module: 'payments', view: true, edit: false },
+      { module: 'approvals', view: true, edit: true, approve: false },
       { module: 'progress', view: true, edit: false },
       { module: 'reports', view: true, edit: true },
       { module: 'admin', view: false, edit: false },
@@ -370,6 +374,7 @@ export const rolePermissions: RolePermissions[] = [
       { module: 'costs', view: false, edit: false },
       { module: 'contracts', view: false, edit: false },
       { module: 'payments', view: false, edit: false },
+      { module: 'approvals', view: true, edit: true, approve: false },
       { module: 'progress', view: true, edit: false },
       { module: 'reports', view: true, edit: false },
       { module: 'admin', view: false, edit: false },
@@ -387,6 +392,7 @@ export const rolePermissions: RolePermissions[] = [
       { module: 'costs', view: true, edit: true },
       { module: 'contracts', view: true, edit: true },
       { module: 'payments', view: true, edit: true },
+      { module: 'approvals', view: true, edit: false, approve: false },
       { module: 'progress', view: false, edit: false },
       { module: 'reports', view: true, edit: true },
       { module: 'admin', view: false, edit: false },
