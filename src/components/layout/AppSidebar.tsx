@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Lock,
   Home,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,6 +90,7 @@ const AppSidebar: React.FC = () => {
     { to: `/app/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí', module: 'costs' },
     { to: `/app/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng', module: 'contracts' },
     { to: `/app/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán', module: 'payments' },
+    { to: `/app/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt', module: 'approvals' },
     { to: `/app/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ', module: 'progress' },
     { to: `/app/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo', module: 'reports' },
   ] : [];
