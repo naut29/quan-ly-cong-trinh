@@ -3,19 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { 
   FolderKanban, 
   Search, 
-  Filter, 
   Grid3X3, 
   List, 
   Plus,
   MapPin,
   Calendar,
   AlertTriangle,
-  TrendingUp,
   MoreVertical,
   Edit,
   Trash2,
   Eye,
   User,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFormDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
+import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
@@ -55,6 +57,7 @@ const Projects: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stageFilter, setStageFilter] = useState<string>('all');
+  const [showCharts, setShowCharts] = useState(true);
   
   // Dialog states
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
@@ -157,13 +160,29 @@ const Projects: React.FC = () => {
             Quản lý {projects.length} dự án của bạn
           </p>
         </div>
-        {canEdit && (
-          <Button className="gap-2" onClick={handleCreateProject}>
-            <Plus className="h-4 w-4" />
-            Tạo dự án mới
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2" 
+            onClick={() => setShowCharts(!showCharts)}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Thống kê
+            {showCharts ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
-        )}
+          {canEdit && (
+            <Button className="gap-2" onClick={handleCreateProject}>
+              <Plus className="h-4 w-4" />
+              Tạo dự án mới
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Overview Charts */}
+      {showCharts && projects.length > 0 && (
+        <ProjectsOverviewCharts projects={projects} />
+      )}
 
       {/* Filter Bar */}
       <div className="filter-bar rounded-xl bg-card">
