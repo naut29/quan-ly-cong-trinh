@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CostFormDialog, CostEntry } from '@/components/costs/CostFormDialog';
+import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import {
@@ -244,6 +246,39 @@ const Costs: React.FC = () => {
   const [activeTab, setActiveTab] = useState('entries');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [costDialogOpen, setCostDialogOpen] = useState(false);
+  const [costDialogMode, setCostDialogMode] = useState<'create' | 'edit'>('create');
+  const [selectedCost, setSelectedCost] = useState<CostEntry | undefined>(undefined);
+
+  const handleAddCost = () => {
+    setCostDialogMode('create');
+    setSelectedCost(undefined);
+    setCostDialogOpen(true);
+  };
+
+  const handleEditCost = (entry: typeof mockCostEntries[0]) => {
+    setCostDialogMode('edit');
+    setSelectedCost({
+      ...entry,
+      category: entry.category as CostEntry['category'],
+      status: entry.status as CostEntry['status'],
+    });
+    setCostDialogOpen(true);
+  };
+
+  const handleCostSubmit = (data: any) => {
+    if (costDialogMode === 'create') {
+      toast({
+        title: 'Thêm chi phí thành công',
+        description: `Chi phí ${data.code} đã được thêm vào hệ thống.`,
+      });
+    } else {
+      toast({
+        title: 'Cập nhật thành công',
+        description: `Chi phí ${data.code} đã được cập nhật.`,
+      });
+    }
+  };
 
   // Filter cost entries
   const filteredEntries = mockCostEntries.filter((entry) => {
@@ -293,7 +328,7 @@ const Costs: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handleAddCost}>
             <Plus className="h-4 w-4 mr-2" />
             Thêm chi phí
           </Button>
@@ -439,7 +474,7 @@ const Costs: React.FC = () => {
                               <Eye className="h-4 w-4 mr-2" />
                               Xem chi tiết
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditCost(entry)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Chỉnh sửa
                             </DropdownMenuItem>
@@ -728,6 +763,15 @@ const Costs: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Cost Form Dialog */}
+      <CostFormDialog
+        open={costDialogOpen}
+        onOpenChange={setCostDialogOpen}
+        mode={costDialogMode}
+        initialData={selectedCost}
+        onSubmit={handleCostSubmit}
+      />
     </div>
   );
 };
