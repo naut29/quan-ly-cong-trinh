@@ -5,12 +5,13 @@ import {
   Search, 
   Plus,
   Download,
-  Upload,
   ArrowDownToLine,
   ArrowUpFromLine,
   ArrowLeftRight,
   ClipboardList,
-  Filter,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { formatCurrency } from '@/data/mockData';
+import { toast } from '@/hooks/use-toast';
+import { MaterialTransactionDialog, TransactionType } from '@/components/materials/MaterialTransactionDialog';
+import { InventoryCheckDialog } from '@/components/materials/InventoryCheckDialog';
+import { exportToExcel, exportToPDF, formatNumberForExport } from '@/lib/export-utils';
 
 // Mock material data
 const materialCategories = [
@@ -56,11 +67,13 @@ const mockMaterials = [
 ];
 
 const mockTransactions = [
-  { id: '1', date: '2024-03-15', type: 'receive', material: 'Thép phi 16 SD390', quantity: 5000, unit: 'kg', supplier: 'Hòa Phát Steel', costCode: 'SAN-T8-THEP', warehouse: 'Kho A' },
-  { id: '2', date: '2024-03-15', type: 'issue', material: 'Bê tông C30', quantity: 45, unit: 'm³', costCode: 'COT-C1-BT', warehouse: 'Kho A' },
-  { id: '3', date: '2024-03-14', type: 'receive', material: 'Thép phi 12 SD390', quantity: 3500, unit: 'kg', supplier: 'Pomina Steel', costCode: 'DAM-D1-THEP', warehouse: 'Kho A' },
-  { id: '4', date: '2024-03-14', type: 'issue', material: 'Thép phi 16 SD390', quantity: 2800, unit: 'kg', costCode: 'SAN-T7-THEP', warehouse: 'Kho A' },
-  { id: '5', date: '2024-03-13', type: 'transfer', material: 'Xi măng PCB40', quantity: 500, unit: 'bao', costCode: '', warehouse: 'Kho A → Kho B' },
+  { id: '1', date: '2024-03-15', type: 'receive', material: 'Thép phi 16 SD390', quantity: 5000, unit: 'kg', supplier: 'Hòa Phát Steel', costCode: '', warehouse: 'Kho A' },
+  { id: '2', date: '2024-03-15', type: 'issue', material: 'Bê tông C30', quantity: 45, unit: 'm³', supplier: '', costCode: 'COT-C1-BT', warehouse: 'Kho A' },
+  { id: '3', date: '2024-03-14', type: 'receive', material: 'Thép phi 12 SD390', quantity: 3500, unit: 'kg', supplier: 'Pomina Steel', costCode: '', warehouse: 'Kho A' },
+  { id: '4', date: '2024-03-14', type: 'issue', material: 'Thép phi 16 SD390', quantity: 2800, unit: 'kg', supplier: '', costCode: 'SAN-T7-THEP', warehouse: 'Kho A' },
+  { id: '5', date: '2024-03-13', type: 'transfer', material: 'Xi măng PCB40', quantity: 500, unit: 'bao', supplier: '', costCode: '', warehouse: 'Kho A → Kho B' },
+  { id: '6', date: '2024-03-13', type: 'issue', material: 'Thép phi 10 SD390', quantity: 1500, unit: 'kg', supplier: '', costCode: 'DAM-D1-THEP', warehouse: 'Kho A' },
+  { id: '7', date: '2024-03-12', type: 'receive', material: 'Bê tông C25', quantity: 80, unit: 'm³', supplier: 'Bê tông Việt Đức', costCode: '', warehouse: 'Kho A' },
 ];
 
 const Materials: React.FC = () => {
@@ -68,6 +81,119 @@ const Materials: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('overview');
   const [activeTab, setActiveTab] = useState('summary');
   const [searchQuery, setSearchQuery] = useState('');
+  const [transactionFilter, setTransactionFilter] = useState('all');
+  
+  // Dialog states
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [transactionType, setTransactionType] = useState<TransactionType>('receive');
+  const [inventoryDialogOpen, setInventoryDialogOpen] = useState(false);
+
+  // Open transaction dialog with type
+  const handleOpenTransaction = (type: TransactionType) => {
+    setTransactionType(type);
+    setTransactionDialogOpen(true);
+  };
+
+  // Handle transaction submit
+  const handleTransactionSubmit = (data: any) => {
+    const typeLabels = {
+      receive: 'Nhập kho',
+      issue: 'Xuất kho',
+      transfer: 'Điều chuyển',
+    };
+    
+    toast({
+      title: `${typeLabels[data.type]} thành công`,
+      description: `Đã ${typeLabels[data.type].toLowerCase()} ${data.quantity.toLocaleString()} đơn vị vật tư.`,
+    });
+  };
+
+  // Handle inventory check submit
+  const handleInventorySubmit = (items: any[]) => {
+    const checkedCount = items.filter(i => i.actualStock !== null).length;
+    toast({
+      title: 'Kiểm kê thành công',
+      description: `Đã kiểm kê ${checkedCount} mục vật tư.`,
+    });
+  };
+
+  // Export functions
+  const handleExportMaterialsExcel = () => {
+    const exportData = mockMaterials.map(m => ({
+      code: m.code,
+      name: m.name,
+      unit: m.unit,
+      demand: formatNumberForExport(m.demand),
+      purchased: formatNumberForExport(m.purchased),
+      received: formatNumberForExport(m.received),
+      used: formatNumberForExport(m.used),
+      stock: formatNumberForExport(m.stock),
+      variance: `${m.variance}%`,
+    }));
+
+    exportToExcel({
+      title: 'Danh sách vật tư',
+      fileName: `vat-tu-${new Date().toISOString().split('T')[0]}`,
+      columns: [
+        { header: 'Mã VT', key: 'code', width: 12 },
+        { header: 'Tên vật tư', key: 'name', width: 30 },
+        { header: 'ĐVT', key: 'unit', width: 8 },
+        { header: 'Nhu cầu', key: 'demand', width: 15 },
+        { header: 'Đã mua', key: 'purchased', width: 15 },
+        { header: 'Đã nhập', key: 'received', width: 15 },
+        { header: 'Đã dùng', key: 'used', width: 15 },
+        { header: 'Tồn kho', key: 'stock', width: 15 },
+        { header: 'Hao hụt', key: 'variance', width: 10 },
+      ],
+      data: exportData,
+    });
+
+    toast({
+      title: 'Xuất Excel thành công',
+      description: `Đã xuất ${mockMaterials.length} vật tư ra file Excel.`,
+    });
+  };
+
+  const handleExportMaterialsPDF = () => {
+    const exportData = mockMaterials.map(m => ({
+      code: m.code,
+      name: m.name,
+      unit: m.unit,
+      demand: formatNumberForExport(m.demand),
+      received: formatNumberForExport(m.received),
+      used: formatNumberForExport(m.used),
+      stock: formatNumberForExport(m.stock),
+      variance: `${m.variance}%`,
+    }));
+
+    exportToPDF({
+      title: 'Danh sách vật tư',
+      subtitle: `Xuất ngày ${new Date().toLocaleDateString('vi-VN')}`,
+      fileName: `vat-tu-${new Date().toISOString().split('T')[0]}`,
+      columns: [
+        { header: 'Mã VT', key: 'code', width: 12 },
+        { header: 'Tên vật tư', key: 'name', width: 30 },
+        { header: 'ĐVT', key: 'unit', width: 8 },
+        { header: 'Nhu cầu', key: 'demand', width: 12 },
+        { header: 'Đã nhập', key: 'received', width: 12 },
+        { header: 'Đã dùng', key: 'used', width: 12 },
+        { header: 'Tồn', key: 'stock', width: 12 },
+        { header: 'Hao hụt', key: 'variance', width: 10 },
+      ],
+      data: exportData,
+    });
+
+    toast({
+      title: 'Xuất PDF thành công',
+      description: `Đã xuất ${mockMaterials.length} vật tư ra file PDF.`,
+    });
+  };
+
+  // Filter transactions
+  const filteredTransactions = mockTransactions.filter(tx => {
+    if (transactionFilter === 'all') return true;
+    return tx.type === transactionFilter;
+  });
 
   return (
     <div className="animate-fade-in">
@@ -79,14 +205,52 @@ const Materials: React.FC = () => {
             <p className="page-subtitle">Theo dõi nhập xuất tồn và định mức vật tư</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Xuất Excel
-            </Button>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nhập kho
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Xuất file
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportMaterialsExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Xuất Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportMaterialsPDF}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Xuất PDF (.pdf)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Thao tác kho
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleOpenTransaction('receive')}>
+                  <ArrowDownToLine className="h-4 w-4 mr-2 text-success" />
+                  Nhập kho
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenTransaction('issue')}>
+                  <ArrowUpFromLine className="h-4 w-4 mr-2 text-info" />
+                  Xuất kho
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenTransaction('transfer')}>
+                  <ArrowLeftRight className="h-4 w-4 mr-2 text-warning" />
+                  Điều chuyển
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setInventoryDialogOpen(true)}>
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Kiểm kê
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -125,7 +289,7 @@ const Materials: React.FC = () => {
             subtitle="90% đã mua"
           />
           <KPICard
-            title="Đã dùng"
+            title="Đã xuất"
             value={formatCurrency(mockMaterialKPIs.used)}
             subtitle="87% đã nhập"
           />
@@ -186,7 +350,7 @@ const Materials: React.FC = () => {
                     <th className="text-right">Nhu cầu</th>
                     <th className="text-right">Đã mua</th>
                     <th className="text-right">Đã nhập</th>
-                    <th className="text-right">Đã dùng</th>
+                    <th className="text-right">Đã xuất</th>
                     <th className="text-right">Tồn</th>
                     <th className="text-right">Hao hụt</th>
                   </tr>
@@ -216,23 +380,37 @@ const Materials: React.FC = () => {
 
           <TabsContent value="transactions" className="mt-0">
             {/* Quick Actions */}
-            <div className="flex items-center gap-2 mb-4">
-              <Button className="gap-2">
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Button className="gap-2" onClick={() => handleOpenTransaction('receive')}>
                 <ArrowDownToLine className="h-4 w-4" />
                 Nhập kho
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => handleOpenTransaction('issue')}>
                 <ArrowUpFromLine className="h-4 w-4" />
-                Xuất dùng
+                Xuất kho
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => handleOpenTransaction('transfer')}>
                 <ArrowLeftRight className="h-4 w-4" />
                 Điều chuyển
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => setInventoryDialogOpen(true)}>
                 <ClipboardList className="h-4 w-4" />
                 Kiểm kê
               </Button>
+              
+              <div className="ml-auto">
+                <Select value={transactionFilter} onValueChange={setTransactionFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Lọc loại" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="receive">Nhập kho</SelectItem>
+                    <SelectItem value="issue">Xuất kho</SelectItem>
+                    <SelectItem value="transfer">Điều chuyển</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Transactions Table */}
@@ -250,7 +428,7 @@ const Materials: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockTransactions.map((tx) => (
+                  {filteredTransactions.map((tx) => (
                     <tr key={tx.id}>
                       <td>{tx.date}</td>
                       <td>
@@ -258,7 +436,7 @@ const Materials: React.FC = () => {
                           status={tx.type === 'receive' ? 'success' : tx.type === 'issue' ? 'info' : 'neutral'}
                           dot={false}
                         >
-                          {tx.type === 'receive' ? 'Nhập kho' : tx.type === 'issue' ? 'Xuất dùng' : 'Điều chuyển'}
+                          {tx.type === 'receive' ? 'Nhập kho' : tx.type === 'issue' ? 'Xuất kho' : 'Điều chuyển'}
                         </StatusBadge>
                       </td>
                       <td className="font-medium">{tx.material}</td>
@@ -286,6 +464,21 @@ const Materials: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Transaction Dialog */}
+      <MaterialTransactionDialog
+        open={transactionDialogOpen}
+        onOpenChange={setTransactionDialogOpen}
+        type={transactionType}
+        onSubmit={handleTransactionSubmit}
+      />
+
+      {/* Inventory Check Dialog */}
+      <InventoryCheckDialog
+        open={inventoryDialogOpen}
+        onOpenChange={setInventoryDialogOpen}
+        onSubmit={handleInventorySubmit}
+      />
     </div>
   );
 };
