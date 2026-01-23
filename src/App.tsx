@@ -23,6 +23,13 @@ import Contracts from "./pages/app/Contracts";
 import Reports from "./pages/app/Reports";
 import AdminUsers from "./pages/app/AdminUsers";
 import AdminRoles from "./pages/app/AdminRoles";
+import AdminCompany from "./pages/app/AdminCompany";
+import AdminAuditLog from "./pages/app/AdminAuditLog";
+import AdminIntegrations from "./pages/app/AdminIntegrations";
+import AdminBilling from "./pages/app/AdminBilling";
+import PlatformTenants from "./pages/platform/Tenants";
+import PlatformUsers from "./pages/platform/Users";
+import PlatformBilling from "./pages/platform/Billing";
 
 // Guards
 import ProjectGuard from "./components/guards/ProjectGuard";
@@ -65,19 +72,19 @@ const App = () => (
               <Route path="projects/:id/reports" element={<ProjectGuard><PermissionGuard module="reports"><Reports /></PermissionGuard></ProjectGuard>} />
 
               {/* Admin Routes */}
-              <Route path="admin/company" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
+              <Route path="admin/company" element={<PermissionGuard module="admin"><AdminCompany /></PermissionGuard>} />
               <Route path="admin/users" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
               <Route path="admin/roles" element={<PermissionGuard module="admin"><AdminRoles /></PermissionGuard>} />
-              <Route path="admin/audit-log" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
-              <Route path="admin/integrations" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
-              <Route path="admin/billing" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
+              <Route path="admin/audit-log" element={<PermissionGuard module="admin"><AdminAuditLog /></PermissionGuard>} />
+              <Route path="admin/integrations" element={<PermissionGuard module="admin"><AdminIntegrations /></PermissionGuard>} />
+              <Route path="admin/billing" element={<PermissionGuard module="admin"><AdminBilling /></PermissionGuard>} />
             </Route>
 
             {/* Platform Routes (Super Admin) */}
             <Route path="/platform" element={<AppLayout />}>
-              <Route path="tenants" element={<AdminUsers />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="billing" element={<AdminUsers />} />
+              <Route path="tenants" element={<PlatformTenants />} />
+              <Route path="users" element={<PlatformUsers />} />
+              <Route path="billing" element={<PlatformBilling />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
