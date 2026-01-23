@@ -28,9 +28,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Building2, Search, Mail, Phone, MapPin, User, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Search, Mail, Phone, MapPin, User, Upload, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { SupplierImportDialog, ImportedSupplier } from './SupplierImportDialog';
+import * as XLSX from 'xlsx';
 
 export interface SupplierData {
   id: string;
@@ -230,6 +231,45 @@ export const SupplierManagementDialog: React.FC<SupplierManagementDialogProps> =
     });
   };
 
+  const handleExport = () => {
+    const exportData = suppliers.map(s => ({
+      'Mã NCC': s.code,
+      'Tên nhà cung cấp': s.name,
+      'Mã số thuế': s.taxCode,
+      'Địa chỉ': s.address,
+      'Người liên hệ': s.contactPerson,
+      'Điện thoại': s.phone,
+      'Email': s.email,
+      'Vật tư cung cấp': s.materials.join(', '),
+      'Ghi chú': s.notes,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Nhà cung cấp');
+    
+    // Auto-size columns
+    const colWidths = [
+      { wch: 12 }, // Mã NCC
+      { wch: 30 }, // Tên NCC
+      { wch: 15 }, // MST
+      { wch: 40 }, // Địa chỉ
+      { wch: 20 }, // Người liên hệ
+      { wch: 15 }, // Điện thoại
+      { wch: 25 }, // Email
+      { wch: 30 }, // Vật tư
+      { wch: 25 }, // Ghi chú
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.writeFile(wb, `Danh_sach_NCC_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: 'Xuất Excel thành công',
+      description: `Đã xuất ${suppliers.length} nhà cung cấp ra file Excel.`,
+    });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -254,6 +294,10 @@ export const SupplierManagementDialog: React.FC<SupplierManagementDialogProps> =
                       className="pl-9"
                     />
                   </div>
+                  <Button variant="outline" onClick={handleExport} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Xuất Excel
+                  </Button>
                   <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
                     <Upload className="h-4 w-4" />
                     Import Excel

@@ -34,9 +34,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Package, Search, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, Search, Upload, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { MaterialImportDialog, ImportedMaterial } from './MaterialImportDialog';
+import * as XLSX from 'xlsx';
 
 export interface MaterialData {
   id: string;
@@ -192,6 +193,41 @@ export const MaterialManagementDialog: React.FC<MaterialManagementDialogProps> =
     });
   };
 
+  const handleExport = () => {
+    const exportData = materials.map(m => ({
+      'Mã vật tư': m.code,
+      'Tên vật tư': m.name,
+      'Nhóm': getCategoryLabel(m.category),
+      'Đơn vị': m.unit,
+      'Đơn giá': m.price,
+      'Tồn tối thiểu': m.minStock,
+      'Ghi chú': m.notes,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh mục vật tư');
+    
+    // Auto-size columns
+    const colWidths = [
+      { wch: 15 }, // Mã vật tư
+      { wch: 35 }, // Tên vật tư
+      { wch: 15 }, // Nhóm
+      { wch: 10 }, // Đơn vị
+      { wch: 15 }, // Đơn giá
+      { wch: 15 }, // Tồn tối thiểu
+      { wch: 30 }, // Ghi chú
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.writeFile(wb, `Danh_muc_vat_tu_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: 'Xuất Excel thành công',
+      description: `Đã xuất ${materials.length} vật tư ra file Excel.`,
+    });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -227,6 +263,10 @@ export const MaterialManagementDialog: React.FC<MaterialManagementDialogProps> =
                       ))}
                     </SelectContent>
                   </Select>
+                  <Button variant="outline" onClick={handleExport} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Xuất Excel
+                  </Button>
                   <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
                     <Upload className="h-4 w-4" />
                     Import Excel
