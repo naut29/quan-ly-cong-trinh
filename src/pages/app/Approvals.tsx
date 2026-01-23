@@ -30,6 +30,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Plus,
   Search,
@@ -51,6 +52,7 @@ import {
   Calendar,
   User,
   Building,
+  Lock,
 } from 'lucide-react';
 
 // Mock data for material approvals
@@ -223,6 +225,7 @@ const defaultFormData: ApprovalFormData = {
 
 const Approvals: React.FC = () => {
   const { id: projectId } = useParams();
+  const { hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState('materials');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -232,6 +235,11 @@ const Approvals: React.FC = () => {
   const [formData, setFormData] = useState<ApprovalFormData>(defaultFormData);
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
+
+  // Permission checks
+  const canView = hasPermission('approvals', 'view');
+  const canEdit = hasPermission('approvals', 'edit');
+  const canApprove = hasPermission('approvals', 'approve');
 
   // KPIs
   const materialStats = {
@@ -334,13 +342,35 @@ const Approvals: React.FC = () => {
             <p className="page-subtitle">Quản lý phê duyệt vật tư và bản vẽ với Chủ đầu tư</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button className="gap-2" onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Tạo yêu cầu
-            </Button>
+            {canEdit ? (
+              <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Tạo yêu cầu
+              </Button>
+            ) : (
+              <Button className="gap-2" disabled variant="outline">
+                <Lock className="h-4 w-4" />
+                Tạo yêu cầu
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Permission Info Banner */}
+      {!canApprove && canView && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted border border-border">
+          <Lock className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium">Quyền hạn của bạn</p>
+            <p className="text-muted-foreground mt-1">
+              {canEdit 
+                ? 'Bạn có thể xem và tạo yêu cầu phê duyệt. Chỉ Giám đốc/Chủ đầu tư mới có quyền phê duyệt hoặc từ chối.'
+                : 'Bạn chỉ có quyền xem các yêu cầu phê duyệt. Liên hệ quản lý để được cấp quyền tạo yêu cầu.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -469,14 +499,20 @@ const Approvals: React.FC = () => {
                               <Download className="h-4 w-4" />
                               Tải đính kèm
                             </DropdownMenuItem>
-                            {item.status === 'pending' && (
+                            {item.status === 'pending' && canApprove && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="gap-2 text-success">
+                                <DropdownMenuItem className="gap-2 text-success" onClick={() => {
+                                  handleViewDetail(item);
+                                  handleApprovalAction('approve');
+                                }}>
                                   <CheckCircle2 className="h-4 w-4" />
                                   Phê duyệt
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2 text-destructive">
+                                <DropdownMenuItem className="gap-2 text-destructive" onClick={() => {
+                                  handleViewDetail(item);
+                                  handleApprovalAction('reject');
+                                }}>
                                   <XCircle className="h-4 w-4" />
                                   Từ chối
                                 </DropdownMenuItem>
@@ -554,14 +590,20 @@ const Approvals: React.FC = () => {
                               <Download className="h-4 w-4" />
                               Tải bản vẽ
                             </DropdownMenuItem>
-                            {(item.status === 'pending' || item.status === 'in_review') && (
+                            {(item.status === 'pending' || item.status === 'in_review') && canApprove && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="gap-2 text-success">
+                                <DropdownMenuItem className="gap-2 text-success" onClick={() => {
+                                  handleViewDetail(item);
+                                  handleApprovalAction('approve');
+                                }}>
                                   <CheckCircle2 className="h-4 w-4" />
                                   Phê duyệt
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2 text-destructive">
+                                <DropdownMenuItem className="gap-2 text-destructive" onClick={() => {
+                                  handleViewDetail(item);
+                                  handleApprovalAction('reject');
+                                }}>
                                   <XCircle className="h-4 w-4" />
                                   Từ chối
                                 </DropdownMenuItem>
@@ -721,44 +763,54 @@ const Approvals: React.FC = () => {
               )}
 
               {/* Approval Actions */}
+              {/* Approval Actions */}
               {(selectedItem.status === 'pending' || selectedItem.status === 'in_review') && (
                 <div className="space-y-4">
-                  {approvalAction ? (
-                    <div className="space-y-3">
-                      <Label>
-                        {approvalAction === 'approve' ? 'Ghi chú phê duyệt' : 'Lý do từ chối'} *
-                      </Label>
-                      <Textarea
-                        value={approvalComment}
-                        onChange={(e) => setApprovalComment(e.target.value)}
-                        placeholder={approvalAction === 'approve' 
-                          ? 'Nhập ghi chú (tùy chọn)...' 
-                          : 'Nhập lý do từ chối...'}
-                        rows={3}
-                      />
+                  {canApprove ? (
+                    approvalAction ? (
+                      <div className="space-y-3">
+                        <Label>
+                          {approvalAction === 'approve' ? 'Ghi chú phê duyệt' : 'Lý do từ chối'} *
+                        </Label>
+                        <Textarea
+                          value={approvalComment}
+                          onChange={(e) => setApprovalComment(e.target.value)}
+                          placeholder={approvalAction === 'approve' 
+                            ? 'Nhập ghi chú (tùy chọn)...' 
+                            : 'Nhập lý do từ chối...'}
+                          rows={3}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant={approvalAction === 'approve' ? 'default' : 'destructive'}
+                            onClick={handleSubmitApproval}
+                            disabled={approvalAction === 'reject' && !approvalComment}
+                          >
+                            {approvalAction === 'approve' ? 'Xác nhận phê duyệt' : 'Xác nhận từ chối'}
+                          </Button>
+                          <Button variant="outline" onClick={() => setApprovalAction(null)}>
+                            Hủy
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
                       <div className="flex gap-2">
-                        <Button
-                          variant={approvalAction === 'approve' ? 'default' : 'destructive'}
-                          onClick={handleSubmitApproval}
-                          disabled={approvalAction === 'reject' && !approvalComment}
-                        >
-                          {approvalAction === 'approve' ? 'Xác nhận phê duyệt' : 'Xác nhận từ chối'}
+                        <Button className="gap-2 flex-1" onClick={() => handleApprovalAction('approve')}>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Phê duyệt
                         </Button>
-                        <Button variant="outline" onClick={() => setApprovalAction(null)}>
-                          Hủy
+                        <Button variant="destructive" className="gap-2 flex-1" onClick={() => handleApprovalAction('reject')}>
+                          <XCircle className="h-4 w-4" />
+                          Từ chối
                         </Button>
                       </div>
-                    </div>
+                    )
                   ) : (
-                    <div className="flex gap-2">
-                      <Button className="gap-2 flex-1" onClick={() => handleApprovalAction('approve')}>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Phê duyệt
-                      </Button>
-                      <Button variant="destructive" className="gap-2 flex-1" onClick={() => handleApprovalAction('reject')}>
-                        <XCircle className="h-4 w-4" />
-                        Từ chối
-                      </Button>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Lock className="h-4 w-4" />
+                        <span className="text-sm">Bạn không có quyền phê duyệt hoặc từ chối yêu cầu này.</span>
+                      </div>
                     </div>
                   )}
                 </div>

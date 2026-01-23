@@ -7,7 +7,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   loginAs: (userId: string) => void;
   logout: () => void;
-  hasPermission: (module: string, action: 'view' | 'edit') => boolean;
+  hasPermission: (module: string, action: 'view' | 'edit' | 'approve') => boolean;
   canAccessProject: (projectId: string) => boolean;
   getUserProjects: () => typeof projects;
   getCurrentTenant: () => typeof tenants[0] | null;
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('auth_user_id');
   }, []);
 
-  const hasPermission = useCallback((module: string, action: 'view' | 'edit'): boolean => {
+  const hasPermission = useCallback((module: string, action: 'view' | 'edit' | 'approve'): boolean => {
     if (!user) return false;
     
     const rolePerms = rolePermissions.find(rp => rp.role === user.role);
@@ -69,7 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const modulePerm = rolePerms.permissions.find(p => p.module === module);
     if (!modulePerm) return false;
     
-    return action === 'view' ? modulePerm.view : modulePerm.edit;
+    if (action === 'view') return modulePerm.view;
+    if (action === 'edit') return modulePerm.edit;
+    if (action === 'approve') return modulePerm.approve ?? false;
+    return false;
   }, [user]);
 
   const canAccessProject = useCallback((projectId: string): boolean => {
