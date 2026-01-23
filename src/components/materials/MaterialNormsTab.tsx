@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -16,6 +16,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -32,11 +38,16 @@ import {
   TrendingDown,
   Upload,
   BarChart3,
+  Download,
+  Image,
+  FileText,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
 import { NormImportDialog, ImportedNorm } from './NormImportDialog';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
   BarChart,
   Bar,
@@ -147,6 +158,91 @@ export const MaterialNormsTab: React.FC = () => {
   const [formData, setFormData] = useState<NormFormData>(defaultFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showChart, setShowChart] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // Export chart to PNG
+  const handleExportChartPNG = async () => {
+    if (!chartRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `bieu_do_dinh_muc_${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast({
+        title: 'Xuất PNG thành công',
+        description: 'Biểu đồ đã được lưu dưới dạng hình ảnh PNG.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Lỗi xuất biểu đồ',
+        description: 'Không thể xuất biểu đồ. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Export chart to PDF
+  const handleExportChartPDF = async () => {
+    if (!chartRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      // Add title
+      pdf.setFontSize(16);
+      pdf.text('Biểu đồ So sánh Định mức vs Thực tế', 15, 15);
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(100);
+      pdf.text(`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}`, 15, 22);
+      
+      // Calculate dimensions to fit A4 landscape
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 30;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Add chart image
+      pdf.addImage(imgData, 'PNG', 15, 30, imgWidth, Math.min(imgHeight, pageHeight - 45));
+      
+      pdf.save(`bieu_do_dinh_muc_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: 'Xuất PDF thành công',
+        description: 'Biểu đồ đã được lưu dưới dạng file PDF.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Lỗi xuất biểu đồ',
+        description: 'Không thể xuất biểu đồ. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Calculate KPIs
   const totalNorms = mockNorms.length;
@@ -374,10 +470,30 @@ export const MaterialNormsTab: React.FC = () => {
 
       {/* Norm vs Actual Comparison Chart */}
       {showChart && (
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div ref={chartRef} className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">So sánh Định mức vs Thực tế</h3>
-            <p className="text-sm text-muted-foreground">Top 8 vật tư có chênh lệch cao nhất</p>
+            <div>
+              <h3 className="text-lg font-semibold">So sánh Định mức vs Thực tế</h3>
+              <p className="text-sm text-muted-foreground">Top 8 vật tư có chênh lệch cao nhất</p>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" disabled={isExporting}>
+                  <Download className="h-4 w-4" />
+                  {isExporting ? 'Đang xuất...' : 'Xuất biểu đồ'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportChartPNG} className="gap-2">
+                  <Image className="h-4 w-4" />
+                  Xuất PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportChartPDF} className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  Xuất PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
