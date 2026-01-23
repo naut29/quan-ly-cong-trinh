@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, FileSpreadsheet, FileText, Loader2, Filter, CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subMonths, startOfYear, endOfYear } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
@@ -300,8 +300,79 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
             </div>
 
             {/* Date range filter */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="text-sm text-muted-foreground">Khoảng thời gian</Label>
+              
+              {/* Quick presets */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    setStartDate(startOfWeek(now, { weekStartsOn: 1 }));
+                    setEndDate(endOfWeek(now, { weekStartsOn: 1 }));
+                  }}
+                >
+                  Tuần này
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    setStartDate(startOfMonth(now));
+                    setEndDate(endOfMonth(now));
+                  }}
+                >
+                  Tháng này
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    const lastMonth = subMonths(now, 1);
+                    setStartDate(startOfMonth(lastMonth));
+                    setEndDate(endOfMonth(lastMonth));
+                  }}
+                >
+                  Tháng trước
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    setStartDate(startOfQuarter(now));
+                    setEndDate(endOfQuarter(now));
+                  }}
+                >
+                  Quý này
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    setStartDate(startOfYear(now));
+                    setEndDate(endOfYear(now));
+                  }}
+                >
+                  Năm nay
+                </Button>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 {/* Start date */}
                 <div className="space-y-1">
