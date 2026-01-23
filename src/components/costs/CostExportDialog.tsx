@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Download, FileSpreadsheet, FileText, Loader2, Filter } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Loader2, Filter, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +15,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
 import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
 
@@ -64,10 +73,12 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
   onOpenChange,
   data,
 }) => {
-  const [format, setFormat] = useState<'pdf' | 'excel'>('excel');
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'excel'>('excel');
   const [isExporting, setIsExporting] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   const handleCategoryToggle = (categoryId: string) => {
     setSelectedCategories(prev =>
@@ -112,6 +123,14 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
     if (selectedStatuses.length > 0) {
       filtered = filtered.filter(item => selectedStatuses.includes(item.status));
     }
+
+    // Filter by date range
+    if (startDate) {
+      filtered = filtered.filter(item => new Date(item.date) >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter(item => new Date(item.date) <= endDate);
+    }
     
     return filtered;
   };
@@ -133,6 +152,15 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
     try {
       // Build subtitle based on filters
       const filterParts: string[] = [];
+      
+      // Date range filter display
+      if (startDate || endDate) {
+        const dateRange = [];
+        if (startDate) dateRange.push(`từ ${format(startDate, 'dd/MM/yyyy')}`);
+        if (endDate) dateRange.push(`đến ${format(endDate, 'dd/MM/yyyy')}`);
+        filterParts.push(`Thời gian: ${dateRange.join(' ')}`);
+      }
+      
       if (selectedCategories.length > 0 && selectedCategories.length < categories.length) {
         filterParts.push(`Danh mục: ${selectedCategories.map(getCategoryName).join(', ')}`);
       }
@@ -173,7 +201,7 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
       // Simulate async export
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (format === 'excel') {
+      if (exportFormat === 'excel') {
         exportToExcel(exportOptions);
       } else {
         exportToPDF(exportOptions);
@@ -181,7 +209,7 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
 
       toast({
         title: 'Xuất báo cáo thành công',
-        description: `Đã xuất ${filteredData.length} chi phí sang ${format.toUpperCase()}`,
+        description: `Đã xuất ${filteredData.length} chi phí sang ${exportFormat.toUpperCase()}`,
       });
       onOpenChange(false);
     } catch (error) {
@@ -198,7 +226,9 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
   const handleReset = () => {
     setSelectedCategories([]);
     setSelectedStatuses([]);
-    setFormat('excel');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setExportFormat('excel');
   };
 
   return (
@@ -219,8 +249,8 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
           <div className="space-y-3">
             <Label className="text-sm font-medium">Định dạng xuất</Label>
             <RadioGroup
-              value={format}
-              onValueChange={(value) => setFormat(value as 'pdf' | 'excel')}
+              value={exportFormat}
+              onValueChange={(value) => setExportFormat(value as 'pdf' | 'excel')}
               className="grid grid-cols-2 gap-4"
             >
               <div>
@@ -267,6 +297,82 @@ const CostExportDialog: React.FC<CostExportDialogProps> = ({
               <span className="text-xs text-muted-foreground ml-auto">
                 (Để trống = xuất tất cả)
               </span>
+            </div>
+
+            {/* Date range filter */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Khoảng thời gian</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Start date */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Từ ngày</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "dd/MM/yyyy") : "Chọn ngày"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                        locale={vi}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* End date */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Đến ngày</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "dd/MM/yyyy") : "Chọn ngày"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => startDate ? date < startDate : false}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                        locale={vi}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              {(startDate || endDate) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-1 px-2 text-xs"
+                  onClick={() => { setStartDate(undefined); setEndDate(undefined); }}
+                >
+                  Xóa bộ lọc thời gian
+                </Button>
+              )}
             </div>
 
             {/* Category filter */}
