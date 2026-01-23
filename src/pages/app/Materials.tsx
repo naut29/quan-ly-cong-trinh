@@ -50,6 +50,7 @@ import { MaterialAdvancedFilter, MaterialFilters, defaultFilters } from '@/compo
 import { MaterialNormsTab } from '@/components/materials/MaterialNormsTab';
 import { MaterialBySupplierTab } from '@/components/materials/MaterialBySupplierTab';
 import { MaterialByCostCodeTab } from '@/components/materials/MaterialByCostCodeTab';
+import { MaterialRequestsTab } from '@/components/materials/MaterialRequestsTab';
 
 // Mock material data
 const materialCategories = [
@@ -464,6 +465,7 @@ const Materials: React.FC = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="summary">Tổng hợp</TabsTrigger>
             <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
+            <TabsTrigger value="requests">Yêu cầu VT</TabsTrigger>
             <TabsTrigger value="norms">Định mức</TabsTrigger>
             <TabsTrigger value="suppliers">Theo NCC</TabsTrigger>
             <TabsTrigger value="costcodes">Theo công việc</TabsTrigger>
@@ -606,6 +608,10 @@ const Materials: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </TabsContent>
+
+          <TabsContent value="requests" className="mt-0">
+            <MaterialRequestsTab />
           </TabsContent>
 
           <TabsContent value="norms" className="mt-0">

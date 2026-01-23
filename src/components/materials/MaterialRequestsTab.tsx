@@ -1,0 +1,656 @@
+import React, { useState } from 'react';
+import { 
+  Plus, 
+  Search, 
+  FileText,
+  Package,
+  Calendar,
+  User,
+  Building2,
+  MoreHorizontal,
+  Eye,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  AlertCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/hooks/use-toast';
+
+export type MaterialRequestStatus = 'not_received' | 'received' | 'partially_received';
+
+export interface MaterialRequestItem {
+  id: string;
+  materialCode: string;
+  materialName: string;
+  unit: string;
+  requestedQty: number;
+  receivedQty: number;
+}
+
+export interface MaterialRequest {
+  id: string;
+  code: string;
+  title: string;
+  requestDate: string;
+  requiredDate: string;
+  requester: string;
+  department: string;
+  supplier?: string;
+  status: MaterialRequestStatus;
+  items: MaterialRequestItem[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Mock data
+const mockMaterialRequests: MaterialRequest[] = [
+  {
+    id: 'req-1',
+    code: 'YC-2024-001',
+    title: 'Yêu cầu vật tư thép tầng 8',
+    requestDate: '2024-03-10',
+    requiredDate: '2024-03-20',
+    requester: 'Nguyễn Văn A',
+    department: 'Đội thi công 1',
+    supplier: 'Hòa Phát Steel',
+    status: 'partially_received',
+    items: [
+      { id: 'i1', materialCode: 'THEP-16', materialName: 'Thép phi 16 SD390', unit: 'kg', requestedQty: 5000, receivedQty: 3500 },
+      { id: 'i2', materialCode: 'THEP-12', materialName: 'Thép phi 12 SD390', unit: 'kg', requestedQty: 3000, receivedQty: 3000 },
+      { id: 'i3', materialCode: 'THEP-10', materialName: 'Thép phi 10 SD390', unit: 'kg', requestedQty: 2000, receivedQty: 0 },
+    ],
+    notes: 'Ưu tiên thép phi 16 cho sàn tầng 8',
+    createdAt: '2024-03-10T08:30:00',
+    updatedAt: '2024-03-15T14:20:00',
+  },
+  {
+    id: 'req-2',
+    code: 'YC-2024-002',
+    title: 'Vật tư bê tông block B',
+    requestDate: '2024-03-12',
+    requiredDate: '2024-03-18',
+    requester: 'Trần Văn B',
+    department: 'Đội thi công 2',
+    supplier: 'Bê tông Việt Đức',
+    status: 'received',
+    items: [
+      { id: 'i4', materialCode: 'BT-C30', materialName: 'Bê tông C30', unit: 'm³', requestedQty: 50, receivedQty: 50 },
+      { id: 'i5', materialCode: 'BT-C25', materialName: 'Bê tông C25', unit: 'm³', requestedQty: 30, receivedQty: 30 },
+    ],
+    createdAt: '2024-03-12T09:15:00',
+    updatedAt: '2024-03-17T16:45:00',
+  },
+  {
+    id: 'req-3',
+    code: 'YC-2024-003',
+    title: 'Coffa và giàn giáo tầng 9',
+    requestDate: '2024-03-14',
+    requiredDate: '2024-03-25',
+    requester: 'Lê Thị C',
+    department: 'Đội thi công 1',
+    status: 'not_received',
+    items: [
+      { id: 'i6', materialCode: 'VAN-10x20', materialName: 'Ván coffa 10x20cm', unit: 'tấm', requestedQty: 200, receivedQty: 0 },
+      { id: 'i7', materialCode: 'GIAN-GIAO', materialName: 'Giàn giáo tiêu chuẩn', unit: 'bộ', requestedQty: 50, receivedQty: 0 },
+    ],
+    notes: 'Cần trước ngày 25/3 để kịp tiến độ',
+    createdAt: '2024-03-14T11:00:00',
+    updatedAt: '2024-03-14T11:00:00',
+  },
+  {
+    id: 'req-4',
+    code: 'YC-2024-004',
+    title: 'Vật tư MEP tầng 5-6',
+    requestDate: '2024-03-15',
+    requiredDate: '2024-03-28',
+    requester: 'Phạm Văn D',
+    department: 'Đội MEP',
+    supplier: 'Nhựa Bình Minh',
+    status: 'not_received',
+    items: [
+      { id: 'i8', materialCode: 'ONG-DN100', materialName: 'Ống PVC DN100', unit: 'm', requestedQty: 500, receivedQty: 0 },
+      { id: 'i9', materialCode: 'ONG-DN50', materialName: 'Ống PVC DN50', unit: 'm', requestedQty: 300, receivedQty: 0 },
+      { id: 'i10', materialCode: 'DAY-1.5', materialName: 'Dây điện 1.5mm²', unit: 'm', requestedQty: 2000, receivedQty: 0 },
+    ],
+    createdAt: '2024-03-15T07:45:00',
+    updatedAt: '2024-03-15T07:45:00',
+  },
+  {
+    id: 'req-5',
+    code: 'YC-2024-005',
+    title: 'Vật tư hoàn thiện block A',
+    requestDate: '2024-03-08',
+    requiredDate: '2024-03-15',
+    requester: 'Hoàng Văn E',
+    department: 'Đội hoàn thiện',
+    supplier: 'Jotun Vietnam',
+    status: 'partially_received',
+    items: [
+      { id: 'i11', materialCode: 'SON-NT', materialName: 'Sơn nội thất cao cấp', unit: 'thùng', requestedQty: 100, receivedQty: 60 },
+      { id: 'i12', materialCode: 'BOT-TT', materialName: 'Bột trét tường', unit: 'bao', requestedQty: 200, receivedQty: 200 },
+    ],
+    createdAt: '2024-03-08T14:30:00',
+    updatedAt: '2024-03-13T10:15:00',
+  },
+];
+
+const statusLabels: Record<MaterialRequestStatus, string> = {
+  not_received: 'Chưa nhận',
+  received: 'Đã nhận đủ',
+  partially_received: 'Nhận một phần',
+};
+
+const statusVariants: Record<MaterialRequestStatus, 'danger' | 'success' | 'warning'> = {
+  not_received: 'danger',
+  received: 'success',
+  partially_received: 'warning',
+};
+
+const MaterialRequestsTab: React.FC = () => {
+  const [requests, setRequests] = useState<MaterialRequest[]>(mockMaterialRequests);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<MaterialRequest | null>(null);
+  const [editMode, setEditMode] = useState(false);
+
+  // Filter requests
+  const filteredRequests = requests.filter(req => {
+    const matchesSearch = 
+      req.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.requester.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  // Calculate statistics
+  const stats = {
+    total: requests.length,
+    notReceived: requests.filter(r => r.status === 'not_received').length,
+    partiallyReceived: requests.filter(r => r.status === 'partially_received').length,
+    received: requests.filter(r => r.status === 'received').length,
+  };
+
+  const handleViewRequest = (request: MaterialRequest) => {
+    setSelectedRequest(request);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditRequest = (request: MaterialRequest) => {
+    setSelectedRequest(request);
+    setEditMode(true);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteRequest = (requestId: string) => {
+    setRequests(prev => prev.filter(r => r.id !== requestId));
+    toast({
+      title: 'Đã xóa yêu cầu',
+      description: 'Yêu cầu vật tư đã được xóa thành công.',
+    });
+  };
+
+  const handleNewRequest = () => {
+    setSelectedRequest(null);
+    setEditMode(false);
+    setDialogOpen(true);
+  };
+
+  const handleUpdateStatus = (requestId: string, newStatus: MaterialRequestStatus) => {
+    setRequests(prev => prev.map(r => 
+      r.id === requestId ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r
+    ));
+    toast({
+      title: 'Đã cập nhật trạng thái',
+      description: `Trạng thái yêu cầu đã được cập nhật thành "${statusLabels[newStatus]}".`,
+    });
+  };
+
+  const getProgressPercentage = (request: MaterialRequest) => {
+    const totalRequested = request.items.reduce((sum, item) => sum + item.requestedQty, 0);
+    const totalReceived = request.items.reduce((sum, item) => sum + item.receivedQty, 0);
+    return totalRequested > 0 ? Math.round((totalReceived / totalRequested) * 100) : 0;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-sm text-muted-foreground">Tổng yêu cầu</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-destructive/10">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.notReceived}</p>
+              <p className="text-sm text-muted-foreground">Chưa nhận</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-warning/10">
+              <Clock className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.partiallyReceived}</p>
+              <p className="text-sm text-muted-foreground">Nhận một phần</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-success/10">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.received}</p>
+              <p className="text-sm text-muted-foreground">Đã nhận đủ</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm theo mã, tên, người yêu cầu..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Lọc trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="not_received">Chưa nhận</SelectItem>
+            <SelectItem value="partially_received">Nhận một phần</SelectItem>
+            <SelectItem value="received">Đã nhận đủ</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button className="gap-2 ml-auto" onClick={handleNewRequest}>
+          <Plus className="h-4 w-4" />
+          Tạo yêu cầu
+        </Button>
+      </div>
+
+      {/* Requests Table */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Mã YC</th>
+              <th>Tiêu đề</th>
+              <th>Ngày YC</th>
+              <th>Ngày cần</th>
+              <th>Người yêu cầu</th>
+              <th>Nhà cung cấp</th>
+              <th>Tiến độ</th>
+              <th>Trạng thái</th>
+              <th className="w-12"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRequests.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-center py-8 text-muted-foreground">
+                  Không tìm thấy yêu cầu vật tư
+                </td>
+              </tr>
+            ) : (
+              filteredRequests.map((request) => {
+                const progress = getProgressPercentage(request);
+                return (
+                  <tr key={request.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewRequest(request)}>
+                    <td className="font-medium text-primary">{request.code}</td>
+                    <td className="max-w-[200px] truncate">{request.title}</td>
+                    <td>{request.requestDate}</td>
+                    <td>{request.requiredDate}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {request.requester}
+                      </div>
+                    </td>
+                    <td>
+                      {request.supplier ? (
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate max-w-[120px]">{request.supplier}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden min-w-[60px]">
+                          <div 
+                            className={`h-full rounded-full transition-all ${
+                              progress === 100 ? 'bg-success' : progress > 0 ? 'bg-warning' : 'bg-muted-foreground'
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground w-10">{progress}%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <StatusBadge status={statusVariants[request.status]}>
+                        {statusLabels[request.status]}
+                      </StatusBadge>
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewRequest(request)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Xem chi tiết
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditRequest(request)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Chỉnh sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateStatus(request.id, 'not_received')}
+                            disabled={request.status === 'not_received'}
+                          >
+                            <AlertCircle className="h-4 w-4 mr-2 text-destructive" />
+                            Đánh dấu Chưa nhận
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateStatus(request.id, 'partially_received')}
+                            disabled={request.status === 'partially_received'}
+                          >
+                            <Clock className="h-4 w-4 mr-2 text-warning" />
+                            Đánh dấu Nhận một phần
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateStatus(request.id, 'received')}
+                            disabled={request.status === 'received'}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-success" />
+                            Đánh dấu Đã nhận đủ
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteRequest(request.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Xóa yêu cầu
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Results count */}
+      {filteredRequests.length > 0 && (
+        <div className="text-sm text-muted-foreground">
+          Hiển thị {filteredRequests.length} / {requests.length} yêu cầu
+        </div>
+      )}
+
+      {/* View Request Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {selectedRequest?.code} - {selectedRequest?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Chi tiết yêu cầu vật tư
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRequest && (
+            <div className="space-y-4">
+              {/* Request Info */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Ngày yêu cầu:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.requestDate}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Ngày cần:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.requiredDate}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Người yêu cầu:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.requester}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Bộ phận:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.department}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Nhà cung cấp:</span>
+                  <span className="ml-2 font-medium">{selectedRequest.supplier || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Trạng thái:</span>
+                  <StatusBadge status={statusVariants[selectedRequest.status]} className="ml-2">
+                    {statusLabels[selectedRequest.status]}
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-3 font-medium">Mã VT</th>
+                      <th className="text-left p-3 font-medium">Tên vật tư</th>
+                      <th className="text-left p-3 font-medium">ĐVT</th>
+                      <th className="text-right p-3 font-medium">Yêu cầu</th>
+                      <th className="text-right p-3 font-medium">Đã nhận</th>
+                      <th className="text-right p-3 font-medium">Còn thiếu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedRequest.items.map((item) => (
+                      <tr key={item.id} className="border-t border-border">
+                        <td className="p-3 font-mono text-xs">{item.materialCode}</td>
+                        <td className="p-3">{item.materialName}</td>
+                        <td className="p-3">{item.unit}</td>
+                        <td className="p-3 text-right">{item.requestedQty.toLocaleString()}</td>
+                        <td className="p-3 text-right font-medium text-success">
+                          {item.receivedQty.toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right font-medium text-destructive">
+                          {(item.requestedQty - item.receivedQty).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Notes */}
+              {selectedRequest.notes && (
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground mb-1">Ghi chú:</p>
+                  <p className="text-sm">{selectedRequest.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Đóng
+            </Button>
+            <Button onClick={() => {
+              setViewDialogOpen(false);
+              if (selectedRequest) handleEditRequest(selectedRequest);
+            }}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Chỉnh sửa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editMode ? 'Chỉnh sửa yêu cầu vật tư' : 'Tạo yêu cầu vật tư mới'}
+            </DialogTitle>
+            <DialogDescription>
+              {editMode ? 'Cập nhật thông tin yêu cầu vật tư' : 'Điền thông tin để tạo yêu cầu mới'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Tiêu đề yêu cầu</Label>
+              <Input 
+                id="title" 
+                placeholder="Nhập tiêu đề..." 
+                defaultValue={selectedRequest?.title || ''}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="requestDate">Ngày yêu cầu</Label>
+                <Input 
+                  id="requestDate" 
+                  type="date" 
+                  defaultValue={selectedRequest?.requestDate || new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="requiredDate">Ngày cần</Label>
+                <Input 
+                  id="requiredDate" 
+                  type="date" 
+                  defaultValue={selectedRequest?.requiredDate || ''}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="requester">Người yêu cầu</Label>
+                <Input 
+                  id="requester" 
+                  placeholder="Tên người yêu cầu" 
+                  defaultValue={selectedRequest?.requester || ''}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="department">Bộ phận</Label>
+                <Input 
+                  id="department" 
+                  placeholder="Bộ phận/Đội" 
+                  defaultValue={selectedRequest?.department || ''}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier">Nhà cung cấp (tùy chọn)</Label>
+              <Input 
+                id="supplier" 
+                placeholder="Chọn hoặc nhập nhà cung cấp" 
+                defaultValue={selectedRequest?.supplier || ''}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Ghi chú</Label>
+              <Textarea 
+                id="notes" 
+                placeholder="Ghi chú thêm..." 
+                defaultValue={selectedRequest?.notes || ''}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={() => {
+              setDialogOpen(false);
+              toast({
+                title: editMode ? 'Đã cập nhật' : 'Đã tạo yêu cầu',
+                description: editMode 
+                  ? 'Yêu cầu vật tư đã được cập nhật thành công.'
+                  : 'Yêu cầu vật tư mới đã được tạo.',
+              });
+            }}>
+              {editMode ? 'Cập nhật' : 'Tạo yêu cầu'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export { MaterialRequestsTab };
