@@ -502,10 +502,36 @@ const Projects: React.FC = () => {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/app/projects/${project.id}/overview`)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem chi tiết
+                        </DropdownMenuItem>
+                        {canEdit && (
+                          <>
+                            <DropdownMenuItem onClick={(e) => handleEditProject(project, e as unknown as React.MouseEvent)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Chỉnh sửa
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={(e) => handleDeleteProject(project, e as unknown as React.MouseEvent)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Xóa dự án
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
