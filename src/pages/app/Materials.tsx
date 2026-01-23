@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Package, 
-  Search, 
   Plus,
   Download,
   ArrowDownToLine,
@@ -17,6 +16,7 @@ import {
   Warehouse,
   Building2,
   Settings,
+  Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,7 @@ import { WarehouseManagementDialog } from '@/components/materials/WarehouseManag
 import { MaterialManagementDialog } from '@/components/materials/MaterialManagementDialog';
 import { SupplierManagementDialog } from '@/components/materials/SupplierManagementDialog';
 import { exportToExcel, exportToPDF, formatNumberForExport } from '@/lib/export-utils';
+import { MaterialAdvancedFilter, MaterialFilters, defaultFilters } from '@/components/materials/MaterialAdvancedFilter';
 
 // Mock material data
 const materialCategories = [
@@ -69,12 +70,20 @@ const mockMaterialKPIs = {
 };
 
 const mockMaterials = [
-  { id: '1', code: 'THEP-16', name: 'Thép phi 16 SD390', unit: 'kg', demand: 125000, purchased: 98000, received: 95000, used: 78000, stock: 17000, price: 18500, variance: 3.2 },
-  { id: '2', code: 'THEP-12', name: 'Thép phi 12 SD390', unit: 'kg', demand: 85000, purchased: 72000, received: 70000, used: 62000, stock: 8000, price: 18500, variance: 1.5 },
-  { id: '3', code: 'THEP-10', name: 'Thép phi 10 SD390', unit: 'kg', demand: 45000, purchased: 38000, received: 36000, used: 32000, stock: 4000, price: 18500, variance: 0.8 },
-  { id: '4', code: 'BT-C30', name: 'Bê tông C30', unit: 'm³', demand: 2500, purchased: 2100, received: 2050, used: 1850, stock: 200, price: 1250000, variance: 2.1 },
-  { id: '5', code: 'BT-C25', name: 'Bê tông C25', unit: 'm³', demand: 1800, purchased: 1500, received: 1450, used: 1320, stock: 130, price: 1150000, variance: 1.2 },
+  { id: '1', code: 'THEP-16', name: 'Thép phi 16 SD390', unit: 'kg', category: 'steel', demand: 125000, purchased: 98000, received: 95000, used: 78000, stock: 17000, price: 18500, variance: 3.2 },
+  { id: '2', code: 'THEP-12', name: 'Thép phi 12 SD390', unit: 'kg', category: 'steel', demand: 85000, purchased: 72000, received: 70000, used: 62000, stock: 8000, price: 18500, variance: 1.5 },
+  { id: '3', code: 'THEP-10', name: 'Thép phi 10 SD390', unit: 'kg', category: 'steel', demand: 45000, purchased: 38000, received: 36000, used: 32000, stock: 4000, price: 18500, variance: 0.8 },
+  { id: '4', code: 'BT-C30', name: 'Bê tông C30', unit: 'm³', category: 'concrete', demand: 2500, purchased: 2100, received: 2050, used: 1850, stock: 200, price: 1250000, variance: 2.1 },
+  { id: '5', code: 'BT-C25', name: 'Bê tông C25', unit: 'm³', category: 'concrete', demand: 1800, purchased: 1500, received: 1450, used: 1320, stock: 130, price: 1150000, variance: 1.2 },
+  { id: '6', code: 'COC-D400', name: 'Cọc BTCT D400', unit: 'm', category: 'foundation', demand: 3200, purchased: 3200, received: 3000, used: 2800, stock: 200, price: 850000, variance: 1.8 },
+  { id: '7', code: 'VAN-10x20', name: 'Ván coffa 10x20cm', unit: 'tấm', category: 'formwork', demand: 500, purchased: 450, received: 450, used: 380, stock: 70, price: 125000, variance: 0.5 },
+  { id: '8', code: 'ONG-DN100', name: 'Ống PVC DN100', unit: 'm', category: 'mep', demand: 1200, purchased: 1000, received: 950, used: 800, stock: 150, price: 45000, variance: 2.5 },
+  { id: '9', code: 'SON-NT', name: 'Sơn nội thất cao cấp', unit: 'thùng', category: 'finishing', demand: 200, purchased: 180, received: 180, used: 120, stock: 60, price: 1850000, variance: 0.3 },
+  { id: '10', code: 'BULONG-M16', name: 'Bu lông M16x80', unit: 'bộ', category: 'consumables', demand: 5000, purchased: 4500, received: 4500, used: 3800, stock: 0, price: 12000, variance: 12.5 },
 ];
+
+// Get unique units from materials
+const materialUnits = [...new Set(mockMaterials.map(m => m.unit))];
 
 const mockTransactions = [
   { id: '1', date: '2024-03-15', type: 'receive', material: 'Thép phi 16 SD390', quantity: 5000, unit: 'kg', supplier: 'Hòa Phát Steel', costCode: '', warehouse: 'Kho A' },
@@ -90,8 +99,10 @@ const Materials: React.FC = () => {
   const { id: projectId } = useParams();
   const [activeCategory, setActiveCategory] = useState('overview');
   const [activeTab, setActiveTab] = useState('summary');
-  const [searchQuery, setSearchQuery] = useState('');
   const [transactionFilter, setTransactionFilter] = useState('all');
+  
+  // Advanced filters state
+  const [filters, setFilters] = useState<MaterialFilters>(defaultFilters);
   
   // Dialog states
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -103,6 +114,87 @@ const Materials: React.FC = () => {
   const [warehouseDialogOpen, setWarehouseDialogOpen] = useState(false);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+
+  // Filter materials based on advanced filters
+  const filteredMaterials = useMemo(() => {
+    return mockMaterials.filter(material => {
+      // Text search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        if (!material.code.toLowerCase().includes(searchLower) &&
+            !material.name.toLowerCase().includes(searchLower)) {
+          return false;
+        }
+      }
+
+      // Category filter
+      if (filters.categories.length > 0 && !filters.categories.includes(material.category)) {
+        return false;
+      }
+
+      // Unit filter
+      if (filters.units.length > 0 && !filters.units.includes(material.unit)) {
+        return false;
+      }
+
+      // Stock status filter
+      if (filters.stockStatus !== 'all') {
+        const stockRatio = material.stock / material.demand;
+        switch (filters.stockStatus) {
+          case 'out':
+            if (material.stock > 0) return false;
+            break;
+          case 'low':
+            if (material.stock === 0 || stockRatio >= 0.1) return false;
+            break;
+          case 'normal':
+            if (stockRatio < 0.1 || stockRatio > 0.3) return false;
+            break;
+          case 'over':
+            if (stockRatio <= 0.3) return false;
+            break;
+        }
+      }
+
+      // Price range filter
+      if (filters.priceMin && material.price < Number(filters.priceMin)) {
+        return false;
+      }
+      if (filters.priceMax && material.price > Number(filters.priceMax)) {
+        return false;
+      }
+
+      // Stock range filter
+      if (filters.stockMin && material.stock < Number(filters.stockMin)) {
+        return false;
+      }
+      if (filters.stockMax && material.stock > Number(filters.stockMax)) {
+        return false;
+      }
+
+      // Variance status filter
+      if (filters.varianceStatus !== 'all') {
+        switch (filters.varianceStatus) {
+          case 'normal':
+            if (material.variance >= 5) return false;
+            break;
+          case 'warning':
+            if (material.variance < 5 || material.variance > 10) return false;
+            break;
+          case 'over':
+            if (material.variance <= 10) return false;
+            break;
+        }
+      }
+
+      // Active category tab filter
+      if (activeCategory !== 'overview' && material.category !== activeCategory) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [filters, activeCategory]);
 
   // Open transaction dialog with type
   const handleOpenTransaction = (type: TransactionType) => {
@@ -370,29 +462,17 @@ const Materials: React.FC = () => {
           </TabsList>
 
           <TabsContent value="summary" className="mt-0">
-            {/* Filter Bar */}
-            <div className="filter-bar rounded-xl bg-card mb-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Tìm vật tư..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="low">Tồn thấp</SelectItem>
-                  <SelectItem value="over">Vượt định mức</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Advanced Filter */}
+            <div className="mb-4">
+              <MaterialAdvancedFilter
+                filters={filters}
+                onFiltersChange={setFilters}
+                categories={materialCategories}
+                units={materialUnits}
+              />
             </div>
 
+            {/* Materials Table */}
             {/* Materials Table */}
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <table className="data-table">
@@ -410,26 +490,41 @@ const Materials: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockMaterials.map((material) => (
-                    <tr key={material.id} className="cursor-pointer">
-                      <td className="font-medium">{material.code}</td>
-                      <td>{material.name}</td>
-                      <td>{material.unit}</td>
-                      <td className="text-right">{material.demand.toLocaleString()}</td>
-                      <td className="text-right">{material.purchased.toLocaleString()}</td>
-                      <td className="text-right">{material.received.toLocaleString()}</td>
-                      <td className="text-right">{material.used.toLocaleString()}</td>
-                      <td className="text-right font-medium">{material.stock.toLocaleString()}</td>
-                      <td className="text-right">
-                        <StatusBadge status={material.variance > 3 ? 'warning' : 'success'} dot={false}>
-                          {material.variance > 0 ? '+' : ''}{material.variance}%
-                        </StatusBadge>
+                  {filteredMaterials.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-8 text-muted-foreground">
+                        Không tìm thấy vật tư phù hợp với bộ lọc
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredMaterials.map((material) => (
+                      <tr key={material.id} className="cursor-pointer">
+                        <td className="font-medium">{material.code}</td>
+                        <td>{material.name}</td>
+                        <td>{material.unit}</td>
+                        <td className="text-right">{material.demand.toLocaleString()}</td>
+                        <td className="text-right">{material.purchased.toLocaleString()}</td>
+                        <td className="text-right">{material.received.toLocaleString()}</td>
+                        <td className="text-right">{material.used.toLocaleString()}</td>
+                        <td className="text-right font-medium">{material.stock.toLocaleString()}</td>
+                        <td className="text-right">
+                          <StatusBadge status={material.variance > 3 ? 'warning' : 'success'} dot={false}>
+                            {material.variance > 0 ? '+' : ''}{material.variance}%
+                          </StatusBadge>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
+
+            {/* Results count */}
+            {filteredMaterials.length > 0 && (
+              <div className="mt-3 text-sm text-muted-foreground">
+                Hiển thị {filteredMaterials.length} / {mockMaterials.length} vật tư
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="transactions" className="mt-0">
