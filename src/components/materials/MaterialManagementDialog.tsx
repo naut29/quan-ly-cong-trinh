@@ -34,8 +34,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Package, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, Search, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { MaterialImportDialog, ImportedMaterial } from './MaterialImportDialog';
 
 export interface MaterialData {
   id: string;
@@ -85,6 +86,7 @@ export const MaterialManagementDialog: React.FC<MaterialManagementDialogProps> =
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -178,6 +180,18 @@ export const MaterialManagementDialog: React.FC<MaterialManagementDialogProps> =
     return categories.find(c => c.id === categoryId)?.label || categoryId;
   };
 
+  const handleImport = (data: ImportedMaterial[]) => {
+    const newMaterials = data.map((item, index) => ({
+      id: `imported-${Date.now()}-${index}`,
+      ...item,
+    }));
+    setMaterials(prev => [...prev, ...newMaterials]);
+    toast({
+      title: 'Import thành công',
+      description: `Đã thêm ${data.length} vật tư vào danh mục.`,
+    });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,6 +227,10 @@ export const MaterialManagementDialog: React.FC<MaterialManagementDialogProps> =
                       ))}
                     </SelectContent>
                   </Select>
+                  <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Import Excel
+                  </Button>
                   <Button onClick={handleAdd} className="gap-2">
                     <Plus className="h-4 w-4" />
                     Thêm vật tư
@@ -385,6 +403,12 @@ export const MaterialManagementDialog: React.FC<MaterialManagementDialogProps> =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MaterialImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={handleImport}
+      />
     </>
   );
 };

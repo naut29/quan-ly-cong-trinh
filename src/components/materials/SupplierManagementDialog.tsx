@@ -28,8 +28,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Building2, Search, Mail, Phone, MapPin, User } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Search, Mail, Phone, MapPin, User, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { SupplierImportDialog, ImportedSupplier } from './SupplierImportDialog';
 
 export interface SupplierData {
   id: string;
@@ -109,6 +110,7 @@ export const SupplierManagementDialog: React.FC<SupplierManagementDialogProps> =
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -216,6 +218,18 @@ export const SupplierManagementDialog: React.FC<SupplierManagementDialogProps> =
     s.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleImport = (data: ImportedSupplier[]) => {
+    const newSuppliers = data.map((item, index) => ({
+      id: `imported-${Date.now()}-${index}`,
+      ...item,
+    }));
+    setSuppliers(prev => [...prev, ...newSuppliers]);
+    toast({
+      title: 'Import thành công',
+      description: `Đã thêm ${data.length} nhà cung cấp vào danh sách.`,
+    });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -240,6 +254,10 @@ export const SupplierManagementDialog: React.FC<SupplierManagementDialogProps> =
                       className="pl-9"
                     />
                   </div>
+                  <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Import Excel
+                  </Button>
                   <Button onClick={handleAdd} className="gap-2">
                     <Plus className="h-4 w-4" />
                     Thêm NCC
@@ -443,6 +461,12 @@ export const SupplierManagementDialog: React.FC<SupplierManagementDialogProps> =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SupplierImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={handleImport}
+      />
     </>
   );
 };
