@@ -12,6 +12,10 @@ import {
   AlertTriangle,
   TrendingUp,
   MoreVertical,
+  Edit,
+  Trash2,
+  Eye,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +31,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +42,9 @@ import {
   Project,
 } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFormDialog';
+import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
@@ -47,8 +55,70 @@ const Projects: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stageFilter, setStageFilter] = useState<string>('all');
+  
+  // Dialog states
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [projectDialogMode, setProjectDialogMode] = useState<'create' | 'edit'>('create');
+  const [selectedProject, setSelectedProject] = useState<ProjectEntry | undefined>(undefined);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const canEdit = hasPermission('projects', 'edit');
+
+  const handleCreateProject = () => {
+    setProjectDialogMode('create');
+    setSelectedProject(undefined);
+    setProjectDialogOpen(true);
+  };
+
+  const handleEditProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProjectDialogMode('edit');
+    setSelectedProject({
+      id: project.id,
+      code: project.code,
+      name: project.name,
+      address: project.address,
+      status: project.status,
+      stage: project.stage,
+      manager: project.manager,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      budget: project.budget,
+    });
+    setProjectDialogOpen(true);
+  };
+
+  const handleDeleteProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleProjectSubmit = (data: any) => {
+    if (projectDialogMode === 'create') {
+      toast({
+        title: 'Tạo dự án thành công',
+        description: `Dự án "${data.name}" đã được tạo.`,
+      });
+    } else {
+      toast({
+        title: 'Cập nhật thành công',
+        description: `Dự án "${data.name}" đã được cập nhật.`,
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (projectToDelete) {
+      toast({
+        title: 'Đã xóa dự án',
+        description: `Dự án "${projectToDelete.name}" đã được xóa.`,
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
 
   // Filter projects
   const filteredProjects = projects.filter(project => {
@@ -88,7 +158,7 @@ const Projects: React.FC = () => {
           </p>
         </div>
         {canEdit && (
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={handleCreateProject}>
             <Plus className="h-4 w-4" />
             Tạo dự án mới
           </Button>
@@ -193,12 +263,24 @@ const Projects: React.FC = () => {
                       e.stopPropagation();
                       navigate(`/app/projects/${project.id}/overview`);
                     }}>
+                      <Eye className="h-4 w-4 mr-2" />
                       Xem chi tiết
                     </DropdownMenuItem>
                     {canEdit && (
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                        Chỉnh sửa
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem onClick={(e) => handleEditProject(project, e)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Chỉnh sửa
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={(e) => handleDeleteProject(project, e)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Xóa dự án
+                        </DropdownMenuItem>
+                      </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -209,6 +291,18 @@ const Projects: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5" />
                   <span className="truncate">{project.address}</span>
+                </div>
+              </div>
+
+              {/* Manager & Timeline */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  <span className="truncate">{project.manager}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>{new Date(project.startDate).toLocaleDateString('vi-VN')}</span>
                 </div>
               </div>
 
@@ -341,6 +435,26 @@ const Projects: React.FC = () => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Project Form Dialog */}
+      <ProjectFormDialog
+        open={projectDialogOpen}
+        onOpenChange={setProjectDialogOpen}
+        mode={projectDialogMode}
+        initialData={selectedProject}
+        onSubmit={handleProjectSubmit}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      {projectToDelete && (
+        <DeleteProjectDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          projectName={projectToDelete.name}
+          projectCode={projectToDelete.code}
+          onConfirm={handleConfirmDelete}
+        />
       )}
     </div>
   );
