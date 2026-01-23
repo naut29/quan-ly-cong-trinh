@@ -30,9 +30,11 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
+  Upload,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
+import { NormImportDialog, ImportedNorm } from './NormImportDialog';
 import * as XLSX from 'xlsx';
 
 // Mock data for material norms
@@ -129,6 +131,7 @@ export const MaterialNormsTab: React.FC = () => {
   const [varianceFilter, setVarianceFilter] = useState('all');
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [formData, setFormData] = useState<NormFormData>(defaultFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -162,6 +165,14 @@ export const MaterialNormsTab: React.FC = () => {
     });
     setDialogOpen(false);
     setFormData(defaultFormData);
+  };
+
+  const handleImport = (data: ImportedNorm[]) => {
+    // In a real app, this would add the imported norms to the database
+    toast({
+      title: 'Import thành công',
+      description: `Đã import ${data.length} định mức vật tư.`,
+    });
   };
 
   const handleExport = () => {
@@ -291,6 +302,11 @@ export const MaterialNormsTab: React.FC = () => {
         <Button variant="outline" className="gap-2" onClick={handleExport}>
           <FileSpreadsheet className="h-4 w-4" />
           Xuất Excel
+        </Button>
+        
+        <Button variant="outline" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+          <Upload className="h-4 w-4" />
+          Import Excel
         </Button>
         
         <Button className="gap-2" onClick={handleAddNorm}>
@@ -548,6 +564,13 @@ export const MaterialNormsTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <NormImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={handleImport}
+      />
     </div>
   );
 };
