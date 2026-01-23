@@ -14,6 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart3,
+  Warehouse,
+  Building2,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,12 +35,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { formatCurrency } from '@/data/mockData';
 import { toast } from '@/hooks/use-toast';
 import { MaterialTransactionDialog, TransactionType } from '@/components/materials/MaterialTransactionDialog';
 import { InventoryCheckDialog } from '@/components/materials/InventoryCheckDialog';
 import { MaterialCharts } from '@/components/materials/MaterialCharts';
+import { WarehouseManagementDialog } from '@/components/materials/WarehouseManagementDialog';
+import { MaterialManagementDialog } from '@/components/materials/MaterialManagementDialog';
+import { SupplierManagementDialog } from '@/components/materials/SupplierManagementDialog';
 import { exportToExcel, exportToPDF, formatNumberForExport } from '@/lib/export-utils';
 
 // Mock material data
@@ -91,6 +98,11 @@ const Materials: React.FC = () => {
   const [transactionType, setTransactionType] = useState<TransactionType>('receive');
   const [inventoryDialogOpen, setInventoryDialogOpen] = useState(false);
   const [showCharts, setShowCharts] = useState(true);
+  
+  // Management dialog states
+  const [warehouseDialogOpen, setWarehouseDialogOpen] = useState(false);
+  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
 
   // Open transaction dialog with type
   const handleOpenTransaction = (type: TransactionType) => {
@@ -239,6 +251,29 @@ const Materials: React.FC = () => {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Danh mục
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setWarehouseDialogOpen(true)}>
+                  <Warehouse className="h-4 w-4 mr-2" />
+                  Quản lý Kho
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setMaterialDialogOpen(true)}>
+                  <Package className="h-4 w-4 mr-2" />
+                  Quản lý Vật tư
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSupplierDialogOpen(true)}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Quản lý Nhà cung cấp
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
                   Thao tác kho
@@ -258,6 +293,7 @@ const Materials: React.FC = () => {
                   <ArrowLeftRight className="h-4 w-4 mr-2 text-warning" />
                   Điều chuyển
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setInventoryDialogOpen(true)}>
                   <ClipboardList className="h-4 w-4 mr-2" />
                   Kiểm kê
@@ -496,6 +532,20 @@ const Materials: React.FC = () => {
         open={inventoryDialogOpen}
         onOpenChange={setInventoryDialogOpen}
         onSubmit={handleInventorySubmit}
+      />
+
+      {/* Management Dialogs */}
+      <WarehouseManagementDialog
+        open={warehouseDialogOpen}
+        onOpenChange={setWarehouseDialogOpen}
+      />
+      <MaterialManagementDialog
+        open={materialDialogOpen}
+        onOpenChange={setMaterialDialogOpen}
+      />
+      <SupplierManagementDialog
+        open={supplierDialogOpen}
+        onOpenChange={setSupplierDialogOpen}
       />
     </div>
   );
