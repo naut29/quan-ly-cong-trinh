@@ -58,7 +58,19 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  LineChart,
+  Line,
 } from 'recharts';
+
+// Mock data for variance trend over time
+const varianceTrendData = [
+  { month: 'T8/2024', avgVariance: 2.1, overLimitCount: 2, materials: ['BT-C30', 'THEP-16'] },
+  { month: 'T9/2024', avgVariance: 3.4, overLimitCount: 3, materials: ['BT-C25', 'GACH-10x20', 'XIMANG-PCB40'] },
+  { month: 'T10/2024', avgVariance: 2.8, overLimitCount: 2, materials: ['THEP-12', 'CAT-VL'] },
+  { month: 'T11/2024', avgVariance: 4.2, overLimitCount: 4, materials: ['BT-C30', 'THEP-16', 'GACH-10x20', 'XIMANG-PCB40'] },
+  { month: 'T12/2024', avgVariance: 3.1, overLimitCount: 3, materials: ['BT-C25', 'THEP-10', 'CAT-VL'] },
+  { month: 'T1/2025', avgVariance: 3.8, overLimitCount: 4, materials: ['BT-C30', 'THEP-16', 'GACH-10x20', 'COC-D400'] },
+];
 
 // Mock data for material norms
 const mockNorms = [
@@ -583,6 +595,117 @@ export const MaterialNormsTab: React.FC = () => {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-destructive"></div>
               <span className="text-muted-foreground">Thực tế (vượt định mức &gt;5%)</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Variance Trend Line Chart */}
+      {showChart && (
+        <div className="bg-card rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Xu hướng chênh lệch định mức</h3>
+              <p className="text-sm text-muted-foreground">Theo dõi biến động chênh lệch qua các tháng</p>
+            </div>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={varianceTrendData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 12 }}
+                  className="fill-muted-foreground"
+                />
+                <YAxis 
+                  yAxisId="left"
+                  tick={{ fontSize: 12 }}
+                  className="fill-muted-foreground"
+                  label={{ value: 'Chênh lệch (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 11 } }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 12 }}
+                  className="fill-muted-foreground"
+                  label={{ value: 'Số VT vượt', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fontSize: 11 } }}
+                />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                          <p className="font-medium mb-2">{label}</p>
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: 'hsl(var(--primary))' }}></span>
+                              Chênh lệch TB: <span className="font-medium">{data.avgVariance}%</span>
+                            </p>
+                            <p className="text-sm">
+                              <span className="inline-block w-3 h-3 rounded mr-2 bg-destructive"></span>
+                              VT vượt định mức: <span className="font-medium">{data.overLimitCount}</span>
+                            </p>
+                            {data.materials && data.materials.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-border">
+                                <p className="text-xs text-muted-foreground mb-1">Vật tư vượt:</p>
+                                <p className="text-xs">{data.materials.join(', ')}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend 
+                  verticalAlign="top"
+                  height={36}
+                  formatter={(value) => (
+                    <span className="text-sm text-foreground">{value}</span>
+                  )}
+                />
+                {/* Reference line at 5% threshold */}
+                <Line 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="avgVariance" 
+                  name="Chênh lệch TB (%)"
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="overLimitCount" 
+                  name="Số VT vượt định mức"
+                  stroke="hsl(var(--destructive))" 
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={{ fill: 'hsl(var(--destructive))', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex items-center justify-center gap-6 mt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-0.5 bg-primary"></div>
+              <span className="text-muted-foreground">Chênh lệch TB (%)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-0.5 bg-destructive" style={{ borderStyle: 'dashed', borderWidth: '1px' }}></div>
+              <span className="text-muted-foreground">Số VT vượt định mức</span>
+            </div>
+            <div className="flex items-center gap-2 px-2 py-1 bg-warning/10 rounded text-warning text-xs">
+              <span>Ngưỡng cảnh báo: 5%</span>
             </div>
           </div>
         </div>
