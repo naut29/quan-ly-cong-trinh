@@ -18,6 +18,9 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
+  Download,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +51,7 @@ import { toast } from '@/hooks/use-toast';
 import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFormDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
+import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
@@ -162,6 +166,86 @@ const Projects: React.FC = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
+  // Export functions
+  const handleExportExcel = () => {
+    const exportData = filteredProjects.map(p => ({
+      code: p.code,
+      name: p.name,
+      address: p.address,
+      status: projectStatusLabels[p.status],
+      stage: projectStageLabels[p.stage],
+      manager: p.manager,
+      startDate: new Date(p.startDate).toLocaleDateString('vi-VN'),
+      endDate: new Date(p.endDate).toLocaleDateString('vi-VN'),
+      budget: formatCurrencyForExport(p.budget),
+      actual: formatCurrencyForExport(p.actual),
+      committed: formatCurrencyForExport(p.committed),
+      progress: `${p.progress}%`,
+      alertCount: p.alertCount,
+    }));
+
+    exportToExcel({
+      title: 'Danh sách dự án',
+      fileName: `du-an-${new Date().toISOString().split('T')[0]}`,
+      columns: [
+        { header: 'Mã dự án', key: 'code', width: 15 },
+        { header: 'Tên dự án', key: 'name', width: 35 },
+        { header: 'Địa chỉ', key: 'address', width: 30 },
+        { header: 'Trạng thái', key: 'status', width: 15 },
+        { header: 'Giai đoạn', key: 'stage', width: 15 },
+        { header: 'Quản lý', key: 'manager', width: 20 },
+        { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
+        { header: 'Ngày kết thúc', key: 'endDate', width: 15 },
+        { header: 'Dự toán', key: 'budget', width: 20 },
+        { header: 'Thực chi', key: 'actual', width: 20 },
+        { header: 'Cam kết', key: 'committed', width: 20 },
+        { header: 'Tiến độ', key: 'progress', width: 10 },
+        { header: 'Cảnh báo', key: 'alertCount', width: 10 },
+      ],
+      data: exportData,
+    });
+
+    toast({
+      title: 'Xuất Excel thành công',
+      description: `Đã xuất ${filteredProjects.length} dự án ra file Excel.`,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const exportData = filteredProjects.map(p => ({
+      code: p.code,
+      name: p.name,
+      status: projectStatusLabels[p.status],
+      stage: projectStageLabels[p.stage],
+      manager: p.manager,
+      budget: formatCurrencyForExport(p.budget),
+      actual: formatCurrencyForExport(p.actual),
+      progress: `${p.progress}%`,
+    }));
+
+    exportToPDF({
+      title: 'Danh sách dự án',
+      subtitle: `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} - Tổng ${filteredProjects.length} dự án`,
+      fileName: `du-an-${new Date().toISOString().split('T')[0]}`,
+      columns: [
+        { header: 'Mã DA', key: 'code', width: 12 },
+        { header: 'Tên dự án', key: 'name', width: 30 },
+        { header: 'Trạng thái', key: 'status', width: 15 },
+        { header: 'Giai đoạn', key: 'stage', width: 12 },
+        { header: 'Quản lý', key: 'manager', width: 18 },
+        { header: 'Dự toán', key: 'budget', width: 18 },
+        { header: 'Thực chi', key: 'actual', width: 18 },
+        { header: 'Tiến độ', key: 'progress', width: 10 },
+      ],
+      data: exportData,
+    });
+
+    toast({
+      title: 'Xuất PDF thành công',
+      description: `Đã xuất ${filteredProjects.length} dự án ra file PDF.`,
+    });
+  };
+
   const getStatusBadgeType = (status: Project['status']) => {
     switch (status) {
       case 'active': return 'active';
@@ -191,6 +275,25 @@ const Projects: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Xuất file
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Xuất Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                <FileText className="h-4 w-4 mr-2" />
+                Xuất PDF (.pdf)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button 
             variant="outline" 
             className="gap-2" 
