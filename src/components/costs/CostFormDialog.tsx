@@ -440,8 +440,8 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                     <FormItem>
                       <FormLabel>Hạng mục BOQ</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
+                        onValueChange={(val) => field.onChange(val === 'none' ? '' : val)}
+                        value={field.value || 'none'}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -449,7 +449,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Không chọn</SelectItem>
+                          <SelectItem value="none">Không chọn</SelectItem>
                           {boqItems.map((item) => (
                             <SelectItem key={item.code} value={item.code}>
                               {item.code} - {item.name}
