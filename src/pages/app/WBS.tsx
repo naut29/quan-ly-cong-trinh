@@ -49,8 +49,11 @@ import {
   Download,
   Filter,
   Building2,
+  BarChart3,
+  Table2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { WBSGanttChart } from '@/components/wbs/WBSGanttChart';
 
 // Mock WBS data with hierarchical structure
 const mockWBSData = [
@@ -337,6 +340,7 @@ const WBS: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState<WBSFormData>(defaultFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'gantt'>('table');
 
   const allItems = flattenWBS(mockWBSData);
   
@@ -605,23 +609,55 @@ const WBS: React.FC = () => {
 
         <div className="flex-1" />
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setExpandedItems(allItems.map(i => i.id))}
-        >
-          Mở rộng tất cả
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setExpandedItems([])}
-        >
-          Thu gọn tất cả
-        </Button>
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <Button
+            variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className="gap-1.5"
+          >
+            <Table2 className="h-4 w-4" />
+            Bảng
+          </Button>
+          <Button
+            variant={viewMode === 'gantt' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('gantt')}
+            className="gap-1.5"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Gantt
+          </Button>
+        </div>
+
+        {viewMode === 'table' && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExpandedItems(allItems.map(i => i.id))}
+            >
+              Mở rộng tất cả
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExpandedItems([])}
+            >
+              Thu gọn tất cả
+            </Button>
+          </>
+        )}
       </div>
 
+      {/* Gantt Chart View */}
+      {viewMode === 'gantt' && (
+        <WBSGanttChart items={allItems} />
+      )}
+
       {/* WBS Tree Table */}
+      {viewMode === 'table' && (
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
@@ -641,6 +677,7 @@ const WBS: React.FC = () => {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
