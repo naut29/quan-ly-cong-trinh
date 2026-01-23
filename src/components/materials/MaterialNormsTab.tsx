@@ -31,11 +31,23 @@ import {
   TrendingUp,
   TrendingDown,
   Upload,
+  BarChart3,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
 import { NormImportDialog, ImportedNorm } from './NormImportDialog';
 import * as XLSX from 'xlsx';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 // Mock data for material norms
 const mockNorms = [
@@ -134,6 +146,7 @@ export const MaterialNormsTab: React.FC = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [formData, setFormData] = useState<NormFormData>(defaultFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showChart, setShowChart] = useState(true);
 
   // Calculate KPIs
   const totalNorms = mockNorms.length;
@@ -145,6 +158,41 @@ export const MaterialNormsTab: React.FC = () => {
   const overLimitCount = mockNorms.reduce((acc, norm) => {
     return acc + norm.materials.filter(m => m.variance > 5).length;
   }, 0);
+
+  // Prepare chart data - aggregate by material across all work items
+  const chartData = React.useMemo(() => {
+    const materialMap = new Map<string, { name: string; normQty: number; actualQty: number; unit: string }>();
+    
+    mockNorms.forEach(norm => {
+      norm.materials.forEach(material => {
+        const existing = materialMap.get(material.materialCode);
+        if (existing) {
+          existing.normQty += material.normQty;
+          existing.actualQty += material.actualQty;
+        } else {
+          materialMap.set(material.materialCode, {
+            name: material.materialName,
+            normQty: material.normQty,
+            actualQty: material.actualQty,
+            unit: material.unit,
+          });
+        }
+      });
+    });
+
+    return Array.from(materialMap.entries())
+      .map(([code, data]) => ({
+        code,
+        name: data.name.length > 20 ? data.name.substring(0, 20) + '...' : data.name,
+        fullName: data.name,
+        unit: data.unit,
+        normQty: Number(data.normQty.toFixed(2)),
+        actualQty: Number(data.actualQty.toFixed(2)),
+        variance: Number(((data.actualQty - data.normQty) / data.normQty * 100).toFixed(2)),
+      }))
+      .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance))
+      .slice(0, 8); // Top 8 materials by variance
+  }, []);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => 
@@ -298,6 +346,15 @@ export const MaterialNormsTab: React.FC = () => {
         </Select>
 
         <div className="flex-1" />
+
+        <Button 
+          variant={showChart ? 'default' : 'outline'} 
+          className="gap-2" 
+          onClick={() => setShowChart(!showChart)}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Biểu đồ
+        </Button>
         
         <Button variant="outline" className="gap-2" onClick={handleExport}>
           <FileSpreadsheet className="h-4 w-4" />
@@ -314,6 +371,106 @@ export const MaterialNormsTab: React.FC = () => {
           Thêm định mức
         </Button>
       </div>
+
+      {/* Norm vs Actual Comparison Chart */}
+      {showChart && (
+        <div className="bg-card rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">So sánh Định mức vs Thực tế</h3>
+            <p className="text-sm text-muted-foreground">Top 8 vật tư có chênh lệch cao nhất</p>
+          </div>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                barGap={2}
+                barCategoryGap="20%"
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  tick={{ fontSize: 11 }}
+                  className="fill-muted-foreground"
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  className="fill-muted-foreground"
+                />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                          <p className="font-medium mb-2">{data.fullName}</p>
+                          <p className="text-sm text-muted-foreground mb-1">Mã: {data.code}</p>
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: 'hsl(var(--primary))' }}></span>
+                              Định mức: <span className="font-medium">{data.normQty} {data.unit}</span>
+                            </p>
+                            <p className="text-sm">
+                              <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: 'hsl(var(--chart-2))' }}></span>
+                              Thực tế: <span className="font-medium">{data.actualQty} {data.unit}</span>
+                            </p>
+                            <p className={`text-sm font-medium ${data.variance > 5 ? 'text-destructive' : data.variance < 0 ? 'text-success' : ''}`}>
+                              Chênh lệch: {data.variance > 0 ? '+' : ''}{data.variance}%
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend 
+                  verticalAlign="top"
+                  height={36}
+                  formatter={(value) => (
+                    <span className="text-sm text-foreground">{value}</span>
+                  )}
+                />
+                <Bar 
+                  dataKey="normQty" 
+                  name="Định mức" 
+                  fill="hsl(var(--primary))" 
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar 
+                  dataKey="actualQty" 
+                  name="Thực tế" 
+                  radius={[4, 4, 0, 0]}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.variance > 5 ? 'hsl(var(--destructive))' : 'hsl(var(--chart-2))'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex items-center justify-center gap-6 mt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-primary"></div>
+              <span className="text-muted-foreground">Định mức</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(var(--chart-2))' }}></div>
+              <span className="text-muted-foreground">Thực tế (trong định mức)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-destructive"></div>
+              <span className="text-muted-foreground">Thực tế (vượt định mức &gt;5%)</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Norms Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
