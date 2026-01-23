@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CostFormDialog, CostEntry } from '@/components/costs/CostFormDialog';
 import { CostImportDialog, ImportedCostEntry } from '@/components/costs/CostImportDialog';
+import CostExportDialog from '@/components/costs/CostExportDialog';
 import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -251,6 +252,7 @@ const Costs: React.FC = () => {
   const [costDialogMode, setCostDialogMode] = useState<'create' | 'edit'>('create');
   const [selectedCost, setSelectedCost] = useState<CostEntry | undefined>(undefined);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const handleAddCost = () => {
     setCostDialogMode('create');
@@ -333,7 +335,7 @@ const Costs: React.FC = () => {
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -787,6 +789,13 @@ const Costs: React.FC = () => {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onImport={handleImport}
+      />
+
+      {/* Cost Export Dialog */}
+      <CostExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        data={mockCostEntries}
       />
     </div>
   );
