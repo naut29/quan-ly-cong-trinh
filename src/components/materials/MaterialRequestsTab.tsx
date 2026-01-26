@@ -13,8 +13,12 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Mail,
+  Settings2
 } from 'lucide-react';
+import EmailNotificationSettings from './EmailNotificationSettings';
+import { useMaterialRequestNotifications } from '@/hooks/useMaterialRequestNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -184,6 +188,30 @@ const MaterialRequestsTab: React.FC = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<MaterialRequest | null>(null);
   const [editMode, setEditMode] = useState(false);
+  
+  // Email notification settings
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState(() => 
+    localStorage.getItem('material_request_webhook_url') || ''
+  );
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => 
+    localStorage.getItem('material_request_notifications_enabled') === 'true'
+  );
+
+  const { notifyCreated, notifyStatusChanged } = useMaterialRequestNotifications(
+    webhookUrl,
+    notificationsEnabled
+  );
+
+  const handleWebhookUrlChange = (url: string) => {
+    setWebhookUrl(url);
+    localStorage.setItem('material_request_webhook_url', url);
+  };
+
+  const handleNotificationsEnabledChange = (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    localStorage.setItem('material_request_notifications_enabled', String(enabled));
+  };
 
   // Filter requests
   const filteredRequests = requests.filter(req => {
@@ -231,12 +259,35 @@ const MaterialRequestsTab: React.FC = () => {
   };
 
   const handleUpdateStatus = (requestId: string, newStatus: MaterialRequestStatus) => {
+    const request = requests.find(r => r.id === requestId);
+    if (!request) return;
+    
+    const previousStatus = request.status;
+    
     setRequests(prev => prev.map(r => 
       r.id === requestId ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r
     ));
+    
+    // Send email notification
+    notifyStatusChanged(
+      {
+        id: request.id,
+        code: request.code,
+        requestDate: request.requestDate,
+        requester: request.requester,
+        materials: request.items.map(i => ({
+          name: i.materialName,
+          requestedQty: i.requestedQty,
+          unit: i.unit,
+        })),
+        status: newStatus,
+      },
+      previousStatus
+    );
+    
     toast({
       title: 'Đã cập nhật trạng thái',
-      description: `Trạng thái yêu cầu đã được cập nhật thành "${statusLabels[newStatus]}".`,
+      description: `Trạng thái yêu cầu đã được cập nhật thành "${statusLabels[newStatus]}".${notificationsEnabled ? ' Email thông báo đã được gửi.' : ''}`,
     });
   };
 
@@ -318,6 +369,13 @@ const MaterialRequestsTab: React.FC = () => {
             <SelectItem value="received">Đã nhận đủ</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" className="gap-2" onClick={() => setSettingsDialogOpen(true)}>
+          <Mail className="h-4 w-4" />
+          <span className="hidden sm:inline">Thông báo</span>
+          {notificationsEnabled && (
+            <span className="h-2 w-2 rounded-full bg-success" />
+          )}
+        </Button>
         <Button className="gap-2 ml-auto" onClick={handleNewRequest}>
           <Plus className="h-4 w-4" />
           Tạo yêu cầu
@@ -637,11 +695,25 @@ const MaterialRequestsTab: React.FC = () => {
             </Button>
             <Button onClick={() => {
               setDialogOpen(false);
+              
+              // For new requests, send creation notification
+              if (!editMode) {
+                const newRequest = {
+                  id: `req-${Date.now()}`,
+                  code: `YC-${new Date().getFullYear()}-${String(requests.length + 1).padStart(3, '0')}`,
+                  requestDate: new Date().toISOString().split('T')[0],
+                  requester: 'Người dùng hiện tại',
+                  materials: [],
+                  status: 'not_received' as const,
+                };
+                notifyCreated(newRequest);
+              }
+              
               toast({
                 title: editMode ? 'Đã cập nhật' : 'Đã tạo yêu cầu',
                 description: editMode 
                   ? 'Yêu cầu vật tư đã được cập nhật thành công.'
-                  : 'Yêu cầu vật tư mới đã được tạo.',
+                  : `Yêu cầu vật tư mới đã được tạo.${notificationsEnabled ? ' Email thông báo đã được gửi.' : ''}`,
               });
             }}>
               {editMode ? 'Cập nhật' : 'Tạo yêu cầu'}
@@ -649,6 +721,16 @@ const MaterialRequestsTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Email Notification Settings Dialog */}
+      <EmailNotificationSettings
+        open={settingsDialogOpen}
+        onOpenChange={setSettingsDialogOpen}
+        webhookUrl={webhookUrl}
+        onWebhookUrlChange={handleWebhookUrlChange}
+        notificationsEnabled={notificationsEnabled}
+        onNotificationsEnabledChange={handleNotificationsEnabledChange}
+      />
     </div>
   );
 };
