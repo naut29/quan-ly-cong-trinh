@@ -501,23 +501,23 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
                   issued: m.used,
                   stock: m.stock,
                 }))} 
-                layout="vertical" 
-                barGap={2}
-                margin={{ left: 10, right: 10 }}
+                barGap={4}
+                margin={{ left: 10, right: 10, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
-                  type="number"
+                  dataKey="code"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  angle={-35}
+                  textAnchor="end"
+                  height={50}
+                  interval={0}
+                />
+                <YAxis 
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
                   tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
-                />
-                <YAxis 
-                  type="category"
-                  dataKey="code"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                  width={75}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -541,13 +541,13 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
                   dataKey="received" 
                   name="Đã nhập"
                   fill="hsl(var(--success))" 
-                  radius={[0, 4, 4, 0]} 
+                  radius={[4, 4, 0, 0]} 
                 />
                 <Bar 
                   dataKey="issued" 
                   name="Đã xuất"
                   fill="hsl(var(--info))" 
-                  radius={[0, 4, 4, 0]} 
+                  radius={[4, 4, 0, 0]} 
                 />
               </BarChart>
             </ResponsiveContainer>
