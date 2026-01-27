@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   AreaChart,
   Area,
@@ -24,10 +24,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Package, Building2, Warehouse, FolderCode, Layers, AlertCircle } from 'lucide-react';
+import { Package, Building2, Warehouse, FolderCode, Layers, AlertCircle, Download, Image, FileText } from 'lucide-react';
 import { MaterialFilters } from './MaterialAdvancedFilter';
 import { MaterialRequest, computeRequestStats, mockMaterialRequests } from '@/data/materialRequestData';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { toast } from '@/hooks/use-toast';
 
 // Category label mapping
 const categoryLabels: Record<string, string> = {
@@ -113,9 +122,96 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
 }) => {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
   const [groupBy, setGroupBy] = useState<GroupByAttribute>('time');
+  const [isExporting, setIsExporting] = useState(false);
+  const chartsContainerRef = useRef<HTMLDivElement>(null);
 
   // Compute material request stats for pie chart
   const requestStats = useMemo(() => computeRequestStats(materialRequests), [materialRequests]);
+
+  // Export charts to PNG
+  const handleExportPNG = useCallback(async () => {
+    if (!chartsContainerRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(chartsContainerRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `bieu-do-vat-tu-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast({
+        title: 'Xuất thành công',
+        description: 'Đã tải xuống biểu đồ dạng PNG',
+      });
+    } catch (error) {
+      toast({
+        title: 'Lỗi xuất file',
+        description: 'Không thể xuất biểu đồ. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, []);
+
+  // Export charts to PDF
+  const handleExportPDF = useCallback(async () => {
+    if (!chartsContainerRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(chartsContainerRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min((pdfWidth - 20) / imgWidth, (pdfHeight - 30) / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 20;
+      
+      // Add title
+      pdf.setFontSize(16);
+      pdf.text('Biểu đồ phân tích vật tư', pdfWidth / 2, 12, { align: 'center' });
+      pdf.setFontSize(10);
+      pdf.text(`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}`, pdfWidth / 2, 18, { align: 'center' });
+      
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`bieu-do-vat-tu-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: 'Xuất thành công',
+        description: 'Đã tải xuống biểu đồ dạng PDF',
+      });
+    } catch (error) {
+      toast({
+        title: 'Lỗi xuất file',
+        description: 'Không thể xuất biểu đồ. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, []);
 
   // Check if filters are active
   const hasActiveFilters = useMemo(() => {
@@ -948,6 +1044,26 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
               </SelectContent>
             </Select>
           )}
+
+          {/* Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2" disabled={isExporting}>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Xuất biểu đồ</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportPNG} disabled={isExporting}>
+                <Image className="h-4 w-4 mr-2" />
+                Xuất PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting}>
+                <FileText className="h-4 w-4 mr-2" />
+                Xuất PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -964,7 +1080,9 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Charts */}
-      {renderChartsByGroup()}
+      <div ref={chartsContainerRef}>
+        {renderChartsByGroup()}
+      </div>
     </div>
   );
 };
