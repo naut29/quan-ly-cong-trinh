@@ -477,25 +477,47 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
         })()}
       </div>
 
-      {/* Bar Chart - Top vật tư */}
+      {/* Bar Chart - Chi tiết nhập xuất theo vật tư */}
       <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Top vật tư nhập xuất nhiều nhất</h4>
-        {topMaterialsData.length > 0 ? (
-          <div className="h-[250px]">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Chi tiết nhập xuất theo vật tư
+            <span className="text-xs ml-2 text-foreground">({materials.length} vật tư)</span>
+          </h4>
+          {hasActiveFilters && (
+            <Badge variant="secondary" className="text-xs">
+              Đã lọc
+            </Badge>
+          )}
+        </div>
+        {materials.length > 0 ? (
+          <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topMaterialsData} layout="vertical" barGap={0}>
+              <BarChart 
+                data={materials.slice(0, 10).map(m => ({
+                  code: m.code,
+                  name: m.name,
+                  received: m.received,
+                  issued: m.used,
+                  stock: m.stock,
+                }))} 
+                layout="vertical" 
+                barGap={2}
+                margin={{ left: 10, right: 10 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   type="number"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
                 />
                 <YAxis 
                   type="category"
-                  dataKey="name"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  dataKey="code"
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
-                  width={70}
+                  width={75}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -504,11 +526,15 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
                     borderRadius: '8px',
                   }}
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number) => value.toLocaleString()}
+                  labelFormatter={(label) => {
+                    const material = materials.find(m => m.code === label);
+                    return material ? `${label} - ${material.name}` : label;
+                  }}
+                  formatter={(value: number, name: string) => [value.toLocaleString(), name]}
                 />
                 <Legend 
                   formatter={(value) => (
-                    <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
+                    <span style={{ color: 'hsl(var(--foreground))', fontSize: '12px' }}>{value}</span>
                   )}
                 />
                 <Bar 
@@ -527,7 +553,7 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
             </ResponsiveContainer>
           </div>
         ) : (
-          <EmptyChart message="Không có dữ liệu vật tư" />
+          <EmptyChart message={hasActiveFilters ? "Không có vật tư phù hợp bộ lọc" : "Không có dữ liệu vật tư"} />
         )}
       </div>
     </div>
