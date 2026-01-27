@@ -27,6 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Package, Building2, Warehouse, FolderCode, Layers, AlertCircle } from 'lucide-react';
 import { MaterialFilters } from './MaterialAdvancedFilter';
+import { MaterialRequest, computeRequestStats, mockMaterialRequests } from '@/data/materialRequestData';
 
 // Category label mapping
 const categoryLabels: Record<string, string> = {
@@ -70,6 +71,7 @@ interface MaterialChartsProps {
   className?: string;
   filters?: MaterialFilters;
   materials?: MaterialData[];
+  materialRequests?: MaterialRequest[];
 }
 
 // Mock time-based data (can be filtered by category later)
@@ -106,10 +108,14 @@ const generateWeeklyData = (materials: MaterialData[]) => {
 export const MaterialCharts: React.FC<MaterialChartsProps> = ({ 
   className, 
   filters,
-  materials = [] 
+  materials = [],
+  materialRequests = mockMaterialRequests,
 }) => {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
   const [groupBy, setGroupBy] = useState<GroupByAttribute>('time');
+
+  // Compute material request stats for pie chart
+  const requestStats = useMemo(() => computeRequestStats(materialRequests), [materialRequests]);
 
   // Check if filters are active
   const hasActiveFilters = useMemo(() => {
@@ -309,45 +315,52 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
 
       {/* Pie Chart - Theo dõi yêu cầu vật tư */}
       <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Theo dõi yêu cầu vật tư</h4>
-        <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={[
-                  { name: 'Chưa nhận', value: 2, color: 'hsl(var(--destructive))' },
-                  { name: 'Nhận một phần', value: 2, color: 'hsl(var(--warning))' },
-                  { name: 'Đã nhận đủ', value: 1, color: 'hsl(var(--success))' },
-                ]}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={4}
-                dataKey="value"
-              >
-                <Cell fill="hsl(var(--destructive))" />
-                <Cell fill="hsl(var(--warning))" />
-                <Cell fill="hsl(var(--success))" />
-              </Pie>
-              <Tooltip 
-                formatter={(value: number, name: string) => [`${value} yêu cầu`, name]}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend 
-                verticalAlign="bottom"
-                height={36}
-                formatter={(value) => (
-                  <span style={{ color: 'hsl(var(--foreground))', fontSize: '12px' }}>{value}</span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <h4 className="font-medium text-sm text-muted-foreground mb-4">
+          Theo dõi yêu cầu vật tư 
+          <span className="text-xs ml-2 text-foreground">({requestStats.total} yêu cầu)</span>
+        </h4>
+        {requestStats.total > 0 ? (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Chưa nhận', value: requestStats.notReceived },
+                    { name: 'Nhận một phần', value: requestStats.partiallyReceived },
+                    { name: 'Đã nhận đủ', value: requestStats.received },
+                  ].filter(d => d.value > 0)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {requestStats.notReceived > 0 && <Cell fill="hsl(var(--destructive))" />}
+                  {requestStats.partiallyReceived > 0 && <Cell fill="hsl(var(--warning))" />}
+                  {requestStats.received > 0 && <Cell fill="hsl(var(--success))" />}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number, name: string) => [`${value} yêu cầu`, name]}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom"
+                  height={36}
+                  formatter={(value) => (
+                    <span style={{ color: 'hsl(var(--foreground))', fontSize: '12px' }}>{value}</span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyChart message="Chưa có yêu cầu vật tư" />
+        )}
       </div>
 
       {/* Pie Chart - Phân bổ theo danh mục */}
