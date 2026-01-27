@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Building2, 
@@ -12,6 +12,9 @@ import {
   Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import VideoModal from '@/components/landing/VideoModal';
+import introVideo from '@/assets/intro-video.mp4';
+import demoVideo from '@/assets/demo-video.mp4';
 
 const features = [
   {
@@ -44,6 +47,9 @@ const benefits = [
 ];
 
 const Landing: React.FC = () => {
+  const [introModalOpen, setIntroModalOpen] = useState(false);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -104,7 +110,7 @@ const Landing: React.FC = () => {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="gap-2 h-12 px-8">
+            <Button size="lg" variant="outline" className="gap-2 h-12 px-8" onClick={() => setIntroModalOpen(true)}>
               <Play className="h-4 w-4" />
               Xem video giới thiệu
             </Button>
@@ -179,14 +185,17 @@ const Landing: React.FC = () => {
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-video rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
+              <button 
+                onClick={() => setDemoModalOpen(true)}
+                className="w-full aspect-video rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center hover:bg-white/15 transition-colors cursor-pointer group"
+              >
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-colors">
                     <Play className="h-8 w-8 ml-1" />
                   </div>
                   <p className="text-sm opacity-70">Xem demo sản phẩm</p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -232,6 +241,19 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </footer>
+      {/* Video Modals */}
+      <VideoModal
+        open={introModalOpen}
+        onOpenChange={setIntroModalOpen}
+        title="Video giới thiệu"
+        videoSrc={introVideo}
+      />
+      <VideoModal
+        open={demoModalOpen}
+        onOpenChange={setDemoModalOpen}
+        title="Demo sản phẩm"
+        videoSrc={demoVideo}
+      />
     </div>
   );
 };
