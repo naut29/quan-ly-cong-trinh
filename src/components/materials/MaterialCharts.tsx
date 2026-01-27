@@ -390,14 +390,24 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
 
       {/* Pie Chart - Tỷ lệ nhập xuất */}
       <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Tỷ lệ nhập / xuất kho</h4>
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Tỷ lệ nhập / xuất kho
+            <span className="text-xs ml-2 text-foreground">({materials.length} vật tư)</span>
+          </h4>
+          {hasActiveFilters && (
+            <Badge variant="secondary" className="text-xs">
+              Đã lọc
+            </Badge>
+          )}
+        </div>
         {(() => {
           const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
           const totalIssued = materials.reduce((sum, m) => sum + m.used, 0);
           const total = totalReceived + totalIssued;
           
           if (total === 0) {
-            return <EmptyChart message="Không có dữ liệu nhập xuất" />;
+            return <EmptyChart message={hasActiveFilters ? "Không có dữ liệu phù hợp bộ lọc" : "Không có dữ liệu nhập xuất"} />;
           }
           
           const receivedPercent = Math.round((totalReceived / total) * 100);
