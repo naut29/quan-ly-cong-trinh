@@ -307,63 +307,47 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
         )}
       </div>
 
-      {/* Line Chart - Tồn kho theo thời gian */}
+      {/* Pie Chart - Theo dõi yêu cầu vật tư */}
       <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Biến động tồn kho</h4>
-        {chartData.length > 0 ? (
-          <div className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey={xKey} 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                  }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number) => value.toLocaleString()}
-                />
-                <Legend 
-                  formatter={(value) => (
-                    <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>
-                  )}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="stock" 
-                  name="Tồn kho"
-                  stroke="hsl(var(--warning))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--warning))', strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                />
-                {timeRange === 'month' && (
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    name="Giá trị (tỷ)"
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                  />
+        <h4 className="font-medium text-sm text-muted-foreground mb-4">Theo dõi yêu cầu vật tư</h4>
+        <div className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Chưa nhận', value: 2, color: 'hsl(var(--destructive))' },
+                  { name: 'Nhận một phần', value: 2, color: 'hsl(var(--warning))' },
+                  { name: 'Đã nhận đủ', value: 1, color: 'hsl(var(--success))' },
+                ]}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={4}
+                dataKey="value"
+              >
+                <Cell fill="hsl(var(--destructive))" />
+                <Cell fill="hsl(var(--warning))" />
+                <Cell fill="hsl(var(--success))" />
+              </Pie>
+              <Tooltip 
+                formatter={(value: number, name: string) => [`${value} yêu cầu`, name]}
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+              />
+              <Legend 
+                verticalAlign="bottom"
+                height={36}
+                formatter={(value) => (
+                  <span style={{ color: 'hsl(var(--foreground))', fontSize: '12px' }}>{value}</span>
                 )}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <EmptyChart message="Không có dữ liệu vật tư phù hợp" />
-        )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Pie Chart - Phân bổ theo danh mục */}
