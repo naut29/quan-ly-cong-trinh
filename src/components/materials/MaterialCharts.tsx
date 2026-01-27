@@ -388,42 +388,83 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
         )}
       </div>
 
-      {/* Pie Chart - Phân bổ theo danh mục */}
+      {/* Pie Chart - Tỷ lệ nhập xuất */}
       <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Phân bổ theo danh mục vật tư</h4>
-        {categoryData.length > 0 ? (
-          <div className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                  labelLine={false}
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [`${value}%`, 'Tỷ lệ']}
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <EmptyChart message="Không có dữ liệu danh mục" />
-        )}
+        <h4 className="font-medium text-sm text-muted-foreground mb-4">Tỷ lệ nhập / xuất kho</h4>
+        {(() => {
+          const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
+          const totalIssued = materials.reduce((sum, m) => sum + m.used, 0);
+          const total = totalReceived + totalIssued;
+          
+          if (total === 0) {
+            return <EmptyChart message="Không có dữ liệu nhập xuất" />;
+          }
+          
+          const receivedPercent = Math.round((totalReceived / total) * 100);
+          const issuedPercent = 100 - receivedPercent;
+          
+          const data = [
+            { name: 'Đã nhập', value: totalReceived, percent: receivedPercent, color: 'hsl(var(--success))' },
+            { name: 'Đã xuất', value: totalIssued, percent: issuedPercent, color: 'hsl(var(--info))' },
+          ];
+          
+          return (
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, value, percent }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill="hsl(var(--foreground))"
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          fontSize={12}
+                          fontWeight={500}
+                        >
+                          {`${value.toLocaleString()} (${percent}%)`}
+                        </text>
+                      );
+                    }}
+                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom"
+                    height={36}
+                    formatter={(value) => (
+                      <span style={{ color: 'hsl(var(--foreground))', fontSize: '12px' }}>{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bar Chart - Top vật tư */}
