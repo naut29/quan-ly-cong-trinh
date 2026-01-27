@@ -4,7 +4,6 @@ import {
   Search, 
   FileText,
   Package,
-  Calendar,
   User,
   Building2,
   MoreHorizontal,
@@ -15,14 +14,13 @@ import {
   Clock,
   AlertCircle,
   Mail,
-  Settings2
 } from 'lucide-react';
 import EmailNotificationSettings from './EmailNotificationSettings';
+import MaterialRequestFormDialog, { MaterialRequestFormItem } from './MaterialRequestFormDialog';
 import { useMaterialRequestNotifications } from '@/hooks/useMaterialRequestNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -45,8 +43,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 
 export type MaterialRequestStatus = 'not_received' | 'received' | 'partially_received';
@@ -615,112 +611,100 @@ const MaterialRequestsTab: React.FC = () => {
       </Dialog>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editMode ? 'Chỉnh sửa yêu cầu vật tư' : 'Tạo yêu cầu vật tư mới'}
-            </DialogTitle>
-            <DialogDescription>
-              {editMode ? 'Cập nhật thông tin yêu cầu vật tư' : 'Điền thông tin để tạo yêu cầu mới'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Tiêu đề yêu cầu</Label>
-              <Input 
-                id="title" 
-                placeholder="Nhập tiêu đề..." 
-                defaultValue={selectedRequest?.title || ''}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="requestDate">Ngày yêu cầu</Label>
-                <Input 
-                  id="requestDate" 
-                  type="date" 
-                  defaultValue={selectedRequest?.requestDate || new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="requiredDate">Ngày cần</Label>
-                <Input 
-                  id="requiredDate" 
-                  type="date" 
-                  defaultValue={selectedRequest?.requiredDate || ''}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="requester">Người yêu cầu</Label>
-                <Input 
-                  id="requester" 
-                  placeholder="Tên người yêu cầu" 
-                  defaultValue={selectedRequest?.requester || ''}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Bộ phận</Label>
-                <Input 
-                  id="department" 
-                  placeholder="Bộ phận/Đội" 
-                  defaultValue={selectedRequest?.department || ''}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="supplier">Nhà cung cấp (tùy chọn)</Label>
-              <Input 
-                id="supplier" 
-                placeholder="Chọn hoặc nhập nhà cung cấp" 
-                defaultValue={selectedRequest?.supplier || ''}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Ghi chú</Label>
-              <Textarea 
-                id="notes" 
-                placeholder="Ghi chú thêm..." 
-                defaultValue={selectedRequest?.notes || ''}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={() => {
-              setDialogOpen(false);
-              
-              // For new requests, send creation notification
-              if (!editMode) {
-                const newRequest = {
-                  id: `req-${Date.now()}`,
-                  code: `YC-${new Date().getFullYear()}-${String(requests.length + 1).padStart(3, '0')}`,
-                  requestDate: new Date().toISOString().split('T')[0],
-                  requester: 'Người dùng hiện tại',
-                  materials: [],
-                  status: 'not_received' as const,
-                };
-                notifyCreated(newRequest);
-              }
-              
-              toast({
-                title: editMode ? 'Đã cập nhật' : 'Đã tạo yêu cầu',
-                description: editMode 
-                  ? 'Yêu cầu vật tư đã được cập nhật thành công.'
-                  : `Yêu cầu vật tư mới đã được tạo.${notificationsEnabled ? ' Email thông báo đã được gửi.' : ''}`,
-              });
-            }}>
-              {editMode ? 'Cập nhật' : 'Tạo yêu cầu'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MaterialRequestFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        editMode={editMode}
+        initialData={selectedRequest ? {
+          title: selectedRequest.title,
+          requestDate: selectedRequest.requestDate,
+          requiredDate: selectedRequest.requiredDate,
+          requester: selectedRequest.requester,
+          department: selectedRequest.department,
+          supplier: selectedRequest.supplier,
+          notes: selectedRequest.notes,
+          items: selectedRequest.items.map(item => ({
+            id: item.id,
+            materialCode: item.materialCode,
+            materialName: item.materialName,
+            unit: item.unit,
+            requestedQty: item.requestedQty,
+          })),
+        } : undefined}
+        onSubmit={(formData) => {
+          setDialogOpen(false);
+          
+          if (editMode && selectedRequest) {
+            // Update existing request
+            setRequests(prev => prev.map(r => 
+              r.id === selectedRequest.id 
+                ? {
+                    ...r,
+                    title: formData.title,
+                    requestDate: formData.requestDate,
+                    requiredDate: formData.requiredDate,
+                    requester: formData.requester,
+                    department: formData.department,
+                    supplier: formData.supplier || undefined,
+                    notes: formData.notes || undefined,
+                    items: formData.items.map(item => ({
+                      ...item,
+                      receivedQty: r.items.find(i => i.id === item.id)?.receivedQty || 0,
+                    })),
+                    updatedAt: new Date().toISOString(),
+                  }
+                : r
+            ));
+            
+            toast({
+              title: 'Đã cập nhật',
+              description: 'Yêu cầu vật tư đã được cập nhật thành công.',
+            });
+          } else {
+            // Create new request
+            const newCode = `YC-${new Date().getFullYear()}-${String(requests.length + 1).padStart(3, '0')}`;
+            const newRequest: MaterialRequest = {
+              id: `req-${Date.now()}`,
+              code: newCode,
+              title: formData.title,
+              requestDate: formData.requestDate,
+              requiredDate: formData.requiredDate,
+              requester: formData.requester,
+              department: formData.department,
+              supplier: formData.supplier || undefined,
+              status: 'not_received',
+              items: formData.items.map(item => ({
+                ...item,
+                receivedQty: 0,
+              })),
+              notes: formData.notes || undefined,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            setRequests(prev => [newRequest, ...prev]);
+            
+            // Send notification
+            notifyCreated({
+              id: newRequest.id,
+              code: newRequest.code,
+              requestDate: newRequest.requestDate,
+              requester: newRequest.requester,
+              materials: newRequest.items.map(i => ({
+                name: i.materialName,
+                requestedQty: i.requestedQty,
+                unit: i.unit,
+              })),
+              status: 'not_received',
+            });
+            
+            toast({
+              title: 'Đã tạo yêu cầu',
+              description: `Yêu cầu ${newCode} đã được tạo.${notificationsEnabled ? ' Email thông báo đã được gửi.' : ''}`,
+            });
+          }
+        }}
+      />
 
       {/* Email Notification Settings Dialog */}
       <EmailNotificationSettings
