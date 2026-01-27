@@ -37,6 +37,8 @@ import { MaterialRequest, computeRequestStats, mockMaterialRequests } from '@/da
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from '@/hooks/use-toast';
+import { useChartExport } from '@/hooks/useChartExport';
+import ChartExportButton from './ChartExportButton';
 
 // Category label mapping
 const categoryLabels: Record<string, string> = {
@@ -124,6 +126,23 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
   const [groupBy, setGroupBy] = useState<GroupByAttribute>('time');
   const [isExporting, setIsExporting] = useState(false);
   const chartsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Individual chart refs
+  const timeAreaChartRef = useRef<HTMLDivElement>(null);
+  const requestPieChartRef = useRef<HTMLDivElement>(null);
+  const ratioPieChartRef = useRef<HTMLDivElement>(null);
+  const detailBarChartRef = useRef<HTMLDivElement>(null);
+  const categoryBarChartRef = useRef<HTMLDivElement>(null);
+  const categoryPieChartRef = useRef<HTMLDivElement>(null);
+  const supplierBarChartRef = useRef<HTMLDivElement>(null);
+  const supplierPieChartRef = useRef<HTMLDivElement>(null);
+  const warehouseBarChartRef = useRef<HTMLDivElement>(null);
+  const warehouseCapacityChartRef = useRef<HTMLDivElement>(null);
+  const costCodeBarChartRef = useRef<HTMLDivElement>(null);
+  const costCodeVarianceChartRef = useRef<HTMLDivElement>(null);
+
+  // Chart export hook
+  const { exportingChartId, exportChartToPNG, exportChartToPDF } = useChartExport();
 
   // Compute material request stats for pie chart
   const requestStats = useMemo(() => computeRequestStats(materialRequests), [materialRequests]);
@@ -345,8 +364,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
   const renderTimeCharts = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Area Chart - Nhập xuất theo thời gian */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng nhập xuất theo thời gian</h4>
+      <div ref={timeAreaChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Lượng nhập xuất theo thời gian</h4>
+          <ChartExportButton
+            chartId="time-area"
+            chartName="Lượng nhập xuất theo thời gian"
+            chartRef={timeAreaChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         {chartData.length > 0 ? (
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -410,11 +439,21 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Pie Chart - Theo dõi yêu cầu vật tư */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">
-          Theo dõi yêu cầu vật tư 
-          <span className="text-xs ml-2 text-foreground">({requestStats.total} yêu cầu)</span>
-        </h4>
+      <div ref={requestPieChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Theo dõi yêu cầu vật tư 
+            <span className="text-xs ml-2 text-foreground">({requestStats.total} yêu cầu)</span>
+          </h4>
+          <ChartExportButton
+            chartId="request-pie"
+            chartName="Theo dõi yêu cầu vật tư"
+            chartRef={requestPieChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         {requestStats.total > 0 ? (
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -485,17 +524,27 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Pie Chart - Tỷ lệ nhập xuất */}
-      <div className="bg-card rounded-xl border border-border p-5">
+      <div ref={ratioPieChartRef} className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-medium text-sm text-muted-foreground">
             Tỷ lệ nhập / xuất kho
             <span className="text-xs ml-2 text-foreground">({materials.length} vật tư)</span>
           </h4>
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="text-xs">
-              Đã lọc
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="text-xs">
+                Đã lọc
+              </Badge>
+            )}
+            <ChartExportButton
+              chartId="ratio-pie"
+              chartName="Tỷ lệ nhập xuất kho"
+              chartRef={ratioPieChartRef}
+              exportingChartId={exportingChartId}
+              onExportPNG={exportChartToPNG}
+              onExportPDF={exportChartToPDF}
+            />
+          </div>
         </div>
         {(() => {
           const totalReceived = materials.reduce((sum, m) => sum + m.received, 0);
@@ -574,17 +623,27 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Bar Chart - Chi tiết nhập xuất theo vật tư */}
-      <div className="bg-card rounded-xl border border-border p-5">
+      <div ref={detailBarChartRef} className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-medium text-sm text-muted-foreground">
             Chi tiết nhập xuất theo vật tư
             <span className="text-xs ml-2 text-foreground">({materials.length} vật tư)</span>
           </h4>
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="text-xs">
-              Đã lọc
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="text-xs">
+                Đã lọc
+              </Badge>
+            )}
+            <ChartExportButton
+              chartId="detail-bar"
+              chartName="Chi tiết nhập xuất theo vật tư"
+              chartRef={detailBarChartRef}
+              exportingChartId={exportingChartId}
+              onExportPNG={exportChartToPNG}
+              onExportPDF={exportChartToPDF}
+            />
+          </div>
         </div>
         {materials.length > 0 ? (
           <div className="h-[280px]">
@@ -658,8 +717,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
   const renderCategoryCharts = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Bar Chart - Nhập xuất theo danh mục */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng nhập xuất theo danh mục</h4>
+      <div ref={categoryBarChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Lượng nhập xuất theo danh mục</h4>
+          <ChartExportButton
+            chartId="category-bar"
+            chartName="Lượng nhập xuất theo danh mục"
+            chartRef={categoryBarChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         {categoryData.length > 0 ? (
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -695,8 +764,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Pie Chart - Tỷ lệ theo danh mục */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Tỷ lệ giá trị theo danh mục</h4>
+      <div ref={categoryPieChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Tỷ lệ giá trị theo danh mục</h4>
+          <ChartExportButton
+            chartId="category-pie"
+            chartName="Tỷ lệ giá trị theo danh mục"
+            chartRef={categoryPieChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         {categoryData.length > 0 ? (
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -745,8 +824,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
   const renderSupplierCharts = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Bar Chart - Nhập xuất theo NCC */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng nhập theo nhà cung cấp</h4>
+      <div ref={supplierBarChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Lượng nhập theo nhà cung cấp</h4>
+          <ChartExportButton
+            chartId="supplier-bar"
+            chartName="Lượng nhập theo nhà cung cấp"
+            chartRef={supplierBarChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={supplierData} layout="vertical">
@@ -780,8 +869,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Pie Chart - Giá trị theo NCC */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Giá trị mua hàng theo NCC (tỷ VND)</h4>
+      <div ref={supplierPieChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Giá trị mua hàng theo NCC (tỷ VND)</h4>
+          <ChartExportButton
+            chartId="supplier-pie"
+            chartName="Giá trị mua hàng theo NCC"
+            chartRef={supplierPieChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -826,8 +925,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
   const renderWarehouseCharts = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Bar Chart - Nhập xuất theo kho */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng nhập xuất theo kho</h4>
+      <div ref={warehouseBarChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Lượng nhập xuất theo kho</h4>
+          <ChartExportButton
+            chartId="warehouse-bar"
+            chartName="Lượng nhập xuất theo kho"
+            chartRef={warehouseBarChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={warehouseData}>
@@ -859,8 +968,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Bar Chart - Công suất kho */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Mức sử dụng công suất kho (%)</h4>
+      <div ref={warehouseCapacityChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Mức sử dụng công suất kho (%)</h4>
+          <ChartExportButton
+            chartId="warehouse-capacity"
+            chartName="Mức sử dụng công suất kho"
+            chartRef={warehouseCapacityChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={warehouseData} layout="vertical">
@@ -903,8 +1022,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
   const renderCostCodeCharts = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Bar Chart - Nhập xuất theo mã chi phí */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Lượng xuất theo hạng mục công việc</h4>
+      <div ref={costCodeBarChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Lượng xuất theo hạng mục công việc</h4>
+          <ChartExportButton
+            chartId="costcode-bar"
+            chartName="Lượng xuất theo hạng mục công việc"
+            chartRef={costCodeBarChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={costCodeData}>
@@ -935,8 +1064,18 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
       </div>
 
       {/* Bar Chart - Hao hụt theo mã chi phí */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">Tỷ lệ hao hụt theo hạng mục (%)</h4>
+      <div ref={costCodeVarianceChartRef} className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Tỷ lệ hao hụt theo hạng mục (%)</h4>
+          <ChartExportButton
+            chartId="costcode-variance"
+            chartName="Tỷ lệ hao hụt theo hạng mục"
+            chartRef={costCodeVarianceChartRef}
+            exportingChartId={exportingChartId}
+            onExportPNG={exportChartToPNG}
+            onExportPDF={exportChartToPDF}
+          />
+        </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={costCodeData} layout="vertical">
