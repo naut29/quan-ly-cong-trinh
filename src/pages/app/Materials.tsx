@@ -51,7 +51,7 @@ import { MaterialNormsTab } from '@/components/materials/MaterialNormsTab';
 import { MaterialBySupplierTab } from '@/components/materials/MaterialBySupplierTab';
 import { MaterialByCostCodeTab } from '@/components/materials/MaterialByCostCodeTab';
 import { MaterialRequestsTab } from '@/components/materials/MaterialRequestsTab';
-
+import { MaterialRequest, mockMaterialRequests } from '@/data/materialRequestData';
 // Mock material data
 const materialCategories = [
   { id: 'overview', label: 'Tổng quan', icon: Package },
@@ -118,6 +118,9 @@ const Materials: React.FC = () => {
   const [warehouseDialogOpen, setWarehouseDialogOpen] = useState(false);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+
+  // Material requests state for chart sync
+  const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>(mockMaterialRequests);
 
   // Filter materials based on advanced filters
   const filteredMaterials = useMemo(() => {
@@ -457,6 +460,7 @@ const Materials: React.FC = () => {
             className="mb-6" 
             filters={filters}
             materials={filteredMaterials}
+            materialRequests={materialRequests}
           />
         )}
 
@@ -611,7 +615,7 @@ const Materials: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="requests" className="mt-0">
-            <MaterialRequestsTab />
+            <MaterialRequestsTab onRequestsChange={setMaterialRequests} />
           </TabsContent>
 
           <TabsContent value="norms" className="mt-0">
