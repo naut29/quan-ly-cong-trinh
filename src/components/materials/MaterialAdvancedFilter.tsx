@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,11 +17,25 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Filter, X, Search, RotateCcw } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Filter, X, Search, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+
+export interface MaterialItem {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+}
 
 export interface MaterialFilters {
   search: string;
   categories: string[];
+  materialCodes: string[];
   stockStatus: string;
   units: string[];
   priceMin: string;
@@ -36,11 +50,13 @@ interface MaterialAdvancedFilterProps {
   onFiltersChange: (filters: MaterialFilters) => void;
   categories: { id: string; label: string }[];
   units: string[];
+  materials?: MaterialItem[];
 }
 
 const defaultFilters: MaterialFilters = {
   search: '',
   categories: [],
+  materialCodes: [],
   stockStatus: 'all',
   units: [],
   priceMin: '',
@@ -55,11 +71,23 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
   onFiltersChange,
   categories,
   units,
+  materials = [],
 }) => {
   const [open, setOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
+  // Group materials by category
+  const materialsByCategory = useMemo(() => {
+    const grouped = new Map<string, MaterialItem[]>();
+    materials.forEach(m => {
+      const existing = grouped.get(m.category) || [];
+      grouped.set(m.category, [...existing, m]);
+    });
+    return grouped;
+  }, [materials]);
   const activeFilterCount = [
     filters.categories.length > 0,
+    filters.materialCodes.length > 0,
     filters.stockStatus !== 'all',
     filters.units.length > 0,
     filters.priceMin !== '',
@@ -76,6 +104,34 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
     onFiltersChange({ ...filters, categories: newCategories });
   };
 
+  const handleMaterialCodeToggle = (code: string) => {
+    const newCodes = filters.materialCodes.includes(code)
+      ? filters.materialCodes.filter(c => c !== code)
+      : [...filters.materialCodes, code];
+    onFiltersChange({ ...filters, materialCodes: newCodes });
+  };
+
+  const handleSelectAllInCategory = (categoryId: string, select: boolean) => {
+    const categoryMaterials = materialsByCategory.get(categoryId) || [];
+    const categoryCodes = categoryMaterials.map(m => m.code);
+    
+    let newCodes: string[];
+    if (select) {
+      newCodes = [...new Set([...filters.materialCodes, ...categoryCodes])];
+    } else {
+      newCodes = filters.materialCodes.filter(c => !categoryCodes.includes(c));
+    }
+    onFiltersChange({ ...filters, materialCodes: newCodes });
+  };
+
+  const toggleCategoryExpand = (categoryId: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(categoryId) 
+        ? prev.filter(c => c !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
   const handleUnitToggle = (unit: string) => {
     const newUnits = filters.units.includes(unit)
       ? filters.units.filter(u => u !== unit)
@@ -85,6 +141,7 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
 
   const handleReset = () => {
     onFiltersChange(defaultFilters);
+    setExpandedCategories([]);
   };
 
   const handleRemoveFilter = (filterKey: keyof MaterialFilters, value?: string) => {
@@ -92,6 +149,11 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
       onFiltersChange({
         ...filters,
         categories: filters.categories.filter(c => c !== value),
+      });
+    } else if (filterKey === 'materialCodes' && value) {
+      onFiltersChange({
+        ...filters,
+        materialCodes: filters.materialCodes.filter(c => c !== value),
       });
     } else if (filterKey === 'units' && value) {
       onFiltersChange({
@@ -111,6 +173,21 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
 
   const getCategoryLabel = (id: string) => {
     return categories.find(c => c.id === id)?.label || id;
+  };
+
+  const getMaterialName = (code: string) => {
+    return materials.find(m => m.code === code)?.name || code;
+  };
+
+  const isCategoryFullySelected = (categoryId: string) => {
+    const categoryMaterials = materialsByCategory.get(categoryId) || [];
+    return categoryMaterials.length > 0 && categoryMaterials.every(m => filters.materialCodes.includes(m.code));
+  };
+
+  const isCategoryPartiallySelected = (categoryId: string) => {
+    const categoryMaterials = materialsByCategory.get(categoryId) || [];
+    const selectedCount = categoryMaterials.filter(m => filters.materialCodes.includes(m.code)).length;
+    return selectedCount > 0 && selectedCount < categoryMaterials.length;
   };
 
   return (
@@ -157,39 +234,115 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-96 p-4" align="end">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Bộ lọc nâng cao</h4>
-                <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 gap-1 text-muted-foreground">
-                  <RotateCcw className="h-3 w-3" />
-                  Đặt lại
-                </Button>
-              </div>
-
-              <Separator />
-
-              {/* Categories */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Nhóm vật tư</Label>
-                <div className="flex flex-wrap gap-2">
-                  {categories.filter(c => c.id !== 'overview').map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`cat-${category.id}`}
-                        checked={filters.categories.includes(category.id)}
-                        onCheckedChange={() => handleCategoryToggle(category.id)}
-                      />
-                      <label
-                        htmlFor={`cat-${category.id}`}
-                        className="text-sm cursor-pointer"
-                      >
-                        {category.label}
-                      </label>
-                    </div>
-                  ))}
+          <PopoverContent className="w-[420px] p-4" align="end">
+            <ScrollArea className="max-h-[70vh]">
+              <div className="space-y-4 pr-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Bộ lọc nâng cao</h4>
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 gap-1 text-muted-foreground">
+                    <RotateCcw className="h-3 w-3" />
+                    Đặt lại
+                  </Button>
                 </div>
-              </div>
+
+                <Separator />
+
+                {/* Detailed Material Filter by Category */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Lọc chi tiết vật tư</Label>
+                    {filters.materialCodes.length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {filters.materialCodes.length} đã chọn
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="border rounded-lg divide-y">
+                    {categories.filter(c => c.id !== 'overview').map((category) => {
+                      const categoryMaterials = materialsByCategory.get(category.id) || [];
+                      const isExpanded = expandedCategories.includes(category.id);
+                      const isFullySelected = isCategoryFullySelected(category.id);
+                      const isPartiallySelected = isCategoryPartiallySelected(category.id);
+                      
+                      if (categoryMaterials.length === 0) return null;
+                      
+                      return (
+                        <Collapsible
+                          key={category.id}
+                          open={isExpanded}
+                          onOpenChange={() => toggleCategoryExpand(category.id)}
+                        >
+                          <div className="flex items-center gap-2 p-2 hover:bg-muted/50">
+                            <Checkbox
+                              id={`cat-all-${category.id}`}
+                              checked={isFullySelected}
+                              className={isPartiallySelected ? 'data-[state=unchecked]:bg-primary/30' : ''}
+                              onCheckedChange={(checked) => handleSelectAllInCategory(category.id, !!checked)}
+                            />
+                            <CollapsibleTrigger asChild>
+                              <button className="flex items-center gap-2 flex-1 text-left">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="text-sm font-medium">{category.label}</span>
+                                <Badge variant="secondary" className="text-xs ml-auto">
+                                  {categoryMaterials.length}
+                                </Badge>
+                              </button>
+                            </CollapsibleTrigger>
+                          </div>
+                          <CollapsibleContent>
+                            <div className="pl-8 pr-2 pb-2 space-y-1">
+                              {categoryMaterials.map((material) => (
+                                <div key={material.id} className="flex items-center space-x-2 py-1">
+                                  <Checkbox
+                                    id={`mat-${material.code}`}
+                                    checked={filters.materialCodes.includes(material.code)}
+                                    onCheckedChange={() => handleMaterialCodeToggle(material.code)}
+                                  />
+                                  <label
+                                    htmlFor={`mat-${material.code}`}
+                                    className="text-sm cursor-pointer flex-1"
+                                  >
+                                    <span className="text-muted-foreground">{material.code}</span>
+                                    <span className="mx-1">-</span>
+                                    <span>{material.name}</span>
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Quick Category Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Lọc nhanh theo nhóm</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.filter(c => c.id !== 'overview').map((category) => (
+                      <div key={category.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`cat-${category.id}`}
+                          checked={filters.categories.includes(category.id)}
+                          onCheckedChange={() => handleCategoryToggle(category.id)}
+                        />
+                        <label
+                          htmlFor={`cat-${category.id}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {category.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
               <Separator />
 
@@ -286,10 +439,11 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
 
               <Separator />
 
-              <Button className="w-full" onClick={() => setOpen(false)}>
-                Áp dụng bộ lọc
-              </Button>
-            </div>
+                <Button className="w-full" onClick={() => setOpen(false)}>
+                  Áp dụng bộ lọc
+                </Button>
+              </div>
+            </ScrollArea>
           </PopoverContent>
         </Popover>
 
@@ -305,6 +459,35 @@ export const MaterialAdvancedFilter: React.FC<MaterialAdvancedFilterProps> = ({
       {/* Active filters display */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2">
+          {filters.materialCodes.length > 0 && (
+            filters.materialCodes.length <= 3 ? (
+              filters.materialCodes.map((code) => (
+                <Badge key={code} variant="default" className="gap-1 pr-1">
+                  {code}: {getMaterialName(code).substring(0, 20)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={() => handleRemoveFilter('materialCodes', code)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="default" className="gap-1 pr-1">
+                {filters.materialCodes.length} vật tư đã chọn
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => onFiltersChange({ ...filters, materialCodes: [] })}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )
+          )}
           {filters.categories.map((cat) => (
             <Badge key={cat} variant="secondary" className="gap-1 pr-1">
               Nhóm: {getCategoryLabel(cat)}

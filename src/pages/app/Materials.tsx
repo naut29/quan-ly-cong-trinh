@@ -139,6 +139,11 @@ const Materials: React.FC = () => {
         return false;
       }
 
+      // Specific material code filter
+      if (filters.materialCodes.length > 0 && !filters.materialCodes.includes(material.code)) {
+        return false;
+      }
+
       // Unit filter
       if (filters.units.length > 0 && !filters.units.includes(material.unit)) {
         return false;
@@ -483,6 +488,7 @@ const Materials: React.FC = () => {
                 onFiltersChange={setFilters}
                 categories={materialCategories}
                 units={materialUnits}
+                materials={mockMaterials.map(m => ({ id: m.id, code: m.code, name: m.name, category: m.category }))}
               />
             </div>
 
