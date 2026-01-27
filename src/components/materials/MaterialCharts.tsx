@@ -325,9 +325,9 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Chưa nhận', value: requestStats.notReceived },
-                    { name: 'Nhận một phần', value: requestStats.partiallyReceived },
-                    { name: 'Đã nhận đủ', value: requestStats.received },
+                    { name: 'Chưa nhận', value: requestStats.notReceived, color: 'hsl(var(--destructive))' },
+                    { name: 'Nhận một phần', value: requestStats.partiallyReceived, color: 'hsl(var(--warning))' },
+                    { name: 'Đã nhận đủ', value: requestStats.received, color: 'hsl(var(--success))' },
                   ].filter(d => d.value > 0)}
                   cx="50%"
                   cy="50%"
@@ -335,10 +335,35 @@ export const MaterialCharts: React.FC<MaterialChartsProps> = ({
                   outerRadius={80}
                   paddingAngle={4}
                   dataKey="value"
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name }) => {
+                    const RADIAN = Math.PI / 180;
+                    const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                    const percent = Math.round((value / requestStats.total) * 100);
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        fill="hsl(var(--foreground))"
+                        textAnchor={x > cx ? 'start' : 'end'}
+                        dominantBaseline="central"
+                        fontSize={12}
+                        fontWeight={500}
+                      >
+                        {`${value} (${percent}%)`}
+                      </text>
+                    );
+                  }}
+                  labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                 >
-                  {requestStats.notReceived > 0 && <Cell fill="hsl(var(--destructive))" />}
-                  {requestStats.partiallyReceived > 0 && <Cell fill="hsl(var(--warning))" />}
-                  {requestStats.received > 0 && <Cell fill="hsl(var(--success))" />}
+                  {[
+                    { value: requestStats.notReceived, color: 'hsl(var(--destructive))' },
+                    { value: requestStats.partiallyReceived, color: 'hsl(var(--warning))' },
+                    { value: requestStats.received, color: 'hsl(var(--success))' },
+                  ].filter(d => d.value > 0).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
                 </Pie>
                 <Tooltip 
                   formatter={(value: number, name: string) => [`${value} yêu cầu`, name]}
