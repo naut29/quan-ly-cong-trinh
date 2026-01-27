@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Trash2, Package, FileSpreadsheet } from 'lucide-react';
+import MaterialRequestImportDialog from './MaterialRequestImportDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -257,115 +258,13 @@ const MaterialRequestFormDialog: React.FC<MaterialRequestFormDialogProps> = ({
             </div>
 
             {/* Materials List */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Danh sách vật tư <span className="text-destructive">*</span>
-                </Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Thêm vật tư
-                </Button>
-              </div>
-
-              {items.length === 0 ? (
-                <div className="border border-dashed border-border rounded-lg p-8 text-center">
-                  <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground mb-3">Chưa có vật tư nào trong yêu cầu</p>
-                  <Button type="button" variant="outline" onClick={handleAddItem}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Thêm vật tư đầu tiên
-                  </Button>
-                </div>
-              ) : (
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="text-left p-3 font-medium">Vật tư</th>
-                        <th className="text-left p-3 font-medium w-24">ĐVT</th>
-                        <th className="text-right p-3 font-medium w-32">Số lượng</th>
-                        <th className="w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item, index) => (
-                        <tr key={item.id} className="border-t border-border">
-                          <td className="p-2">
-                            <Select
-                              value={item.materialCode}
-                              onValueChange={(value) => handleItemChange(item.id, 'materialCode', value)}
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue placeholder="Chọn vật tư..." />
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover z-50">
-                                {availableMaterials.map((material) => (
-                                  <SelectItem key={material.code} value={material.code}>
-                                    <span className="font-mono text-xs text-muted-foreground mr-2">{material.code}</span>
-                                    {material.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Input 
-                              value={item.unit} 
-                              readOnly 
-                              className="h-9 bg-muted/50 text-center"
-                              placeholder="—"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              value={item.requestedQty || ''}
-                              onChange={(e) => handleItemChange(item.id, 'requestedQty', Number(e.target.value))}
-                              className="h-9 text-right"
-                              placeholder="0"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveItem(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  {/* Add more button */}
-                  <div className="border-t border-border p-2 bg-muted/30">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      className="w-full text-muted-foreground hover:text-foreground"
-                      onClick={handleAddItem}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Thêm dòng
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {items.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Tổng: {items.length} vật tư
-                </p>
-              )}
-            </div>
+            <MaterialsListSection 
+              items={items}
+              onAddItem={handleAddItem}
+              onRemoveItem={handleRemoveItem}
+              onItemChange={handleItemChange}
+              onImportItems={(importedItems) => setItems(prev => [...prev, ...importedItems])}
+            />
 
             {/* Notes */}
             <div className="space-y-2">
@@ -391,6 +290,163 @@ const MaterialRequestFormDialog: React.FC<MaterialRequestFormDialogProps> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Extracted Materials List Section Component
+interface MaterialsListSectionProps {
+  items: MaterialRequestFormItem[];
+  onAddItem: () => void;
+  onRemoveItem: (id: string) => void;
+  onItemChange: (id: string, field: keyof MaterialRequestFormItem, value: string | number) => void;
+  onImportItems: (items: MaterialRequestFormItem[]) => void;
+}
+
+const MaterialsListSection: React.FC<MaterialsListSectionProps> = ({
+  items,
+  onAddItem,
+  onRemoveItem,
+  onItemChange,
+  onImportItems,
+}) => {
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-semibold flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          Danh sách vật tư <span className="text-destructive">*</span>
+        </Label>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
+            Import Excel
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onAddItem}>
+            <Plus className="h-4 w-4 mr-1" />
+            Thêm vật tư
+          </Button>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="border border-dashed border-border rounded-lg p-8 text-center">
+          <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground mb-3">Chưa có vật tư nào trong yêu cầu</p>
+          <div className="flex items-center justify-center gap-2">
+            <Button type="button" variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              Import từ Excel
+            </Button>
+            <Button type="button" variant="outline" onClick={onAddItem}>
+              <Plus className="h-4 w-4 mr-1" />
+              Thêm thủ công
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 font-medium">Vật tư</th>
+                <th className="text-left p-3 font-medium w-24">ĐVT</th>
+                <th className="text-right p-3 font-medium w-32">Số lượng</th>
+                <th className="w-12"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-t border-border">
+                  <td className="p-2">
+                    {item.materialName ? (
+                      <div>
+                        <p className="font-medium">{item.materialName}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{item.materialCode}</p>
+                      </div>
+                    ) : (
+                      <Select
+                        value={item.materialCode}
+                        onValueChange={(value) => onItemChange(item.id, 'materialCode', value)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Chọn vật tư..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          {availableMaterials.map((material) => (
+                            <SelectItem key={material.code} value={material.code}>
+                              <span className="font-mono text-xs text-muted-foreground mr-2">{material.code}</span>
+                              {material.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </td>
+                  <td className="p-2">
+                    <Input 
+                      value={item.unit} 
+                      readOnly 
+                      className="h-9 bg-muted/50 text-center"
+                      placeholder="—"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.requestedQty || ''}
+                      onChange={(e) => onItemChange(item.id, 'requestedQty', Number(e.target.value))}
+                      className="h-9 text-right"
+                      placeholder="0"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => onRemoveItem(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {/* Add more button */}
+          <div className="border-t border-border p-2 bg-muted/30">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="w-full text-muted-foreground hover:text-foreground"
+              onClick={onAddItem}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Thêm dòng
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Tổng: {items.length} vật tư
+        </p>
+      )}
+
+      {/* Import Dialog */}
+      <MaterialRequestImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={onImportItems}
+      />
+    </div>
   );
 };
 
