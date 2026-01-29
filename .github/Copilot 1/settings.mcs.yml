@@ -1,0 +1,8 @@
+﻿displayName: Copilot 1
+schemaName: Default_copilot1
+accessControlPolicy: Any
+authenticationMode: None
+authenticationTrigger: AsNeeded
+configuration: {}
+template: default-2.0.1
+language: 1033
