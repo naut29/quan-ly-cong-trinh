@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import VideoModal from '@/components/landing/VideoModal';
 import introVideo from '@/assets/intro-video.mp4';
 import demoVideo from '@/assets/demo-video.mp4';
+import Footer from '@/components/layout/Footer';
 
 const features = [
   {
@@ -225,22 +226,8 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12 px-6">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Building2 className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="font-display font-bold">Quản lý Công trình</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © 2024 Quản lý Công trình. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
+
       {/* Video Modals */}
       <VideoModal
         open={introModalOpen}

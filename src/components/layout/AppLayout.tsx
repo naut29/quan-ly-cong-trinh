@@ -3,6 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AppSidebar from './AppSidebar';
 import AppTopbar from './AppTopbar';
+import Footer from './Footer';
 
 const AppLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -19,6 +20,7 @@ const AppLayout: React.FC = () => {
         <main className="flex-1 overflow-auto custom-scrollbar">
           <Outlet />
         </main>
+        <Footer />
       </div>
     </div>
   );
