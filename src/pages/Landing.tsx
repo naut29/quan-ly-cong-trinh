@@ -73,7 +73,7 @@ const Landing: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link to="/login">
+            <Link to="/demo/login">
               <Button variant="ghost">Đăng nhập</Button>
             </Link>
             <Link to="/demo">

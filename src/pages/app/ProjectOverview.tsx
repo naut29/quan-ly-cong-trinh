@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { 
   Wallet, 
   TrendingUp, 
@@ -28,10 +28,13 @@ import {
   projectStageLabels,
 } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { getAppBasePath } from '@/lib/appMode';
 
 const ProjectOverview: React.FC = () => {
   const { id } = useParams();
   const { canAccessProject } = useAuth();
+  const location = useLocation();
+  const basePath = getAppBasePath(location.pathname);
   
   const project = projects.find(p => p.id === id);
   const projectAlerts = alerts.filter(a => a.projectId === id);
@@ -179,7 +182,7 @@ const ProjectOverview: React.FC = () => {
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <h3 className="font-semibold">Top 5 vượt ngân sách</h3>
-              <Link to={`/app/projects/${id}/costs`}>
+              <Link to={`${basePath}/projects/${id}/costs`}>
                 <Button variant="ghost" size="sm" className="gap-1">
                   Chi tiết <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
@@ -210,7 +213,7 @@ const ProjectOverview: React.FC = () => {
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <h3 className="font-semibold">Top 5 vượt định mức</h3>
-              <Link to={`/app/projects/${id}/norms`}>
+              <Link to={`${basePath}/projects/${id}/norms`}>
                 <Button variant="ghost" size="sm" className="gap-1">
                   Chi tiết <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
@@ -292,7 +295,7 @@ const ProjectOverview: React.FC = () => {
           ].map((item) => (
             <Link
               key={item.path}
-              to={`/app/projects/${id}/${item.path}`}
+              to={`${basePath}/projects/${id}/${item.path}`}
               className="kpi-card flex flex-col items-center justify-center py-6 hover:border-primary/50 transition-colors"
             >
               <item.icon className="h-6 w-6 text-primary mb-2" />

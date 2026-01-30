@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Bell, 
   Search, 
@@ -30,10 +30,13 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { roleLabels, tenants, formatCurrency } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { getAppBasePath } from '@/lib/appMode';
 
 const AppTopbar: React.FC = () => {
   const { user, logout, getUserProjects, getCurrentTenant, switchTenant, currentTenantId } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = getAppBasePath(location.pathname);
   const [searchOpen, setSearchOpen] = useState(false);
   
   const projects = getUserProjects();
@@ -42,7 +45,7 @@ const AppTopbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(`${basePath}/login`);
   };
 
   const getInitials = (name: string) => {
@@ -135,7 +138,7 @@ const AppTopbar: React.FC = () => {
                 projects.map((project) => (
                   <button
                     key={project.id}
-                    onClick={() => navigate(`/app/projects/${project.id}/overview`)}
+                    onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
                     className="w-full p-3 hover:bg-muted/50 flex items-start gap-3 text-left border-b border-border last:border-0 transition-colors"
                   >
                     <div className={cn(

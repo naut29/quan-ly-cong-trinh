@@ -1,8 +1,9 @@
 import React from 'react';
-import { useParams, Navigate, useNavigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ShieldX, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAppBasePath } from '@/lib/appMode';
 
 interface ProjectGuardProps {
   children: React.ReactNode;
@@ -12,9 +13,11 @@ const ProjectGuard: React.FC<ProjectGuardProps> = ({ children }) => {
   const { id: projectId } = useParams();
   const { canAccessProject, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = getAppBasePath(location.pathname);
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`${basePath}/login`} replace />;
   }
 
   if (projectId && !canAccessProject(projectId)) {
@@ -30,7 +33,7 @@ const ProjectGuard: React.FC<ProjectGuardProps> = ({ children }) => {
           <p className="text-muted-foreground mb-6">
             Bạn không có quyền truy cập dự án này. Vui lòng liên hệ quản trị viên để được cấp quyền.
           </p>
-          <Button onClick={() => navigate('/app/projects')} className="gap-2">
+          <Button onClick={() => navigate(`${basePath}/projects`)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Quay lại danh sách dự án
           </Button>

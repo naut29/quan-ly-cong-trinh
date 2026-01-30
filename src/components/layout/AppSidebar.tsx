@@ -23,6 +23,7 @@ import {
   ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getAppBasePath } from '@/lib/appMode';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -72,36 +73,37 @@ const AppSidebar: React.FC = () => {
   const { id: projectId } = useParams();
   const location = useLocation();
   
+  const basePath = getAppBasePath(location.pathname);
   const isInProject = location.pathname.includes('/projects/') && projectId;
   const isAdmin = user?.role === 'company_owner' || user?.role === 'super_admin';
   const isSuperAdmin = user?.role === 'super_admin';
 
   const mainNavItems = [
-    { to: '/app/dashboard', icon: LayoutDashboard, label: 'Bảng điều khiển', module: 'dashboard' },
-    { to: '/app/projects', icon: FolderKanban, label: 'Dự án', module: 'projects' },
+    { to: `${basePath}/dashboard`, icon: LayoutDashboard, label: 'Bảng điều khiển', module: 'dashboard' },
+    { to: `${basePath}/projects`, icon: FolderKanban, label: 'Dự án', module: 'projects' },
   ];
 
   const projectNavItems = projectId ? [
-    { to: `/app/projects/${projectId}/overview`, icon: Home, label: 'Tổng quan', module: 'projects' },
-    { to: `/app/projects/${projectId}/wbs`, icon: Building2, label: 'Cấu trúc công việc', module: 'wbs' },
-    { to: `/app/projects/${projectId}/boq`, icon: Calculator, label: 'Dự toán', module: 'boq' },
-    { to: `/app/projects/${projectId}/materials`, icon: Package, label: 'Vật tư', module: 'materials' },
-    { to: `/app/projects/${projectId}/norms`, icon: Activity, label: 'Định mức', module: 'norms' },
-    { to: `/app/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí', module: 'costs' },
-    { to: `/app/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng', module: 'contracts' },
-    { to: `/app/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán', module: 'payments' },
-    { to: `/app/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt', module: 'approvals' },
-    { to: `/app/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ', module: 'progress' },
-    { to: `/app/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo', module: 'reports' },
+    { to: `${basePath}/projects/${projectId}/overview`, icon: Home, label: 'Tổng quan', module: 'projects' },
+    { to: `${basePath}/projects/${projectId}/wbs`, icon: Building2, label: 'Cấu trúc công việc', module: 'wbs' },
+    { to: `${basePath}/projects/${projectId}/boq`, icon: Calculator, label: 'Dự toán', module: 'boq' },
+    { to: `${basePath}/projects/${projectId}/materials`, icon: Package, label: 'Vật tư', module: 'materials' },
+    { to: `${basePath}/projects/${projectId}/norms`, icon: Activity, label: 'Định mức', module: 'norms' },
+    { to: `${basePath}/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí', module: 'costs' },
+    { to: `${basePath}/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng', module: 'contracts' },
+    { to: `${basePath}/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán', module: 'payments' },
+    { to: `${basePath}/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt', module: 'approvals' },
+    { to: `${basePath}/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ', module: 'progress' },
+    { to: `${basePath}/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo', module: 'reports' },
   ] : [];
 
   const adminNavItems = [
-    { to: '/app/admin/company', icon: Building2, label: 'Công ty', module: 'admin' },
-    { to: '/app/admin/users', icon: Users, label: 'Người dùng', module: 'admin' },
-    { to: '/app/admin/roles', icon: Shield, label: 'Vai trò & Quyền', module: 'admin' },
-    { to: '/app/admin/audit-log', icon: Activity, label: 'Nhật ký hoạt động', module: 'admin' },
-    { to: '/app/admin/integrations', icon: Plug, label: 'Tích hợp', module: 'admin' },
-    { to: '/app/admin/billing', icon: Receipt, label: 'Thanh toán', module: 'admin' },
+    { to: `${basePath}/admin/company`, icon: Building2, label: 'Công ty', module: 'admin' },
+    { to: `${basePath}/admin/users`, icon: Users, label: 'Người dùng', module: 'admin' },
+    { to: `${basePath}/admin/roles`, icon: Shield, label: 'Vai trò & Quyền', module: 'admin' },
+    { to: `${basePath}/admin/audit-log`, icon: Activity, label: 'Nhật ký hoạt động', module: 'admin' },
+    { to: `${basePath}/admin/integrations`, icon: Plug, label: 'Tích hợp', module: 'admin' },
+    { to: `${basePath}/admin/billing`, icon: Receipt, label: 'Thanh toán', module: 'admin' },
   ];
 
   const platformNavItems = [

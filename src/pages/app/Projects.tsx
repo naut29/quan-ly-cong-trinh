@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FolderKanban, 
   Search, 
@@ -44,19 +44,25 @@ import {
   formatCurrency, 
   projectStatusLabels, 
   projectStageLabels,
-  Project,
 } from '@/data/mockData';
+import { getRepo } from '@/data/getRepo';
+import { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFormDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
 import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
+import { getAppBasePath } from '@/lib/appMode';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
-  const { getUserProjects, hasPermission } = useAuth();
-  const projects = getUserProjects();
+  const location = useLocation();
+  const basePath = getAppBasePath(location.pathname);
+  const repo = useMemo(() => getRepo(location.pathname), [location.pathname]);
+  const { hasPermission } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +80,24 @@ const Projects: React.FC = () => {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const canEdit = hasPermission('projects', 'edit');
+
+  useEffect(() => {
+    let isActive = true;
+    setIsLoading(true);
+    repo.listProjects()
+      .then((data) => {
+        if (isActive) setProjects(data);
+      })
+      .catch(() => {
+        if (isActive) setProjects([]);
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [repo]);
 
   const handleCreateProject = () => {
     setProjectDialogMode('create');
@@ -105,16 +129,28 @@ const Projects: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleProjectSubmit = (data: any) => {
+  const handleProjectSubmit = async (data: any) => {
     if (projectDialogMode === 'create') {
+      const created = await repo.createProject({
+        code: data.code,
+        name: data.name,
+        address: data.address,
+        status: data.status,
+        stage: data.stage,
+        manager: data.manager,
+        startDate: data.startDate.toISOString().split('T')[0],
+        endDate: data.endDate.toISOString().split('T')[0],
+        budget: data.budget,
+      });
+      setProjects((prev) => [created, ...prev]);
       toast({
-        title: 'Tạo dự án thành công',
-        description: `Dự án "${data.name}" đã được tạo.`,
+        title: 'T???o d??? ??n th??nh c??ng',
+        description: `D??? ??n "${data.name}" ???? ???????c t???o.`,
       });
     } else {
       toast({
-        title: 'Cập nhật thành công',
-        description: `Dự án "${data.name}" đã được cập nhật.`,
+        title: 'C???p nh???t th??nh c??ng',
+        description: `D??? ??n "${data.name}" ???? ???????c c???p nh???t.`,
       });
     }
   };
@@ -263,6 +299,14 @@ const Projects: React.FC = () => {
       default: return 'neutral';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 animate-fade-in">
+        <p className="text-muted-foreground">Äang táº£i dá»± Ã¡n...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -414,7 +458,7 @@ const Projects: React.FC = () => {
             <div
               key={project.id}
               className="kpi-card cursor-pointer group"
-              onClick={() => navigate(`/app/projects/${project.id}/overview`)}
+              onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -441,7 +485,7 @@ const Projects: React.FC = () => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/app/projects/${project.id}/overview`);
+                      navigate(`${basePath}/projects/${project.id}/overview`);
                     }}>
                       <Eye className="h-4 w-4 mr-2" />
                       Xem chi tiết
@@ -559,7 +603,7 @@ const Projects: React.FC = () => {
                 <tr 
                   key={project.id} 
                   className="cursor-pointer"
-                  onClick={() => navigate(`/app/projects/${project.id}/overview`)}
+                  onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
                 >
                   <td>
                     <div>
@@ -613,7 +657,7 @@ const Projects: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/app/projects/${project.id}/overview`)}>
+                        <DropdownMenuItem onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Xem chi tiết
                         </DropdownMenuItem>

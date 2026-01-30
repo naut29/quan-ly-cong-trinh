@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { User, users, projects, tenants, rolePermissions, UserRole } from '@/data/mockData';
+import { isDemoPath } from '@/lib/appMode';
+import { DEMO_USERS, demoGetSession, demoSignIn, demoSignOut } from '@/auth/demoAuth';
+import { getSession, onAuthStateChange, signInWithPassword, signOut } from '@/auth/supabaseAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -18,47 +22,114 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const isDemo = isDemoPath(location.pathname);
   const [user, setUser] = useState<User | null>(null);
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
 
-  // Restore session from localStorage
-  useEffect(() => {
-    const savedUserId = localStorage.getItem('auth_user_id');
-    if (savedUserId) {
-      const foundUser = users.find(u => u.id === savedUserId);
-      if (foundUser) {
-        setUser(foundUser);
-        setCurrentTenantId(foundUser.tenantId || tenants[0]?.id || null);
-      }
-    }
+  const mapSupabaseUser = useCallback((email?: string | null) => {
+    if (!email) return null;
+    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (foundUser) return foundUser;
+    const fallbackTenantId = tenants[0]?.id || '';
+    return {
+      id: `supabase-${email}`,
+      email,
+      name: email.split('@')[0],
+      role: 'company_owner' as UserRole,
+      tenantId: fallbackTenantId,
+      projectIds: [],
+    };
   }, []);
+
+  // Restore session based on mode
+  useEffect(() => {
+    let isActive = true;
+
+    const initDemoSession = () => {
+      const session = demoGetSession();
+      if (!session) {
+        if (isActive) {
+          setUser(null);
+          setCurrentTenantId(null);
+        }
+        return;
+      }
+      const foundUser = DEMO_USERS.find(u => u.id === session.userId) || null;
+      if (isActive) {
+        setUser(foundUser);
+        setCurrentTenantId(foundUser?.tenantId || tenants[0]?.id || null);
+      }
+    };
+
+    const initSupabaseSession = async () => {
+      const { data } = await getSession();
+      const mappedUser = mapSupabaseUser(data.session?.user.email);
+      if (isActive) {
+        setUser(mappedUser);
+        setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
+      }
+    };
+
+    if (isDemo) {
+      initDemoSession();
+      return () => {
+        isActive = false;
+      };
+    }
+
+    initSupabaseSession();
+    const { data: { subscription } } = onAuthStateChange((_event, session) => {
+      const mappedUser = mapSupabaseUser(session?.user.email);
+      setUser(mappedUser);
+      setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
+    });
+
+    return () => {
+      isActive = false;
+      subscription?.unsubscribe();
+    };
+  }, [isDemo, mapSupabaseUser]);
 
   const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
-    // Mock login - find user by email
-    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (foundUser) {
-      setUser(foundUser);
-      setCurrentTenantId(foundUser.tenantId || tenants[0]?.id || null);
-      localStorage.setItem('auth_user_id', foundUser.id);
-      return true;
+    if (isDemo) {
+      const foundUser = DEMO_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (foundUser) {
+        demoSignIn(foundUser.id);
+        setUser(foundUser);
+        setCurrentTenantId(foundUser.tenantId || tenants[0]?.id || null);
+        return true;
+      }
+      return false;
     }
-    return false;
-  }, []);
+
+    const { data, error } = await signInWithPassword(email, _password);
+    if (error || !data.session?.user) return false;
+    const mappedUser = mapSupabaseUser(data.session.user.email);
+    setUser(mappedUser);
+    setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
+    return true;
+  }, [isDemo, mapSupabaseUser]);
 
   const loginAs = useCallback((userId: string) => {
-    const foundUser = users.find(u => u.id === userId);
+    if (!isDemo) return;
+    const foundUser = DEMO_USERS.find(u => u.id === userId);
     if (foundUser) {
+      demoSignIn(foundUser.id);
       setUser(foundUser);
       setCurrentTenantId(foundUser.tenantId || tenants[0]?.id || null);
-      localStorage.setItem('auth_user_id', foundUser.id);
     }
-  }, []);
+  }, [isDemo]);
 
   const logout = useCallback(() => {
+    if (isDemo) {
+      demoSignOut();
+    } else {
+      signOut();
+    }
     setUser(null);
     setCurrentTenantId(null);
-    localStorage.removeItem('auth_user_id');
-  }, []);
+  }, [isDemo]);
 
   const hasPermission = useCallback((module: string, action: 'view' | 'edit' | 'approve'): boolean => {
     if (!user) return false;

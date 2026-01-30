@@ -110,7 +110,7 @@ interface ProjectFormDialogProps {
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
   initialData?: ProjectEntry;
-  onSubmit: (data: ProjectFormData) => void;
+  onSubmit: (data: ProjectFormData) => Promise<void> | void;
 }
 
 const statusOptions = [
@@ -196,7 +196,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
     setIsSubmitting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
-      onSubmit(data);
+      await onSubmit(data);
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);

@@ -10,16 +10,19 @@ import {
   FileText,
   Users,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, alerts, projectStatusLabels, projectStageLabels } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { getAppBasePath } from '@/lib/appMode';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = getAppBasePath(location.pathname);
   const { user, getUserProjects, getCurrentTenant } = useAuth();
   const projects = getUserProjects();
   const tenant = getCurrentTenant();
@@ -53,7 +56,7 @@ const Dashboard: React.FC = () => {
             {tenant?.name || 'Nền tảng quản lý công trình'}
           </p>
         </div>
-        <Button onClick={() => navigate('/app/projects')} className="gap-2">
+        <Button onClick={() => navigate(`${basePath}/projects`)} className="gap-2">
           <FolderKanban className="h-4 w-4" />
           Xem tất cả dự án
         </Button>
@@ -128,7 +131,7 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h2 className="font-semibold text-foreground">Dự án của bạn</h2>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/app/projects')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate(`${basePath}/projects`)}>
               Xem tất cả
             </Button>
           </div>
@@ -136,7 +139,7 @@ const Dashboard: React.FC = () => {
             {projects.slice(0, 5).map((project) => (
               <button
                 key={project.id}
-                onClick={() => navigate(`/app/projects/${project.id}/overview`)}
+                onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
                 className="w-full p-4 hover:bg-muted/50 transition-colors text-left flex items-center gap-4"
               >
                 <div className={cn(
