@@ -145,13 +145,13 @@ const Projects: React.FC = () => {
       });
       setProjects((prev) => [created, ...prev]);
       toast({
-        title: 'T???o d??? ??n th??nh c??ng',
-        description: `D??? ??n "${data.name}" ???? ???????c t???o.`,
+        title: 'Tạo dự án thành công',
+        description: `Dự án "${data.name}" đã được tạo.`,
       });
     } else {
       toast({
-        title: 'C???p nh???t th??nh c??ng',
-        description: `D??? ??n "${data.name}" ???? ???????c c???p nh???t.`,
+        title: 'Cập nhật thành công',
+        description: `Dự án "${data.name}" đã được cập nhật.`,
       });
     }
   };
@@ -712,3 +712,4 @@ const Projects: React.FC = () => {
 };
 
 export default Projects;
+

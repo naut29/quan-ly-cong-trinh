@@ -69,7 +69,7 @@ const ProjectOverview: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">??ang t???i d??? ??n...</p>
+        <p className="text-muted-foreground">Đang tải dự án...</p>
       </div>
     );
   }
