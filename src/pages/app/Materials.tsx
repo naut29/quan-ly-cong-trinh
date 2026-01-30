@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Package, 
@@ -52,6 +52,9 @@ import { MaterialBySupplierTab } from '@/components/materials/MaterialBySupplier
 import { MaterialByCostCodeTab } from '@/components/materials/MaterialByCostCodeTab';
 import { MaterialRequestsTab } from '@/components/materials/MaterialRequestsTab';
 import { MaterialRequest, mockMaterialRequests } from '@/data/materialRequestData';
+import { useCompany } from '@/app/context/CompanyContext';
+import { transitionApproval } from '@/app/api/approvals';
+import { supabase } from '@/lib/supabaseClient';
 // Mock material data
 const materialCategories = [
   { id: 'overview', label: 'Tổng quan', icon: Package },
@@ -101,6 +104,10 @@ const mockTransactions = [
 
 const Materials: React.FC = () => {
   const { id: projectId } = useParams();
+  const { companyId, role } = useCompany();
+  const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
+  const [approvalId, setApprovalId] = useState<string | null>(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState('overview');
   const [activeTab, setActiveTab] = useState('summary');
   const [transactionFilter, setTransactionFilter] = useState('all');
@@ -121,6 +128,49 @@ const Materials: React.FC = () => {
 
   // Material requests state for chart sync
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>(mockMaterialRequests);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!companyId || !projectId) return;
+    supabase
+      .from("approval_requests")
+      .select("id, status")
+      .eq("company_id", companyId)
+      .eq("entity_type", "material_request")
+      .eq("entity_id", projectId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!isActive) return;
+        setApprovalId(data?.id ?? null);
+        setApprovalStatus(data?.status ?? null);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [companyId, projectId]);
+
+  const runApprovalAction = async (action: "create_draft" | "submit" | "approve" | "reject" | "cancel") => {
+    if (!projectId) return;
+    setApprovalLoading(true);
+    try {
+      const result = await transitionApproval({
+        action,
+        entity_type: "material_request",
+        entity_id: projectId,
+      });
+      setApprovalId(result?.approval?.id ?? approvalId);
+      setApprovalStatus(result?.approval?.status ?? approvalStatus);
+      toast({ title: "Đã cập nhật phê duyệt" });
+    } catch (err: any) {
+      toast({
+        title: "Không thể cập nhật phê duyệt",
+        description: err?.message ?? "Vui lòng thử lại",
+        variant: "destructive",
+      });
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
 
   // Filter materials based on advanced filters
   const filteredMaterials = useMemo(() => {
@@ -409,6 +459,32 @@ const Materials: React.FC = () => {
       </div>
 
       <div className="p-6">
+        <div className="bg-card rounded-xl border border-border p-4 mb-6 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="text-sm text-muted-foreground">Phê duyệt yêu cầu vật tư</div>
+            <div className="text-lg font-semibold">{approvalStatus ?? "Chưa tạo"}</div>
+            {approvalId && (
+              <div className="text-xs text-muted-foreground">ID: {approvalId}</div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => runApprovalAction("create_draft")} disabled={approvalLoading || !projectId}>
+              Lưu nháp
+            </Button>
+            <Button variant="outline" onClick={() => runApprovalAction("submit")} disabled={approvalLoading || !projectId || !["owner","admin","editor"].includes(role ?? "")}>
+              Gửi duyệt
+            </Button>
+            <Button onClick={() => runApprovalAction("approve")} disabled={approvalLoading || !projectId || !["owner","admin"].includes(role ?? "")}>
+              Duyệt
+            </Button>
+            <Button variant="destructive" onClick={() => runApprovalAction("reject")} disabled={approvalLoading || !projectId || !["owner","admin"].includes(role ?? "")}>
+              Từ chối
+            </Button>
+            <Button variant="ghost" onClick={() => runApprovalAction("cancel")} disabled={approvalLoading || !projectId || !["owner","admin","editor"].includes(role ?? "")}>
+              Huỷ
+            </Button>
+          </div>
+        </div>
         {/* Category Tabs */}
         <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
           {materialCategories.map((cat) => (

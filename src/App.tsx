@@ -35,6 +35,7 @@ import AdminCompany from "./pages/app/AdminCompany";
 import AdminAuditLog from "./pages/app/AdminAuditLog";
 import AdminIntegrations from "./pages/app/AdminIntegrations";
 import AdminBilling from "./pages/app/AdminBilling";
+import AdminMembers from "./pages/app/AdminMembers";
 import DemoDashboard from "./pages/demo/Dashboard";
 import DemoProjects from "./pages/demo/Projects";
 import DemoProjectOverview from "./pages/demo/ProjectOverview";
@@ -63,6 +64,7 @@ import ProjectGuard from "./components/guards/ProjectGuard";
 import PermissionGuard from "./components/guards/PermissionGuard";
 
 import NotFound from "./pages/NotFound";
+import InviteAccept from "./pages/app/InviteAccept";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +81,7 @@ const App = () => (
             <Route path="/pricing" element={<Landing />} />
             <Route path="/demo/login" element={<DemoLogin />} />
             <Route path="/app/login" element={<AppLogin />} />
+            <Route path="/app/invite" element={<InviteAccept />} />
 
             {/* Demo Routes */}
             <Route path="/demo" element={<AppLayout />}>
@@ -140,6 +143,14 @@ const App = () => (
                 element={
                   <RequireRole allowed={["owner", "admin"]}>
                     <AdminCompany />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="admin/members"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminMembers />
                   </RequireRole>
                 }
               />

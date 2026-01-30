@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Building2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,9 @@ import { signInWithPassword } from '@/auth/supabaseAuth';
 
 const AppLogin: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const next = params.get("next");
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +28,7 @@ const AppLogin: React.FC = () => {
     try {
       const { error: signInError } = await signInWithPassword(email, password);
       if (!signInError) {
-        navigate('/app/projects');
+        navigate(next || '/app/projects');
       } else {
         setError(signInError.message || 'Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng');
       }

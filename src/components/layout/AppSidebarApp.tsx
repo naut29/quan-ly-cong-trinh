@@ -75,6 +75,7 @@ const AppSidebarApp: React.FC = () => {
 
   const adminNavItems = [
     { to: `${basePath}/admin/company`, icon: Building2, label: 'CÃ´ng ty' },
+    { to: `${basePath}/admin/members`, icon: Users, label: 'ThÃ nh viÃªn' },
     { to: `${basePath}/admin/users`, icon: Users, label: 'NgÆ°á»i dÃ¹ng' },
     { to: `${basePath}/admin/roles`, icon: Shield, label: 'Vai trÃ² & Quyá»n' },
     { to: `${basePath}/admin/audit-log`, icon: Activity, label: 'Nháº­t kÃ½ hoáº¡t Ä‘á»™ng' },

@@ -11,6 +11,7 @@ export interface UserProfile {
 export const useSession = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [memberStatus, setMemberStatus] = useState<"invited" | "active" | "disabled" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export const useSession = () => {
 
       if (!user) {
         setProfile(null);
+        setMemberStatus(null);
         setLoading(false);
         return;
       }
@@ -37,10 +39,18 @@ export const useSession = () => {
         .single();
 
       if (!isActive) return;
-      if (error) {
+      if (error || !profile) {
         setProfile(null);
+        setMemberStatus(null);
       } else {
         setProfile(profile as UserProfile);
+        const { data: member } = await supabase
+          .from("company_members")
+          .select("status")
+          .eq("user_id", user.id)
+          .eq("company_id", profile.company_id)
+          .single();
+        setMemberStatus(member?.status ?? null);
       }
       setLoading(false);
     };
@@ -57,5 +67,5 @@ export const useSession = () => {
     };
   }, []);
 
-  return { user, profile, loading };
+  return { user, profile, memberStatus, loading };
 };
