@@ -38,7 +38,7 @@ export const demoRepo: Repo = {
     return [...getProjects()];
   },
   createProject: async (input: ProjectInput) => {
-    const tenantId = input.tenantId || tenants[0]?.id || 'tenant-demo';
+    const tenantId = tenants[0]?.id || 'tenant-demo';
     const newProject: Project = {
       id: generateId(),
       tenantId,

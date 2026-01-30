@@ -39,13 +39,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/app/context/CompanyContext';
 import { 
   formatCurrency, 
   projectStatusLabels, 
   projectStageLabels,
 } from '@/data/mockData';
-import { getRepo } from '@/data/getRepo';
+import { createSupabaseRepo } from '@/data/supabaseRepo';
 import { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -59,8 +59,9 @@ const Projects: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
-  const repo = useMemo(() => getRepo(location.pathname), [location.pathname]);
-  const { hasPermission } = useAuth();
+  const { companyId, role } = useCompany();
+  const repo = useMemo(() => (companyId ? createSupabaseRepo(companyId) : null), [companyId]);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -79,10 +80,15 @@ const Projects: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  const canEdit = hasPermission('projects', 'edit');
+  const canEdit = role === 'owner' || role === 'admin';
 
   useEffect(() => {
     let isActive = true;
+    if (!repo) {
+      setProjects([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     repo.listProjects()
       .then((data) => {
@@ -131,6 +137,7 @@ const Projects: React.FC = () => {
 
   const handleProjectSubmit = async (data: any) => {
     if (projectDialogMode === 'create') {
+      if (!repo) return;
       const created = await repo.createProject({
         code: data.code,
         name: data.name,

@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CompanyProvider } from "@/app/context/CompanyContext";
+import RequireAuth from "@/app/auth/RequireAuth";
+import RequireRole from "@/app/auth/RequireRole";
 
 // Public Pages
 import Landing from "./pages/Landing";
@@ -12,6 +15,7 @@ import AppLogin from "./pages/app/Login";
 
 // App Layout & Pages
 import AppLayout from "./components/layout/AppLayout";
+import AppLayoutApp from "./components/layout/AppLayoutApp";
 import Dashboard from "./pages/app/Dashboard";
 import Projects from "./pages/app/Projects";
 import ProjectOverview from "./pages/app/ProjectOverview";
@@ -103,7 +107,16 @@ const App = () => (
             </Route>
 
             {/* App Routes */}
-            <Route path="/app" element={<AppLayout />}>
+            <Route
+              path="/app"
+              element={
+                <RequireAuth>
+                  <CompanyProvider>
+                    <AppLayoutApp />
+                  </CompanyProvider>
+                </RequireAuth>
+              }
+            >
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="projects" element={<Projects />} />
@@ -122,12 +135,54 @@ const App = () => (
               <Route path="projects/:id/reports" element={<ProjectGuard><PermissionGuard module="reports"><Reports /></PermissionGuard></ProjectGuard>} />
 
               {/* Admin Routes */}
-              <Route path="admin/company" element={<PermissionGuard module="admin"><AdminCompany /></PermissionGuard>} />
-              <Route path="admin/users" element={<PermissionGuard module="admin"><AdminUsers /></PermissionGuard>} />
-              <Route path="admin/roles" element={<PermissionGuard module="admin"><AdminRoles /></PermissionGuard>} />
-              <Route path="admin/audit-log" element={<PermissionGuard module="admin"><AdminAuditLog /></PermissionGuard>} />
-              <Route path="admin/integrations" element={<PermissionGuard module="admin"><AdminIntegrations /></PermissionGuard>} />
-              <Route path="admin/billing" element={<PermissionGuard module="admin"><AdminBilling /></PermissionGuard>} />
+              <Route
+                path="admin/company"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminCompany />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="admin/users"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminUsers />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="admin/roles"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminRoles />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="admin/audit-log"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminAuditLog />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="admin/integrations"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminIntegrations />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="admin/billing"
+                element={
+                  <RequireRole allowed={["owner", "admin"]}>
+                    <AdminBilling />
+                  </RequireRole>
+                }
+              />
             </Route>
 
             {/* Platform Routes (Super Admin) */}

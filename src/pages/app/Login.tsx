@@ -25,7 +25,7 @@ const AppLogin: React.FC = () => {
     try {
       const { error: signInError } = await signInWithPassword(email, password);
       if (!signInError) {
-        navigate('/app/dashboard');
+        navigate('/app/projects');
       } else {
         setError(signInError.message || 'Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng');
       }

@@ -30,7 +30,6 @@ export interface ProjectInput {
   startDate: string;
   endDate: string;
   budget: number;
-  tenantId?: string;
 }
 
 export interface Repo {

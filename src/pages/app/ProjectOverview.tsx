@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { 
   Wallet, 
@@ -18,26 +18,61 @@ import { Button } from '@/components/ui/button';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/app/context/CompanyContext';
 import { 
-  projects, 
   alerts, 
   formatCurrency, 
-  formatCurrencyFull,
   projectStatusLabels, 
   projectStageLabels,
 } from '@/data/mockData';
+import { createSupabaseRepo } from '@/data/supabaseRepo';
+import type { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
 import { getAppBasePath } from '@/lib/appMode';
 
 const ProjectOverview: React.FC = () => {
   const { id } = useParams();
-  const { canAccessProject } = useAuth();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
-  
-  const project = projects.find(p => p.id === id);
-  const projectAlerts = alerts.filter(a => a.projectId === id);
+  const { companyId } = useCompany();
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!companyId || !id) {
+      setProject(null);
+      setLoading(false);
+      return;
+    }
+    const repo = createSupabaseRepo(companyId);
+    repo.listProjects()
+      .then((data) => {
+        if (isActive) {
+          setProject(data.find((p) => p.id === id) ?? null);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setProject(null);
+          setLoading(false);
+        }
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [companyId, id]);
+
+  const projectAlerts = useMemo(() => alerts.filter(a => a.projectId === id), [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">??ang t???i d??? ??n...</p>
+      </div>
+    );
+  }
 
   if (!project) {
     return (

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   FolderKanban, 
   Wallet, 
@@ -14,9 +14,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from '@/app/session/useSession';
+import { useCompany } from '@/app/context/CompanyContext';
 import { formatCurrency, alerts, projectStatusLabels, projectStageLabels } from '@/data/mockData';
+import { createSupabaseRepo } from '@/data/supabaseRepo';
+import type { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
+import { getAppBasePath } from '@/lib/appMode';
 import { getAppBasePath } from '@/lib/appMode';
 
 const Dashboard: React.FC = () => {
@@ -50,7 +54,7 @@ const Dashboard: React.FC = () => {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Xin chào, {user?.name?.split(' ').slice(-1)[0]}!
+            Xin chào, {user?.email?.split('@')[0]}!
           </h1>
           <p className="text-muted-foreground mt-1">
             {tenant?.name || 'Nền tảng quản lý công trình'}

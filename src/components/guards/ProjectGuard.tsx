@@ -3,7 +3,7 @@ import { useParams, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { ShieldX, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAppBasePath } from '@/lib/appMode';
+import { getAppBasePath, isDemoPath } from '@/lib/appMode';
 
 interface ProjectGuardProps {
   children: React.ReactNode;
@@ -15,12 +15,13 @@ const ProjectGuard: React.FC<ProjectGuardProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
+  const isDemo = isDemoPath(location.pathname);
 
-  if (!isAuthenticated) {
+  if (isDemo && !isAuthenticated) {
     return <Navigate to={`${basePath}/login`} replace />;
   }
 
-  if (projectId && !canAccessProject(projectId)) {
+  if (isDemo && projectId && !canAccessProject(projectId)) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md">
