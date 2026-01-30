@@ -77,7 +77,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/demo/login" replace />} />
+            <Route path="/" element={<Landing />} />
             <Route path="/pricing" element={<Landing />} />
             <Route path="/demo/login" element={<DemoLogin />} />
             <Route path="/app/login" element={<AppLogin />} />

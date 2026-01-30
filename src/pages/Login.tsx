@@ -228,7 +228,7 @@ const Login: React.FC = () => {
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Chưa có tài khoản?{' '}
-            <Link to="/demo" className="text-primary font-medium hover:underline">
+            <Link to="/demo/login" className="text-primary font-medium hover:underline">
               Yêu cầu demo
             </Link>
           </p>

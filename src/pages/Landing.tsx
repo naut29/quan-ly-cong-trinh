@@ -67,16 +67,16 @@ const Landing: React.FC = () => {
             <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Bảng giá
             </Link>
-            <Link to="/demo" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/demo/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Yêu cầu demo
             </Link>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link to="/demo/login">
+            <Link to="/app/login">
               <Button variant="ghost">Đăng nhập</Button>
             </Link>
-            <Link to="/demo">
+            <Link to="/app/login">
               <Button>Dùng thử miễn phí</Button>
             </Link>
           </div>
@@ -105,7 +105,7 @@ const Landing: React.FC = () => {
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <Link to="/demo">
+            <Link to="/app/login">
               <Button size="lg" className="gap-2 h-12 px-8">
                 Dùng thử miễn phí
                 <ArrowRight className="h-4 w-4" />
@@ -212,7 +212,7 @@ const Landing: React.FC = () => {
             Đăng ký dùng thử miễn phí 14 ngày. Không cần thẻ tín dụng.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <Link to="/demo">
+            <Link to="/demo/login">
               <Button size="lg" className="h-12 px-8">
                 Yêu cầu demo
               </Button>
