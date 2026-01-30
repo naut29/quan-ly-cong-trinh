@@ -18,6 +18,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     let isActive = true;
+    const client = supabase;
 
     const loadCompany = async () => {
       if (!profile?.company_id) {
@@ -26,8 +27,14 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
+      if (!client) {
+        setCompanyName(null);
+        setLoadingCompany(false);
+        return;
+      }
+
       setLoadingCompany(true);
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("companies")
         .select("id, name")
         .eq("id", profile.company_id)

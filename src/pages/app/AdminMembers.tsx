@@ -31,9 +31,10 @@ const AdminMembers: React.FC = () => {
   const [inviteRole, setInviteRole] = useState<Member["role"]>("viewer");
 
   const loadMembers = async () => {
-    if (!companyId) return;
+    const client = supabase;
+    if (!companyId || !client) return;
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("company_members")
       .select("id, email, role, status, invited_at")
       .eq("company_id", companyId)

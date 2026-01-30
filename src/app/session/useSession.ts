@@ -16,12 +16,23 @@ export const useSession = () => {
 
   useEffect(() => {
     let isActive = true;
+    const client = supabase;
+
+    if (!client) {
+      setUser(null);
+      setProfile(null);
+      setMemberStatus(null);
+      setLoading(false);
+      return () => {
+        isActive = false;
+      };
+    }
 
     const load = async () => {
       setLoading(true);
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await client.auth.getUser();
       if (!isActive) return;
       setUser(user ?? null);
 
@@ -32,7 +43,7 @@ export const useSession = () => {
         return;
       }
 
-      const { data: profile, error } = await supabase
+      const { data: profile, error } = await client
         .from("profiles")
         .select("id, company_id, role")
         .eq("id", user.id)
@@ -44,7 +55,7 @@ export const useSession = () => {
         setMemberStatus(null);
       } else {
         setProfile(profile as UserProfile);
-        const { data: member } = await supabase
+        const { data: member } = await client
           .from("company_members")
           .select("status")
           .eq("user_id", user.id)
@@ -57,7 +68,7 @@ export const useSession = () => {
 
     load();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const { data: { subscription } } = client.auth.onAuthStateChange(() => {
       load();
     });
 

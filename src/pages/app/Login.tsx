@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { signInWithPassword } from '@/auth/supabaseAuth';
+import { hasSupabaseEnv } from '@/lib/supabaseClient';
 
 const AppLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -85,6 +86,11 @@ const AppLogin: React.FC = () => {
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
+          {!hasSupabaseEnv && (
+            <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
+              Missing Supabase env. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+            </div>
+          )}
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
@@ -160,7 +166,7 @@ const AppLogin: React.FC = () => {
               </Label>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || !hasSupabaseEnv}>
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
           </form>

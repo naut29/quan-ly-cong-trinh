@@ -131,8 +131,9 @@ const Materials: React.FC = () => {
 
   useEffect(() => {
     let isActive = true;
-    if (!companyId || !projectId) return;
-    supabase
+    const client = supabase;
+    if (!companyId || !projectId || !client) return;
+    client
       .from("approval_requests")
       .select("id, status")
       .eq("company_id", companyId)

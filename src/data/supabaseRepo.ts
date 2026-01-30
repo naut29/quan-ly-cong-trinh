@@ -24,7 +24,11 @@ const mapProject = (row: any, companyId: string): Project => ({
 
 export const createSupabaseRepo = (companyId: string): Repo => ({
   listProjects: async () => {
-    const { data, error } = await supabase
+    const client = supabase;
+    if (!client) {
+      throw new Error('Missing Supabase env.');
+    }
+    const { data, error } = await client
       .from(TABLE)
       .select('*')
       .eq('company_id', companyId);
@@ -32,6 +36,10 @@ export const createSupabaseRepo = (companyId: string): Repo => ({
     return (data ?? []).map((row) => mapProject(row, companyId));
   },
   createProject: async (input: ProjectInput) => {
+    const client = supabase;
+    if (!client) {
+      throw new Error('Missing Supabase env.');
+    }
     if (!companyId) {
       throw new Error('Missing company_id for project creation.');
     }
@@ -39,7 +47,7 @@ export const createSupabaseRepo = (companyId: string): Repo => ({
       company_id: companyId,
       name: input.name,
     };
-    const { data, error } = await supabase.from(TABLE).insert(payload).select('*').single();
+    const { data, error } = await client.from(TABLE).insert(payload).select('*').single();
     if (error) throw error;
     return mapProject(data, companyId);
   },

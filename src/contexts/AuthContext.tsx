@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { User, users, projects, tenants, rolePermissions, UserRole } from '@/data/mockData';
-import { isDemoPath } from '@/lib/appMode';
+import { isAppPath, isDemoPath } from '@/lib/appMode';
 import { DEMO_USERS, demoGetSession, demoSignIn, demoSignOut } from '@/auth/demoAuth';
 import { getSession, onAuthStateChange, signInWithPassword, signOut } from '@/auth/supabaseAuth';
+import { hasSupabaseEnv } from '@/lib/supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isDemo = isDemoPath(location.pathname);
+  const isApp = isAppPath(location.pathname);
   const [user, setUser] = useState<User | null>(null);
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
 
@@ -78,6 +80,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
+    if (!isApp || !hasSupabaseEnv) {
+      if (isActive) {
+        setUser(null);
+        setCurrentTenantId(null);
+      }
+      return () => {
+        isActive = false;
+      };
+    }
+
     initSupabaseSession();
     const { data: { subscription } } = onAuthStateChange((_event, session) => {
       const mappedUser = mapSupabaseUser(session?.user.email);
@@ -89,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isActive = false;
       subscription?.unsubscribe();
     };
-  }, [isDemo, mapSupabaseUser]);
+  }, [isDemo, isApp, mapSupabaseUser]);
 
   const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
     if (isDemo) {
@@ -102,6 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return false;
     }
+
+    if (!isApp || !hasSupabaseEnv) return false;
 
     const { data, error } = await signInWithPassword(email, _password);
     if (error || !data.session?.user) return false;
@@ -124,12 +138,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     if (isDemo) {
       demoSignOut();
-    } else {
+    } else if (isApp && hasSupabaseEnv) {
       signOut();
     }
     setUser(null);
     setCurrentTenantId(null);
-  }, [isDemo]);
+  }, [isDemo, isApp]);
 
   const hasPermission = useCallback((module: string, action: 'view' | 'edit' | 'approve'): boolean => {
     if (!user) return false;
