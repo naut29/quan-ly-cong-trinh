@@ -10,6 +10,7 @@ import RequireRole from "@/app/auth/RequireRole";
 
 // Public Pages
 import Landing from "./pages/Landing";
+import TrialRequest from "./pages/TrialRequest";
 import DemoLogin from "./pages/demo/Login";
 import AppLogin from "./pages/app/Login";
 
@@ -79,6 +80,7 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/pricing" element={<Landing />} />
+            <Route path="/trial" element={<TrialRequest />} />
             <Route path="/demo/login" element={<DemoLogin />} />
             <Route path="/app/login" element={<AppLogin />} />
             <Route path="/app/invite" element={<InviteAccept />} />

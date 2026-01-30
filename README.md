@@ -71,3 +71,22 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+
+## Trial form worker (Cloudflare)
+
+A minimal Worker to handle `/api/trial` submissions and send email via Resend is included at:
+`workers/trial-form/index.ts`.
+
+Deployment steps:
+
+1) Create a Cloudflare Worker and set the route to `quanlycongtrinh.com/api/*`.
+2) Set secrets (Worker environment variables):
+   - `RESEND_API_KEY`
+   - `TO_EMAIL=contact@simpletoolset.com`
+   - `FROM_EMAIL` (must be a verified sender)
+3) Deploy the worker:
+
+```sh
+wrangler deploy
+```

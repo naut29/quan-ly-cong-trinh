@@ -76,7 +76,7 @@ const Landing: React.FC = () => {
             <Link to="/app/login">
               <Button variant="ghost">Đăng nhập</Button>
             </Link>
-            <Link to="/app/login">
+            <Link to="/trial">
               <Button>Dùng thử miễn phí</Button>
             </Link>
           </div>
@@ -105,7 +105,7 @@ const Landing: React.FC = () => {
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <Link to="/app/login">
+            <Link to="/trial">
               <Button size="lg" className="gap-2 h-12 px-8">
                 Dùng thử miễn phí
                 <ArrowRight className="h-4 w-4" />
