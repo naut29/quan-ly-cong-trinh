@@ -53,7 +53,7 @@ const AdminMembers: React.FC = () => {
     try {
       const result = await inviteMember({ email: inviteEmail, role: inviteRole });
       toast({
-        title: "ÄÃ£ gá»­i lá»i má»i",
+        title: "Đã gửi lời mời",
         description: `Token: ${result.token}`,
       });
       setInviteEmail("");

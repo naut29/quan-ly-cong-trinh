@@ -8,7 +8,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Äang táº£i tá»«ng lÆ°u...</p>
+        <p className="text-muted-foreground">Đang tải từng lưu...</p>
       </div>
     );
   }
@@ -21,9 +21,9 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="max-w-md text-center space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">KhÃ´ng táº£i Ä‘Æ°á»£c há»“ sÆ¡ ngÆ°á»i dÃ¹ng</h2>
+          <h2 className="text-lg font-semibold text-foreground">Không tải được hồ sơ người dùng</h2>
           <p className="text-muted-foreground text-sm">
-            TÃ i khoáº£n cÃ³ thá»ƒ chÆ°a Ä‘Æ°á»£c gáº¯n cÃ´ng ty. Vui lÃ²ng liÃªn há»‡ quáº£n trá»‹ viÃªn.
+            Tài khoản có thể chưa được gắn công ty. Vui lòng liên hệ quản trị viên.
           </p>
         </div>
       </div>

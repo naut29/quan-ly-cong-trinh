@@ -304,7 +304,7 @@ const Projects: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-6 animate-fade-in">
-        <p className="text-muted-foreground">Äang táº£i dá»± Ã¡n...</p>
+        <p className="text-muted-foreground">Đang tải dự án...</p>
       </div>
     );
   }

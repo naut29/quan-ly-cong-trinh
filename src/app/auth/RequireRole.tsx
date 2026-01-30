@@ -12,7 +12,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({ allowed, children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Äang kiá»ƒm tra quyá»n...</p>
+        <p className="text-muted-foreground">Đang kiểm tra quyền...</p>
       </div>
     );
   }
@@ -23,7 +23,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({ allowed, children }) => {
         <div className="max-w-md text-center space-y-2">
           <h2 className="text-lg font-semibold text-foreground">Access denied</h2>
           <p className="text-muted-foreground text-sm">
-            Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p pháº§n nÃ y.
+            Bạn không có quyền truy cập phần này.
           </p>
         </div>
       </div>

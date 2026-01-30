@@ -38,10 +38,10 @@ const DemoLogin: React.FC = () => {
       if (success) {
         navigate('/demo/dashboard');
       } else {
-        setError('Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng');
+        setError('Email hoặc mật khẩu không đúng');
       }
     } catch (err) {
-      setError('ÄÃ£ xáº£y ra lá»—i. Vui lÃ²ng thá»­ láº¡i.');
+      setError('Đã xảy ra lỗi. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -73,31 +73,31 @@ const DemoLogin: React.FC = () => {
                 <Building2 className="h-7 w-7" />
               </div>
               <div>
-                <h1 className="font-display font-bold text-xl">Quáº£n lÃ½ CÃ´ng trÃ¬nh</h1>
+                <h1 className="font-display font-bold text-xl">Quản lý Công trình</h1>
                 <p className="text-sm text-white/70">Construction Control Platform</p>
               </div>
             </div>
 
             <div className="max-w-md">
               <h2 className="text-4xl font-display font-bold leading-tight mb-6">
-                Kiá»ƒm soÃ¡t toÃ n diá»‡n
+                Kiểm soát toàn diện
                 <br />
-                <span className="text-accent">Chi phÃ­ & Tiáº¿n Ä‘á»™</span>
+                <span className="text-accent">Chi phí & Tiến độ</span>
                 <br />
-                Dá»± Ã¡n XÃ¢y dá»±ng
+                Dự án Xây dựng
               </h2>
               <p className="text-lg text-white/80 leading-relaxed">
-                Ná»n táº£ng quáº£n lÃ½ cÃ´ng trÃ¬nh hiá»‡n Ä‘áº¡i, giÃºp báº¡n kiá»ƒm soÃ¡t chi phÃ­, váº­t tÆ°, 
-                nhÃ¢n cÃ´ng vÃ  tiáº¿n Ä‘á»™ má»™t cÃ¡ch chÃ­nh xÃ¡c vÃ  hiá»‡u quáº£.
+                Nền tảng quản lý công trình hiện đại, giúp bạn kiểm soát chi phí, vật tư, 
+                nhân công và tiến độ một cách chính xác và hiệu quả.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-6 text-sm text-white/60">
-            <span>Báº£o máº­t cao</span>
-            <span>â€¢</span>
+            <span>Bảo mật cao</span>
+            <span>•</span>
             <span>Multi-tenant</span>
-            <span>â€¢</span>
+            <span>•</span>
             <span>Real-time</span>
           </div>
         </div>
@@ -112,22 +112,22 @@ const DemoLogin: React.FC = () => {
               <Building2 className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-display font-bold text-lg">Quáº£n lÃ½ CÃ´ng trÃ¬nh</h1>
+              <h1 className="font-display font-bold text-lg">Quản lý Công trình</h1>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-display font-bold text-foreground">ÄÄƒng nháº­p demo</h2>
-            <p className="text-muted-foreground mt-1">Chá»n tÃ i khoáº£n demo Ä‘á»ƒ tráº£i nghiá»‡m.</p>
+            <h2 className="text-2xl font-display font-bold text-foreground">Đăng nhập demo</h2>
+            <p className="text-muted-foreground mt-1">Chọn tài khoản demo để trải nghiệm.</p>
           </div>
 
           {/* Quick Login (Demo) */}
           <div className="mb-6 p-4 rounded-xl bg-muted/50 border border-border">
-            <p className="text-sm font-medium text-foreground mb-3">Demo: ÄÄƒng nháº­p nhanh</p>
+            <p className="text-sm font-medium text-foreground mb-3">Demo: Đăng nhập nhanh</p>
             <div className="flex gap-2">
               <Select value={selectedUser} onValueChange={setSelectedUser}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Chá»n tÃ i khoáº£n demo..." />
+                  <SelectValue placeholder="Chọn tài khoản demo..." />
                 </SelectTrigger>
                 <SelectContent>
                   {DEMO_USERS.map((user) => (
@@ -147,7 +147,7 @@ const DemoLogin: React.FC = () => {
                 disabled={!selectedUser}
                 className="gap-2"
               >
-                ÄÄƒng nháº­p
+                Đăng nhập
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -158,7 +158,7 @@ const DemoLogin: React.FC = () => {
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Hoáº·c Ä‘Äƒng nháº­p thá»§ cÃ´ng</span>
+              <span className="bg-background px-2 text-muted-foreground">Hoặc đăng nhập thủ công</span>
             </div>
           </div>
 
@@ -186,15 +186,15 @@ const DemoLogin: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Máº­t kháº©u</Label>
-                <span className="text-sm text-muted-foreground">Demo khÃ´ng yÃªu cáº§u máº­t kháº©u tháº­t</span>
+                <Label htmlFor="password">Mật khẩu</Label>
+                <span className="text-sm text-muted-foreground">Demo không yêu cầu mật khẩu thật</span>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -216,17 +216,17 @@ const DemoLogin: React.FC = () => {
                 onCheckedChange={(checked) => setRememberMe(checked as boolean)}
               />
               <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                Ghi nhá»› Ä‘Äƒng nháº­p
+                Ghi nhớ đăng nhập
               </Label>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Äang Ä‘Äƒng nháº­p...' : 'ÄÄƒng nháº­p'}
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
           </form>
 
           <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
-            <span>DÃ¹ng dÃ nh cho tráº£i nghiá»‡m demo.</span>
+            <span>Dùng dành cho trải nghiệm demo.</span>
             <Link to="/app/login" className="text-primary font-medium hover:underline">
               Use real app
             </Link>

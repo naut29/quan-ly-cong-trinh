@@ -55,32 +55,32 @@ const AppSidebarApp: React.FC = () => {
   const isAdmin = role === 'owner' || role === 'admin';
 
   const mainNavItems = [
-    { to: `${basePath}/dashboard`, icon: LayoutDashboard, label: 'Báº£ng Ä‘iá»u khiá»ƒn' },
-    { to: `${basePath}/projects`, icon: FolderKanban, label: 'Dá»± Ã¡n' },
+    { to: `${basePath}/dashboard`, icon: LayoutDashboard, label: 'Bảng điều khiển' },
+    { to: `${basePath}/projects`, icon: FolderKanban, label: 'Dự án' },
   ];
 
   const projectNavItems = projectId ? [
-    { to: `${basePath}/projects/${projectId}/overview`, icon: Home, label: 'Tá»•ng quan' },
-    { to: `${basePath}/projects/${projectId}/wbs`, icon: Building2, label: 'Cáº¥u trÃºc cÃ´ng viá»‡c' },
-    { to: `${basePath}/projects/${projectId}/boq`, icon: Calculator, label: 'Dá»± toÃ¡n' },
-    { to: `${basePath}/projects/${projectId}/materials`, icon: Package, label: 'Váº­t tÆ°' },
-    { to: `${basePath}/projects/${projectId}/norms`, icon: Activity, label: 'Äá»‹nh má»©c' },
-    { to: `${basePath}/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phÃ­' },
-    { to: `${basePath}/projects/${projectId}/contracts`, icon: FileText, label: 'Há»£p Ä‘á»“ng' },
-    { to: `${basePath}/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toÃ¡n' },
-    { to: `${basePath}/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'PhÃª duyá»‡t' },
-    { to: `${basePath}/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiáº¿n Ä‘á»™' },
-    { to: `${basePath}/projects/${projectId}/reports`, icon: BarChart3, label: 'BÃ¡o cÃ¡o' },
+    { to: `${basePath}/projects/${projectId}/overview`, icon: Home, label: 'Tổng quan' },
+    { to: `${basePath}/projects/${projectId}/wbs`, icon: Building2, label: 'Cấu trúc công việc' },
+    { to: `${basePath}/projects/${projectId}/boq`, icon: Calculator, label: 'Dự toán' },
+    { to: `${basePath}/projects/${projectId}/materials`, icon: Package, label: 'Vật tư' },
+    { to: `${basePath}/projects/${projectId}/norms`, icon: Activity, label: 'Định mức' },
+    { to: `${basePath}/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí' },
+    { to: `${basePath}/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng' },
+    { to: `${basePath}/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán' },
+    { to: `${basePath}/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt' },
+    { to: `${basePath}/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ' },
+    { to: `${basePath}/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo' },
   ] : [];
 
   const adminNavItems = [
-    { to: `${basePath}/admin/company`, icon: Building2, label: 'CÃ´ng ty' },
-    { to: `${basePath}/admin/members`, icon: Users, label: 'ThÃ nh viÃªn' },
-    { to: `${basePath}/admin/users`, icon: Users, label: 'NgÆ°á»i dÃ¹ng' },
-    { to: `${basePath}/admin/roles`, icon: Shield, label: 'Vai trÃ² & Quyá»n' },
-    { to: `${basePath}/admin/audit-log`, icon: Activity, label: 'Nháº­t kÃ½ hoáº¡t Ä‘á»™ng' },
-    { to: `${basePath}/admin/integrations`, icon: Plug, label: 'TÃ­ch há»£p' },
-    { to: `${basePath}/admin/billing`, icon: Receipt, label: 'Thanh toÃ¡n' },
+    { to: `${basePath}/admin/company`, icon: Building2, label: 'Công ty' },
+    { to: `${basePath}/admin/members`, icon: Users, label: 'Thành viên' },
+    { to: `${basePath}/admin/users`, icon: Users, label: 'Người dùng' },
+    { to: `${basePath}/admin/roles`, icon: Shield, label: 'Vai trò & Quyền' },
+    { to: `${basePath}/admin/audit-log`, icon: Activity, label: 'Nhật ký hoạt động' },
+    { to: `${basePath}/admin/integrations`, icon: Plug, label: 'Tích hợp' },
+    { to: `${basePath}/admin/billing`, icon: Receipt, label: 'Thanh toán' },
   ];
 
   return (
@@ -91,7 +91,7 @@ const AppSidebarApp: React.FC = () => {
             <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-sidebar-foreground text-sm">Quáº£n lÃ½ CÃ´ng trÃ¬nh</h1>
+            <h1 className="font-display font-bold text-sidebar-foreground text-sm">Quản lý Công trình</h1>
             <p className="text-[10px] text-sidebar-muted">Construction Control</p>
           </div>
         </div>
@@ -114,7 +114,7 @@ const AppSidebarApp: React.FC = () => {
             <div className="space-y-1">
               <div className="sidebar-section flex items-center gap-2">
                 <ChevronRight className="h-3 w-3" />
-                <span>Dá»± Ã¡n hiá»‡n táº¡i</span>
+                <span>Dự án hiện tại</span>
               </div>
               {projectNavItems.map((item) => (
                 <SidebarItem
@@ -131,7 +131,7 @@ const AppSidebarApp: React.FC = () => {
             <div className="space-y-1">
               <div className="sidebar-section flex items-center gap-2">
                 <Settings className="h-3 w-3" />
-                <span>Quáº£n trá»‹</span>
+                <span>Quản trị</span>
               </div>
               {adminNavItems.map((item) => (
                 <SidebarItem

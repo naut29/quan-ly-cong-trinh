@@ -76,7 +76,7 @@ const AppTopbarApp: React.FC = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="TÃ¬m kiáº¿m dá»± Ã¡n, váº­t tÆ°, há»£p Ä‘á»“ng..." 
+            placeholder="Tìm kiếm dự án, vật tư, hợp đồng..." 
             className="w-80 pl-9 bg-muted/50 border-0 focus-visible:ring-1"
           />
         </div>
@@ -93,7 +93,7 @@ const AppTopbarApp: React.FC = () => {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="gap-2 h-9 px-3">
-              <span className="text-sm">Chá»n dá»± Ã¡n</span>
+              <span className="text-sm">Chọn dự án</span>
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                 {projects.length}
               </Badge>
@@ -102,12 +102,12 @@ const AppTopbarApp: React.FC = () => {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-96 p-0">
             <div className="p-3 border-b border-border">
-              <Input placeholder="TÃ¬m dá»± Ã¡n..." className="h-8" />
+              <Input placeholder="Tìm dự án..." className="h-8" />
             </div>
             <div className="max-h-80 overflow-y-auto custom-scrollbar">
               {projects.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
-                  <p className="text-sm">KhÃ´ng cÃ³ dá»± Ã¡n nÃ o</p>
+                  <p className="text-sm">Không có dự án nào</p>
                 </div>
               ) : (
                 projects.map((project) => (
@@ -165,16 +165,16 @@ const AppTopbarApp: React.FC = () => {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              ThÃ´ng tin cÃ¡ nhÃ¢n
+              Thông tin cá nhân
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              CÃ i Ä‘áº·t
+              Cài đặt
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              ÄÄƒng xuáº¥t
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
