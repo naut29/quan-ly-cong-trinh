@@ -90,3 +90,22 @@ Deployment steps:
 ```sh
 wrangler deploy
 ```
+
+
+## Trial API worker (Cloudflare)
+
+A Worker example to handle `/api/trial` submissions is included at:
+`workers/trial-api/index.ts`.
+
+Deployment steps:
+
+1) Create a Cloudflare Worker and set the route to `quanlycongtrinh.com/api/*`.
+2) Set secrets (Worker environment variables):
+   - `RESEND_API_KEY`
+   - `TO_EMAIL=contact@simpletoolset.com`
+   - `FROM_EMAIL` (verified sender)
+3) Deploy the worker:
+
+```sh
+wrangler deploy
+```
