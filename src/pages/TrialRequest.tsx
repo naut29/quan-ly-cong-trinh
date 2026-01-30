@@ -38,8 +38,8 @@ const TrialRequest: React.FC = () => {
     e.preventDefault();
     if (!isValid) {
       toast({
-        title: 'Thiếu thông tin bắt buộc',
-        description: 'Vui lòng nhập họ và tên, tên công ty và email.',
+        title: 'Thi?u th?ng tin b?t bu?c',
+        description: 'Vui l?ng nh?p h? v? t?n, t?n c?ng ty v? email.',
         variant: 'destructive',
       });
       return;
@@ -62,12 +62,12 @@ const TrialRequest: React.FC = () => {
 
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || 'Không thể gửi yêu cầu.');
+        throw new Error(message || 'Kh?ng th? g?i y?u c?u.');
       }
 
       toast({
-        title: 'Gửi yêu cầu thành công!',
-        description: 'Chúng tôi sẽ liên hệ sớm để bắt đầu dùng thử.',
+        title: 'G?i y?u c?u th?nh c?ng!',
+        description: 'Ch?ng t?i s? li?n h? s?m ?? b?t ??u d?ng th?.',
       });
 
       setFullName('');
@@ -78,8 +78,8 @@ const TrialRequest: React.FC = () => {
       setNeeds('');
     } catch (error: any) {
       toast({
-        title: 'Gửi yêu cầu thất bại',
-        description: error?.message || 'Vui lòng thử lại sau.',
+        title: 'G?i y?u c?u th?t b?i',
+        description: error?.message || 'Vui l?ng th? l?i sau.',
         variant: 'destructive',
       });
     } finally {
@@ -93,35 +93,35 @@ const TrialRequest: React.FC = () => {
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <p className="text-sm text-muted-foreground">
-              <Link to="/" className="hover:underline">Trang chủ</Link> / Dùng thử miễn phí
+              <Link to="/" className="hover:underline">Trang ch?</Link> / D?ng th? mi?n ph?
             </p>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mt-2">
-              Đăng ký dùng thử miễn phí
+              ??ng k? d?ng th? mi?n ph?
             </h1>
             <p className="text-muted-foreground mt-2">
-              Vui lòng cho chúng tôi vài thông tin về doanh nghiệp để bắt đầu dùng thử.
+              Vui l?ng cho ch?ng t?i v?i th?ng tin v? doanh nghi?p ?? b?t ??u d?ng th?.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Họ và tên *</Label>
+                <Label htmlFor="fullName">H? v? t?n *</Label>
                 <Input
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Họ và tên của bạn"
+                  placeholder="H? v? t?n c?a b?n"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="companyName">Tên công ty *</Label>
+                <Label htmlFor="companyName">T?n c?ng ty *</Label>
                 <Input
                   id="companyName"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Tên công ty"
+                  placeholder="T?n c?ng ty"
                   required
                 />
               </div>
@@ -140,7 +140,7 @@ const TrialRequest: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Số điện thoại</Label>
+                <Label htmlFor="phone">S? ?i?n tho?i</Label>
                 <Input
                   id="phone"
                   value={phone}
@@ -151,10 +151,10 @@ const TrialRequest: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Quy mô công ty</Label>
+              <Label>Quy m? c?ng ty</Label>
               <Select value={companySize} onValueChange={setCompanySize}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn quy mô" />
+                  <SelectValue placeholder="Ch?n quy m?" />
                 </SelectTrigger>
                 <SelectContent>
                   {companySizeOptions.map((option) => (
@@ -167,22 +167,22 @@ const TrialRequest: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="needs">Nhu cầu</Label>
+              <Label htmlFor="needs">Nhu c?u</Label>
               <Textarea
                 id="needs"
                 value={needs}
                 onChange={(e) => setNeeds(e.target.value)}
-                placeholder="Chia sẻ nhu cầu quản lý hoặc cải thiện"
+                placeholder="Chia s? nhu c?u qu?n l? ho?c c?i thi?n"
                 rows={5}
               />
             </div>
 
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={loading} className="min-w-[140px]">
-                {loading ? 'Đang gửi...' : 'Đăng ký dùng thử'}
+                {loading ? '?ang g?i...' : '??ng k? d?ng th?'}
               </Button>
               <Link to="/demo/login" className="text-sm text-muted-foreground hover:underline">
-                Hoặc yêu cầu demo
+                Ho?c y?u c?u demo
               </Link>
             </div>
           </form>
