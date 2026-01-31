@@ -13,10 +13,11 @@ interface Subscription {
 }
 
 const Billing: React.FC = () => {
-  const { orgId, loading: sessionLoading } = useSession();
+  const { orgId, orgRole, loading: sessionLoading } = useSession();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [activeStatus, setActiveStatus] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const isAdmin = orgRole === "owner" || orgRole === "admin";
 
   useEffect(() => {
     const client = supabase;
@@ -94,6 +95,19 @@ const Billing: React.FC = () => {
             <p>Trạng thái: {activeStatus === null ? "-" : activeStatus ? "Đang hoạt động" : "Đã hết hạn"}</p>
             <p>Giới hạn thành viên: {subscription?.max_members ?? "Không giới hạn"}</p>
             <p>Giới hạn dự án: {subscription?.max_projects ?? "Không giới hạn"}</p>
+            {!activeStatus && activeStatus !== null && (
+              <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <p>Tài khoản đã hết hạn. Vui lòng liên hệ để gia hạn.</p>
+                {isAdmin ? (
+                  <div className="mt-2 text-destructive">
+                    <p>Email: admin@congty.vn</p>
+                    <p>Điện thoại: 0901 234 567</p>
+                  </div>
+                ) : (
+                  <p className="mt-2">Liên hệ quản trị viên công ty</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

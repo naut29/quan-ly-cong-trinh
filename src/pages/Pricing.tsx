@@ -59,7 +59,7 @@ const Pricing: React.FC = () => {
     const load = async () => {
       const { data, error } = await client
         .from("org_subscriptions")
-        .select("tier")
+        .select("tier, expires_at, max_members, max_projects")
         .eq("org_id", orgId)
         .maybeSingle();
 
@@ -130,7 +130,7 @@ const Pricing: React.FC = () => {
                     disabled={isCurrent}
                     onClick={() => !isCurrent && setModalPlan(plan)}
                   >
-                    {isCurrent ? "Hiện tại" : "Nâng cấp"}
+                    {isCurrent ? "Hiện tại" : "Chọn gói này"}
                   </Button>
                 </CardContent>
               </Card>
