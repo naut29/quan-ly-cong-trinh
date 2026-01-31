@@ -73,7 +73,9 @@ import InviteAccept from "./pages/app/InviteAccept";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  console.log("ENV CHECK", import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -240,6 +242,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
