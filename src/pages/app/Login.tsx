@@ -48,7 +48,11 @@ const AppLogin: React.FC = () => {
 
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
           <div>
-            <div className="flex items-center gap-3 mb-16">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3 mb-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-opacity hover:opacity-90"
+              aria-label="Quản lý Công trình"
+            >
               <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
                 <Building2 className="h-7 w-7" />
               </div>
@@ -56,7 +60,7 @@ const AppLogin: React.FC = () => {
                 <h1 className="font-display font-bold text-xl">Quản lý Công trình</h1>
                 <p className="text-sm text-white/70">Construction Control Platform</p>
               </div>
-            </div>
+            </Link>
 
             <div className="max-w-md">
               <h2 className="text-4xl font-display font-bold leading-tight mb-6">
@@ -92,14 +96,18 @@ const AppLogin: React.FC = () => {
             </div>
           )}
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
+          <Link
+            to="/"
+            className="lg:hidden inline-flex items-center gap-3 mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+            aria-label="Quản lý Công trình"
+          >
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
               <Building2 className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
               <h1 className="font-display font-bold text-lg">Quản lý Công trình</h1>
             </div>
-          </div>
+          </Link>
 
           <div className="mb-8">
             <h2 className="text-2xl font-display font-bold text-foreground">Đăng nhập</h2>
