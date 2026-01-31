@@ -97,13 +97,29 @@ const Onboarding: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const { error: rpcError } = await supabase.rpc("create_organization_with_owner", {
+      const { data: orgData, error: rpcError } = await supabase.rpc("create_organization_with_owner", {
         p_name: companyName.trim(),
         p_slug: slug,
       });
 
       if (rpcError) {
         throw rpcError;
+      }
+
+      const orgId =
+        (orgData as { id?: string } | null)?.id ??
+        (Array.isArray(orgData) ? (orgData[0] as { id?: string } | undefined)?.id : undefined);
+
+      if (!orgId) {
+        throw new Error("Không lấy được thông tin tổ chức.");
+      }
+
+      const { error: subscriptionError } = await supabase.rpc("ensure_org_subscription", {
+        p_org_id: orgId,
+      });
+
+      if (subscriptionError) {
+        throw subscriptionError;
       }
 
       navigate("/app/dashboard", { replace: true });
