@@ -130,13 +130,13 @@ const Onboarding: React.FC = () => {
       } = await supabase.auth.getUser();
       const userId = user?.id ?? "";
 
-      let resolvedOrgId: string | null = null;
       let resolvedRole: string | null = null;
       for (let attempt = 0; attempt < 5; attempt += 1) {
-        const { data: membership } = await supabase.rpc("get_my_membership");
+        const { data: membership } = await supabase.rpc("get_my_membership_for_org", {
+          p_org_id: orgId,
+        });
 
         if (membership && membership.length > 0) {
-          resolvedOrgId = membership[0]?.org_id ?? null;
           resolvedRole = membership[0]?.role ?? null;
           break;
         }
@@ -144,18 +144,15 @@ const Onboarding: React.FC = () => {
         await wait(300);
       }
 
-      if (resolvedOrgId) {
-        setCurrentOrgId(resolvedOrgId);
-      }
-
       if (resolvedRole) {
+        setCurrentOrgId(orgId);
         setCurrentRole(resolvedRole);
       }
 
       await refreshMembership();
 
-      if (!resolvedOrgId) {
-        throw new Error("Không thể xác nhận thành viên tổ chức.");
+      if (!resolvedRole) {
+        throw new Error(`Không thể xác nhận thành viên tổ chức. Org ID: ${orgId}`);
       }
 
       navigate("/app/dashboard", { replace: true });
