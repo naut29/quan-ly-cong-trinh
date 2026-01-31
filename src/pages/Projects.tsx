@@ -12,7 +12,7 @@ interface Project {
 }
 
 const Projects: React.FC = () => {
-  const { orgId, loading: sessionLoading } = useSession();
+  const { orgId, orgRole, loading: sessionLoading } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +70,18 @@ const Projects: React.FC = () => {
   return (
     <div className="min-h-screen bg-background px-6 py-10">
       <div className="mx-auto w-full max-w-5xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dự án</h1>
-          <p className="text-sm text-muted-foreground">
-            Tất cả dự án trong tổ chức của bạn.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Dự án</h1>
+            <p className="text-sm text-muted-foreground">
+              Tất cả dự án trong tổ chức của bạn.
+            </p>
+          </div>
+          {orgRole !== "viewer" && (
+            <Link to="/dashboard" className="text-sm text-primary hover:underline">
+              Tạo dự án
+            </Link>
+          )}
         </div>
 
         {loading ? (

@@ -17,10 +17,11 @@ import {
 interface CreateProjectProps {
   orgId: string;
   onCreated: () => void;
+  canCreate?: boolean;
   disabled?: boolean;
 }
 
-const CreateProject: React.FC<CreateProjectProps> = ({ orgId, onCreated, disabled }) => {
+const CreateProject: React.FC<CreateProjectProps> = ({ orgId, onCreated, canCreate = true, disabled }) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -73,6 +74,10 @@ const CreateProject: React.FC<CreateProjectProps> = ({ orgId, onCreated, disable
       setSubmitting(false);
     }
   };
+
+  if (!canCreate) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

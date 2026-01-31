@@ -13,6 +13,7 @@ export const useSession = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [memberStatus, setMemberStatus] = useState<"invited" | "active" | "disabled" | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [orgRole, setOrgRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export const useSession = () => {
       setProfile(null);
       setMemberStatus(null);
       setOrgId(null);
+      setOrgRole(null);
       setLoading(false);
       return () => {
         isActive = false;
@@ -42,13 +44,14 @@ export const useSession = () => {
         setProfile(null);
         setMemberStatus(null);
         setOrgId(null);
+        setOrgRole(null);
         setLoading(false);
         return;
       }
 
       const { data: membership, error: membershipError } = await client
         .from("org_members")
-        .select("org_id")
+        .select("org_id, role")
         .eq("user_id", user.id)
         .limit(1)
         .maybeSingle();
@@ -56,8 +59,10 @@ export const useSession = () => {
       if (!isActive) return;
       if (membershipError) {
         setOrgId(null);
+        setOrgRole("viewer");
       } else {
         setOrgId(membership?.org_id ?? null);
+        setOrgRole(membership?.role ?? "viewer");
       }
 
       const { data: profile, error } = await client
@@ -95,5 +100,5 @@ export const useSession = () => {
     };
   }, []);
 
-  return { user, profile, memberStatus, orgId, loading };
+  return { user, profile, memberStatus, orgId, orgRole, loading };
 };

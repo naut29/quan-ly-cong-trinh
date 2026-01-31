@@ -14,7 +14,7 @@ interface Project {
 }
 
 const Dashboard: React.FC = () => {
-  const { orgId, loading: sessionLoading } = useSession();
+  const { orgId, orgRole, loading: sessionLoading } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +83,12 @@ const Dashboard: React.FC = () => {
             <Button variant="outline" asChild>
               <Link to="/projects">Xem tất cả dự án</Link>
             </Button>
-            <CreateProject orgId={orgId ?? ""} onCreated={loadProjects} disabled={!orgId} />
+            <CreateProject
+              orgId={orgId ?? ""}
+              onCreated={loadProjects}
+              canCreate={orgRole !== "viewer"}
+              disabled={!orgId}
+            />
           </div>
         </div>
 
