@@ -14,13 +14,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { useSession } from '@/app/session/useSession';
-import { useCompany } from '@/app/context/CompanyContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, alerts, projectStatusLabels, projectStageLabels } from '@/data/mockData';
-import { createSupabaseRepo } from '@/data/supabaseRepo';
-import type { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
-import { getAppBasePath } from '@/lib/appMode';
 import { getAppBasePath } from '@/lib/appMode';
 
 const Dashboard: React.FC = () => {
