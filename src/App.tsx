@@ -22,6 +22,7 @@ import AppDashboard from "./pages/app/Dashboard";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
+import Members from "./pages/Members";
 import Projects from "./pages/app/Projects";
 import ProjectOverview from "./pages/app/ProjectOverview";
 import Materials from "./pages/app/Materials";
@@ -109,6 +110,14 @@ const App = () => (
               element={
                 <RequireAuth>
                   <ProjectDetail />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/members"
+              element={
+                <RequireAuth>
+                  <Members />
                 </RequireAuth>
               }
             />

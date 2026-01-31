@@ -15,6 +15,7 @@ interface Project {
 
 const Dashboard: React.FC = () => {
   const { orgId, orgRole, loading: sessionLoading } = useSession();
+  const isAdmin = (orgRole ?? "viewer") === "owner" || (orgRole ?? "viewer") === "admin";
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +84,11 @@ const Dashboard: React.FC = () => {
             <Button variant="outline" asChild>
               <Link to="/projects">Xem tất cả dự án</Link>
             </Button>
+            {isAdmin && (
+              <Button variant="outline" asChild>
+                <Link to="/members">Thành viên</Link>
+              </Button>
+            )}
             <CreateProject
               orgId={orgId ?? ""}
               onCreated={loadProjects}
