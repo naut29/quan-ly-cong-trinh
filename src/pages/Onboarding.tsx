@@ -131,17 +131,13 @@ const Onboarding: React.FC = () => {
       const userId = user?.id ?? "";
 
       let resolvedOrgId: string | null = null;
+      let resolvedRole: string | null = null;
       for (let attempt = 0; attempt < 5; attempt += 1) {
-        const { data: memberRow } = await supabase
-          .from("org_members")
-          .select("org_id, role")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data: membership } = await supabase.rpc("get_my_membership");
 
-        if (memberRow?.org_id) {
-          resolvedOrgId = memberRow.org_id;
+        if (membership && membership.length > 0) {
+          resolvedOrgId = membership[0]?.org_id ?? null;
+          resolvedRole = membership[0]?.role ?? null;
           break;
         }
 
@@ -150,17 +146,6 @@ const Onboarding: React.FC = () => {
 
       if (resolvedOrgId) {
         setCurrentOrgId(resolvedOrgId);
-      }
-
-      let resolvedRole: string | null = null;
-      if (resolvedOrgId) {
-        const { data: roleRow } = await supabase
-          .from("org_members")
-          .select("role")
-          .eq("org_id", resolvedOrgId)
-          .eq("user_id", userId)
-          .maybeSingle();
-        resolvedRole = roleRow?.role ?? null;
       }
 
       if (resolvedRole) {

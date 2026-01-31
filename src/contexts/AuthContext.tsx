@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [loadingMembership, setLoadingMembership] = useState(false);
 
-  const loadMembership = useCallback(async (userId: string) => {
+  const loadMembership = useCallback(async () => {
     if (!supabase) {
       setCurrentOrgId(null);
       setCurrentRole(null);
@@ -46,20 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setLoadingMembership(true);
-    const { data, error } = await supabase
-      .from('org_members')
-      .select('org_id, role')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('get_my_membership');
 
-    if (error) {
+    if (error || !data || data.length === 0) {
       setCurrentOrgId(null);
       setCurrentRole(null);
     } else {
-      setCurrentOrgId(data?.org_id ?? null);
-      setCurrentRole(data?.role ?? null);
+      setCurrentOrgId(data[0]?.org_id ?? null);
+      setCurrentRole(data[0]?.role ?? null);
     }
     setLoadingMembership(false);
   }, []);
@@ -109,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
       }
       if (data.session?.user?.id) {
-        await loadMembership(data.session.user.id);
+        await loadMembership();
       } else {
         setCurrentOrgId(null);
         setCurrentRole(null);
@@ -143,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mappedUser);
       setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
       if (session?.user?.id) {
-        loadMembership(session.user.id);
+        loadMembership();
       } else {
         setCurrentOrgId(null);
         setCurrentRole(null);
@@ -176,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mappedUser = mapSupabaseUser(data.session.user.email);
     setUser(mappedUser);
     setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
-    await loadMembership(data.session.user.id);
+    await loadMembership();
     return true;
   }, [isDemo, mapSupabaseUser, loadMembership]);
 
