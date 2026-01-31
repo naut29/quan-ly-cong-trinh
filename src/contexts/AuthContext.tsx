@@ -4,7 +4,7 @@ import { User, users, projects, tenants, rolePermissions, UserRole } from '@/dat
 import { isAppPath, isDemoPath } from '@/lib/appMode';
 import { DEMO_USERS, demoGetSession, demoSignIn, demoSignOut } from '@/auth/demoAuth';
 import { getSession, onAuthStateChange, signInWithPassword, signOut } from '@/auth/supabaseAuth';
-import { hasSupabaseEnv } from '@/lib/supabaseClient';
+import { hasSupabaseEnv, supabase } from '@/lib/supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -18,6 +18,11 @@ interface AuthContextType {
   getCurrentTenant: () => typeof tenants[0] | null;
   switchTenant: (tenantId: string) => void;
   currentTenantId: string | null;
+  currentOrgId: string | null;
+  currentRole: string | null;
+  loadingMembership: boolean;
+  setCurrentOrgId: (orgId: string | null) => void;
+  setCurrentRole: (role: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +33,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isApp = isAppPath(location.pathname);
   const [user, setUser] = useState<User | null>(null);
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
+  const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [loadingMembership, setLoadingMembership] = useState(false);
+
+  const loadMembership = useCallback(async (userId: string) => {
+    if (!supabase) {
+      setCurrentOrgId(null);
+      setCurrentRole(null);
+      setLoadingMembership(false);
+      return;
+    }
+
+    setLoadingMembership(true);
+    const { data, error } = await supabase
+      .from('org_members')
+      .select('org_id, role')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      setCurrentOrgId(null);
+      setCurrentRole(null);
+    } else {
+      setCurrentOrgId(data?.org_id ?? null);
+      setCurrentRole(data?.role ?? null);
+    }
+    setLoadingMembership(false);
+  }, []);
 
   const mapSupabaseUser = useCallback((email?: string | null) => {
     if (!email) return null;
@@ -54,6 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isActive) {
           setUser(null);
           setCurrentTenantId(null);
+          setCurrentOrgId(null);
+          setCurrentRole(null);
         }
         return;
       }
@@ -71,6 +108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(mappedUser);
         setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
       }
+      if (data.session?.user?.id) {
+        await loadMembership(data.session.user.id);
+      } else {
+        setCurrentOrgId(null);
+        setCurrentRole(null);
+        setLoadingMembership(false);
+      }
     };
 
     if (isDemo) {
@@ -84,6 +128,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isActive) {
         setUser(null);
         setCurrentTenantId(null);
+        setCurrentOrgId(null);
+        setCurrentRole(null);
+        setLoadingMembership(false);
       }
       return () => {
         isActive = false;
@@ -95,6 +142,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mappedUser = mapSupabaseUser(session?.user.email);
       setUser(mappedUser);
       setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
+      if (session?.user?.id) {
+        loadMembership(session.user.id);
+      } else {
+        setCurrentOrgId(null);
+        setCurrentRole(null);
+        setLoadingMembership(false);
+      }
     });
 
     return () => {
@@ -122,8 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mappedUser = mapSupabaseUser(data.session.user.email);
     setUser(mappedUser);
     setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
+    await loadMembership(data.session.user.id);
     return true;
-  }, [isDemo, mapSupabaseUser]);
+  }, [isDemo, mapSupabaseUser, loadMembership]);
 
   const loginAs = useCallback((userId: string) => {
     if (!isDemo) return;
@@ -143,6 +198,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(null);
     setCurrentTenantId(null);
+    setCurrentOrgId(null);
+    setCurrentRole(null);
+    setLoadingMembership(false);
   }, [isDemo, isApp]);
 
   const hasPermission = useCallback((module: string, action: 'view' | 'edit' | 'approve'): boolean => {
@@ -223,6 +281,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getCurrentTenant,
       switchTenant,
       currentTenantId,
+      currentOrgId,
+      currentRole,
+      loadingMembership,
+      setCurrentOrgId,
+      setCurrentRole,
     }}>
       {children}
     </AuthContext.Provider>

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { useSession } from "@/app/session/useSession";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ const toSlug = (value: string) => {
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const { orgId, membershipLoading, refreshMembership } = useSession();
+  const { setCurrentOrgId, setCurrentRole } = useAuth();
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -146,11 +148,26 @@ const Onboarding: React.FC = () => {
         await wait(300);
       }
 
-      await refreshMembership();
-
-      if (!resolvedOrgId && orgId) {
-        resolvedOrgId = orgId;
+      if (resolvedOrgId) {
+        setCurrentOrgId(resolvedOrgId);
       }
+
+      let resolvedRole: string | null = null;
+      if (resolvedOrgId) {
+        const { data: roleRow } = await supabase
+          .from("org_members")
+          .select("role")
+          .eq("org_id", resolvedOrgId)
+          .eq("user_id", userId)
+          .maybeSingle();
+        resolvedRole = roleRow?.role ?? null;
+      }
+
+      if (resolvedRole) {
+        setCurrentRole(resolvedRole);
+      }
+
+      await refreshMembership();
 
       if (!resolvedOrgId) {
         throw new Error("Không thể xác nhận thành viên tổ chức.");
