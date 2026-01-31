@@ -7,7 +7,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
   children,
   allowInactive = false,
 }) => {
-  const { user, profile, memberStatus, orgId, loading } = useSession();
+  const { user, profile, memberStatus, orgId, loading, membershipLoading } = useSession();
   const [activeLoading, setActiveLoading] = useState(true);
   const [isActive, setIsActive] = useState(true);
 
@@ -55,10 +55,10 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     );
   }
 
-  if (loading) {
+  if (loading || membershipLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Đang tải từng lưu...</p>
+        <p className="text-muted-foreground">Đang tải dữ liệu...</p>
       </div>
     );
   }

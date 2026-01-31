@@ -130,9 +130,21 @@ const Members: React.FC = () => {
       return;
     }
 
-    if (maxMembers !== null && members.length >= maxMembers) {
-      setSubmitError("Đã đạt giới hạn số lượng thành viên của gói hiện tại.");
-      return;
+    if (maxMembers !== null) {
+      const { count, error: countError } = await supabase
+        .from("org_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("org_id", orgId);
+
+      if (countError) {
+        setSubmitError(countError.message);
+        return;
+      }
+
+      if ((count ?? 0) >= maxMembers) {
+        setSubmitError("Đã đạt giới hạn số lượng thành viên của gói hiện tại.");
+        return;
+      }
     }
 
     setSubmitting(true);

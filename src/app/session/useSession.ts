@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -14,7 +14,32 @@ export const useSession = () => {
   const [memberStatus, setMemberStatus] = useState<"invited" | "active" | "disabled" | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgRole, setOrgRole] = useState<string | null>(null);
+  const [membershipLoading, setMembershipLoading] = useState(true);
   const [loading, setLoading] = useState(true);
+
+  const loadMembership = useCallback(
+    async (client: NonNullable<typeof supabase>, currentUser: User, isActiveRef: () => boolean) => {
+      setMembershipLoading(true);
+      const { data: membership, error: membershipError } = await client
+        .from("org_members")
+        .select("org_id, role")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!isActiveRef()) return;
+      if (membershipError) {
+        setOrgId(null);
+        setOrgRole("viewer");
+      } else {
+        setOrgId(membership?.org_id ?? null);
+        setOrgRole(membership?.role ?? "viewer");
+      }
+      setMembershipLoading(false);
+    },
+    [],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -45,25 +70,12 @@ export const useSession = () => {
         setMemberStatus(null);
         setOrgId(null);
         setOrgRole(null);
+        setMembershipLoading(false);
         setLoading(false);
         return;
       }
 
-      const { data: membership, error: membershipError } = await client
-        .from("org_members")
-        .select("org_id, role")
-        .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (!isActive) return;
-      if (membershipError) {
-        setOrgId(null);
-        setOrgRole("viewer");
-      } else {
-        setOrgId(membership?.org_id ?? null);
-        setOrgRole(membership?.role ?? "viewer");
-      }
+      await loadMembership(client, user, () => isActive);
 
       const { data: profile, error } = await client
         .from("profiles")
@@ -98,7 +110,23 @@ export const useSession = () => {
       isActive = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [loadMembership]);
 
-  return { user, profile, memberStatus, orgId, orgRole, loading };
+  const refreshMembership = async () => {
+    const client = supabase;
+    if (!client) return null;
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+    if (!user) {
+      setOrgId(null);
+      setOrgRole(null);
+      setMembershipLoading(false);
+      return null;
+    }
+    await loadMembership(client, user, () => true);
+    return orgId;
+  };
+
+  return { user, profile, memberStatus, orgId, orgRole, loading, membershipLoading, refreshMembership };
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { useSession } from "@/app/session/useSession";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ const toSlug = (value: string) => {
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
+  const { orgId, membershipLoading, refreshMembership } = useSession();
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -52,15 +54,12 @@ const Onboarding: React.FC = () => {
         return;
       }
 
-      const { data: membership } = await client
-        .from("org_members")
-        .select("org_id")
-        .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-
       if (!isActive) return;
-      if (membership?.org_id) {
+      if (membershipLoading) {
+        setLoading(true);
+        return;
+      }
+      if (orgId) {
         navigate("/app/dashboard", { replace: true });
         return;
       }
@@ -73,7 +72,9 @@ const Onboarding: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [navigate]);
+  }, [navigate, orgId, membershipLoading]);
+
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -120,6 +121,39 @@ const Onboarding: React.FC = () => {
 
       if (subscriptionError) {
         throw subscriptionError;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const userId = user?.id ?? "";
+
+      let resolvedOrgId: string | null = null;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const { data: memberRow } = await supabase
+          .from("org_members")
+          .select("org_id, role")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (memberRow?.org_id) {
+          resolvedOrgId = memberRow.org_id;
+          break;
+        }
+
+        await wait(300);
+      }
+
+      await refreshMembership();
+
+      if (!resolvedOrgId && orgId) {
+        resolvedOrgId = orgId;
+      }
+
+      if (!resolvedOrgId) {
+        throw new Error("Không thể xác nhận thành viên tổ chức.");
       }
 
       navigate("/app/dashboard", { replace: true });
