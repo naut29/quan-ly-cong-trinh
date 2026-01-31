@@ -9,6 +9,8 @@ import { hasSupabaseEnv, supabase } from '@/lib/supabaseClient';
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  loadingSession: boolean;
+  loadingMembership: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   loginAs: (userId: string) => void;
   logout: () => void;
@@ -20,7 +22,6 @@ interface AuthContextType {
   currentTenantId: string | null;
   currentOrgId: string | null;
   currentRole: string | null;
-  loadingMembership: boolean;
   setCurrentOrgId: (orgId: string | null) => void;
   setCurrentRole: (role: string | null) => void;
 }
@@ -35,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
   const [loadingMembership, setLoadingMembership] = useState(false);
 
   const loadMembership = useCallback(async () => {
@@ -85,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentTenantId(null);
           setCurrentOrgId(null);
           setCurrentRole(null);
+          setLoadingSession(false);
         }
         return;
       }
@@ -92,10 +95,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isActive) {
         setUser(foundUser);
         setCurrentTenantId(foundUser?.tenantId || tenants[0]?.id || null);
+        setLoadingSession(false);
       }
     };
 
     const initSupabaseSession = async () => {
+      setLoadingSession(true);
       const { data } = await getSession();
       const mappedUser = mapSupabaseUser(data.session?.user.email);
       if (isActive) {
@@ -104,10 +109,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (data.session?.user?.id) {
         await loadMembership();
+        if (isActive) {
+          setLoadingSession(false);
+        }
       } else {
         setCurrentOrgId(null);
         setCurrentRole(null);
         setLoadingMembership(false);
+        if (isActive) {
+          setLoadingSession(false);
+        }
       }
     };
 
@@ -125,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentOrgId(null);
         setCurrentRole(null);
         setLoadingMembership(false);
+        setLoadingSession(false);
       }
       return () => {
         isActive = false;
@@ -132,16 +144,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     initSupabaseSession();
-    const { data: { subscription } } = onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
+      if (!isActive) return;
+      setLoadingSession(true);
       const mappedUser = mapSupabaseUser(session?.user.email);
       setUser(mappedUser);
       setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
       if (session?.user?.id) {
-        loadMembership();
+        await loadMembership();
+        if (isActive) {
+          setLoadingSession(false);
+        }
       } else {
         setCurrentOrgId(null);
         setCurrentRole(null);
         setLoadingMembership(false);
+        if (isActive) {
+          setLoadingSession(false);
+        }
       }
     });
 
@@ -266,6 +286,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user,
       isAuthenticated: !!user,
+      loadingSession,
+      loadingMembership,
       login,
       loginAs,
       logout,
@@ -277,7 +299,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentTenantId,
       currentOrgId,
       currentRole,
-      loadingMembership,
       setCurrentOrgId,
       setCurrentRole,
     }}>

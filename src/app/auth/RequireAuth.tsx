@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useSession } from "@/app/session/useSession";
+import { useAuth } from "@/contexts/AuthContext";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean }> = ({
   children,
   allowInactive = false,
 }) => {
-  const { user, orgId, loading, membershipLoading } = useSession();
+  const { isAuthenticated, currentOrgId, loadingSession, loadingMembership } = useAuth();
   const [activeLoading, setActiveLoading] = useState(true);
   const [isActive, setIsActive] = useState(true);
 
@@ -15,7 +15,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     let isActiveFlag = true;
     const client = supabase;
 
-    if (!client || !orgId || !user) {
+  if (!client || !currentOrgId || !isAuthenticated || loadingSession || loadingMembership) {
       setIsActive(true);
       setActiveLoading(false);
       return () => {
@@ -25,7 +25,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
 
     const loadStatus = async () => {
       setActiveLoading(true);
-      const { data, error } = await client.rpc("is_org_active", { org_id: orgId });
+      const { data, error } = await client.rpc("is_org_active", { org_id: currentOrgId });
       if (!isActiveFlag) return;
       if (error) {
         setIsActive(true);
@@ -40,7 +40,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     return () => {
       isActiveFlag = false;
     };
-  }, [orgId, user]);
+  }, [currentOrgId, isAuthenticated]);
 
   if (!hasSupabaseEnv) {
     return (
@@ -55,7 +55,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     );
   }
 
-  if (loading || membershipLoading) {
+  if (loadingSession || loadingMembership) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Đang tải dữ liệu...</p>
@@ -63,11 +63,11 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/app/login" replace />;
   }
 
-  if (!orgId) {
+  if (!currentOrgId) {
     return <Navigate to="/onboarding" replace />;
   }
 

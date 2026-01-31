@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
-import { useSession } from "@/app/session/useSession";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +24,7 @@ const toSlug = (value: string) => {
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { orgId, membershipLoading, refreshMembership } = useSession();
-  const { setCurrentOrgId, setCurrentRole } = useAuth();
+  const { currentOrgId, loadingMembership, loadingSession, setCurrentOrgId, setCurrentRole } = useAuth();
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -57,11 +55,11 @@ const Onboarding: React.FC = () => {
       }
 
       if (!isActive) return;
-      if (membershipLoading) {
+      if (loadingSession || loadingMembership) {
         setLoading(true);
         return;
       }
-      if (orgId) {
+      if (currentOrgId) {
         navigate("/app/dashboard", { replace: true });
         return;
       }
@@ -74,7 +72,7 @@ const Onboarding: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [navigate, orgId, membershipLoading]);
+  }, [navigate, currentOrgId, loadingMembership, loadingSession]);
 
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -158,7 +156,6 @@ const Onboarding: React.FC = () => {
 
       setCurrentOrgId(orgId);
       setCurrentRole(resolvedRole);
-      await refreshMembership();
       navigate("/app/dashboard", { replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Có lỗi xảy ra, vui lòng thử lại.");
