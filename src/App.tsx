@@ -18,7 +18,10 @@ import Onboarding from "./pages/Onboarding";
 // App Layout & Pages
 import AppLayout from "./components/layout/AppLayout";
 import AppLayoutApp from "./components/layout/AppLayoutApp";
-import Dashboard from "./pages/app/Dashboard";
+import AppDashboard from "./pages/app/Dashboard";
+import Dashboard from "./pages/Dashboard";
+import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Projects from "./pages/app/Projects";
 import ProjectOverview from "./pages/app/ProjectOverview";
 import Materials from "./pages/app/Materials";
@@ -85,6 +88,30 @@ const App = () => (
             <Route path="/demo/login" element={<DemoLogin />} />
             <Route path="/app/login" element={<AppLogin />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <RequireAuth>
+                  <Projects />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/projects/:id"
+              element={
+                <RequireAuth>
+                  <ProjectDetail />
+                </RequireAuth>
+              }
+            />
             <Route path="/app/invite" element={<InviteAccept />} />
 
             {/* Demo Routes */}
@@ -125,7 +152,7 @@ const App = () => (
               }
             >
               <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="dashboard" element={<AppDashboard />} />
               <Route path="projects" element={<Projects />} />
               
               {/* Project Routes with Guard */}
