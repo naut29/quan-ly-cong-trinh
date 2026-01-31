@@ -29,7 +29,7 @@ const AppLogin: React.FC = () => {
     try {
       const { error: signInError } = await signInWithPassword(email, password);
       if (!signInError) {
-        navigate(next || '/app/projects');
+        navigate(next || '/app/dashboard');
       } else {
         setError(signInError.message || 'Email hoặc mật khẩu không đúng');
       }

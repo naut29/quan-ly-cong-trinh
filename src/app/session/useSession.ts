@@ -12,6 +12,7 @@ export const useSession = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [memberStatus, setMemberStatus] = useState<"invited" | "active" | "disabled" | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export const useSession = () => {
       setUser(null);
       setProfile(null);
       setMemberStatus(null);
+      setOrgId(null);
       setLoading(false);
       return () => {
         isActive = false;
@@ -39,8 +41,23 @@ export const useSession = () => {
       if (!user) {
         setProfile(null);
         setMemberStatus(null);
+        setOrgId(null);
         setLoading(false);
         return;
+      }
+
+      const { data: membership, error: membershipError } = await client
+        .from("org_members")
+        .select("org_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!isActive) return;
+      if (membershipError) {
+        setOrgId(null);
+      } else {
+        setOrgId(membership?.org_id ?? null);
       }
 
       const { data: profile, error } = await client
@@ -78,5 +95,5 @@ export const useSession = () => {
     };
   }, []);
 
-  return { user, profile, memberStatus, loading };
+  return { user, profile, memberStatus, orgId, loading };
 };

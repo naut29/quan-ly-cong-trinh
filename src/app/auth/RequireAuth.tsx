@@ -4,7 +4,7 @@ import { useSession } from "@/app/session/useSession";
 import { hasSupabaseEnv } from "@/lib/supabaseClient";
 
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, profile, memberStatus, loading } = useSession();
+  const { user, profile, memberStatus, orgId, loading } = useSession();
 
   if (!hasSupabaseEnv) {
     return (
@@ -29,6 +29,10 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (!user) {
     return <Navigate to="/app/login" replace />;
+  }
+
+  if (!orgId) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   if (!profile) {

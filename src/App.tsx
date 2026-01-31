@@ -13,6 +13,7 @@ import Landing from "./pages/Landing";
 import TrialRequest from "./pages/TrialRequest";
 import DemoLogin from "./pages/demo/Login";
 import AppLogin from "./pages/app/Login";
+import Onboarding from "./pages/Onboarding";
 
 // App Layout & Pages
 import AppLayout from "./components/layout/AppLayout";
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/trial" element={<TrialRequest />} />
             <Route path="/demo/login" element={<DemoLogin />} />
             <Route path="/app/login" element={<AppLogin />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/app/invite" element={<InviteAccept />} />
 
             {/* Demo Routes */}
