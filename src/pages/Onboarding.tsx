@@ -130,34 +130,36 @@ const Onboarding: React.FC = () => {
       } = await supabase.auth.getUser();
       const userId = user?.id ?? "";
 
-      setCurrentOrgId(orgId);
-      setCurrentRole("owner");
-      navigate("/app/dashboard", { replace: true });
+      let resolvedRole: string | null = null;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const { data: membership, error } = await supabase.rpc("get_my_membership_for_org", {
+          p_org_id: orgId,
+        });
 
-      // Non-blocking membership refresh with retries
-      (async () => {
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-          const { data: membership, error } = await supabase.rpc("get_my_membership_for_org", {
-            p_org_id: orgId,
+        if (error) {
+          console.warn("Membership confirmation failed", {
+            message: error.message,
+            details: error.details,
+            code: error.code,
           });
-
-          if (error) {
-            console.warn("Membership refresh failed", {
-              message: error.message,
-              details: error.details,
-              code: error.code,
-            });
-          }
-
-          if (membership && membership.length > 0) {
-            setCurrentRole(membership[0]?.role ?? "owner");
-            await refreshMembership();
-            return;
-          }
-
-          await wait(300);
         }
-      })();
+
+        if (membership && membership.length > 0) {
+          resolvedRole = membership[0]?.role ?? null;
+          break;
+        }
+
+        await wait(300);
+      }
+
+      if (!resolvedRole) {
+        throw new Error(`Không thể xác nhận thành viên tổ chức. Org ID: ${orgId}`);
+      }
+
+      setCurrentOrgId(orgId);
+      setCurrentRole(resolvedRole);
+      await refreshMembership();
+      navigate("/app/dashboard", { replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Có lỗi xảy ra, vui lòng thử lại.");
     } finally {

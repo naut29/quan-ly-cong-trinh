@@ -2,16 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
-export interface UserProfile {
-  id: string;
-  company_id: string;
-  role: string;
-}
-
 export const useSession = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [memberStatus, setMemberStatus] = useState<"invited" | "active" | "disabled" | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgRole, setOrgRole] = useState<string | null>(null);
   const [membershipLoading, setMembershipLoading] = useState(true);
@@ -20,21 +12,15 @@ export const useSession = () => {
   const loadMembership = useCallback(
     async (client: NonNullable<typeof supabase>, currentUser: User, isActiveRef: () => boolean) => {
       setMembershipLoading(true);
-      const { data: membership, error: membershipError } = await client
-        .from("org_members")
-        .select("org_id, role")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: membership, error: membershipError } = await client.rpc("get_my_membership");
 
       if (!isActiveRef()) return;
-      if (membershipError) {
+      if (membershipError || !membership || membership.length === 0) {
         setOrgId(null);
-        setOrgRole("viewer");
+        setOrgRole(null);
       } else {
-        setOrgId(membership?.org_id ?? null);
-        setOrgRole(membership?.role ?? "viewer");
+        setOrgId(membership[0]?.org_id ?? null);
+        setOrgRole(membership[0]?.role ?? null);
       }
       setMembershipLoading(false);
     },
@@ -47,8 +33,6 @@ export const useSession = () => {
 
     if (!client) {
       setUser(null);
-      setProfile(null);
-      setMemberStatus(null);
       setOrgId(null);
       setOrgRole(null);
       setLoading(false);
@@ -66,8 +50,6 @@ export const useSession = () => {
       setUser(user ?? null);
 
       if (!user) {
-        setProfile(null);
-        setMemberStatus(null);
         setOrgId(null);
         setOrgRole(null);
         setMembershipLoading(false);
@@ -76,27 +58,6 @@ export const useSession = () => {
       }
 
       await loadMembership(client, user, () => isActive);
-
-      const { data: profile, error } = await client
-        .from("profiles")
-        .select("id, company_id, role")
-        .eq("id", user.id)
-        .single();
-
-      if (!isActive) return;
-      if (error || !profile) {
-        setProfile(null);
-        setMemberStatus(null);
-      } else {
-        setProfile(profile as UserProfile);
-        const { data: member } = await client
-          .from("company_members")
-          .select("status")
-          .eq("user_id", user.id)
-          .eq("company_id", profile.company_id)
-          .single();
-        setMemberStatus(member?.status ?? null);
-      }
       setLoading(false);
     };
 
@@ -128,5 +89,5 @@ export const useSession = () => {
     return orgId;
   };
 
-  return { user, profile, memberStatus, orgId, orgRole, loading, membershipLoading, refreshMembership };
+  return { user, orgId, orgRole, loading, membershipLoading, refreshMembership };
 };

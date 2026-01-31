@@ -12,7 +12,7 @@ interface CompanyContextValue {
 const CompanyContext = createContext<CompanyContextValue | undefined>(undefined);
 
 export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { profile, loading: sessionLoading } = useSession();
+  const { orgId, orgRole, loading: sessionLoading } = useSession();
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [loadingCompany, setLoadingCompany] = useState(true);
 
@@ -21,7 +21,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const client = supabase;
 
     const loadCompany = async () => {
-      if (!profile?.company_id) {
+      if (!orgId) {
         setCompanyName(null);
         setLoadingCompany(false);
         return;
@@ -35,9 +35,9 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       setLoadingCompany(true);
       const { data, error } = await client
-        .from("companies")
+        .from("organizations")
         .select("id, name")
-        .eq("id", profile.company_id)
+        .eq("id", orgId)
         .single();
 
       if (!isActive) return;
@@ -54,16 +54,16 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       isActive = false;
     };
-  }, [profile?.company_id]);
+  }, [orgId]);
 
   const value = useMemo<CompanyContextValue>(
     () => ({
-      companyId: profile?.company_id ?? null,
+      companyId: orgId ?? null,
       companyName,
-      role: profile?.role ?? null,
+      role: orgRole ?? null,
       loading: sessionLoading || loadingCompany,
     }),
-    [profile?.company_id, profile?.role, companyName, sessionLoading, loadingCompany]
+    [orgId, orgRole, companyName, sessionLoading, loadingCompany]
   );
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
