@@ -56,6 +56,7 @@ const Members: React.FC = () => {
   const [userIdInput, setUserIdInput] = useState("");
   const [roleInput, setRoleInput] = useState<MemberRole>("viewer");
   const [submitting, setSubmitting] = useState(false);
+  const [maxMembers, setMaxMembers] = useState<number | null>(null);
   const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
@@ -88,10 +89,31 @@ const Members: React.FC = () => {
     setLoading(false);
   }, [orgId]);
 
+  const loadSubscription = useCallback(async () => {
+    if (!supabase || !orgId) {
+      setMaxMembers(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("org_subscriptions")
+      .select("max_members")
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (error) {
+      setMaxMembers(null);
+      return;
+    }
+
+    setMaxMembers(typeof data?.max_members === "number" ? data.max_members : null);
+  }, [orgId]);
+
   useEffect(() => {
     if (sessionLoading) return;
     loadMembers();
-  }, [loadMembers, sessionLoading]);
+    loadSubscription();
+  }, [loadMembers, loadSubscription, sessionLoading]);
 
   const handleAddMember = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -105,6 +127,11 @@ const Members: React.FC = () => {
 
     if (!supabase || !orgId) {
       setSubmitError("Thiếu dữ liệu tổ chức.");
+      return;
+    }
+
+    if (maxMembers !== null && members.length >= maxMembers) {
+      setSubmitError("Đã đạt giới hạn số lượng thành viên của gói hiện tại.");
       return;
     }
 

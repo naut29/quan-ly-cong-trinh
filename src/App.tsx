@@ -10,6 +10,7 @@ import RequireRole from "@/app/auth/RequireRole";
 
 // Public Pages
 import Landing from "./pages/Landing";
+import Pricing from "./pages/Pricing";
 import TrialRequest from "./pages/TrialRequest";
 import DemoLogin from "./pages/demo/Login";
 import AppLogin from "./pages/app/Login";
@@ -23,6 +24,7 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Members from "./pages/Members";
+import Billing from "./pages/Billing";
 import Projects from "./pages/app/Projects";
 import ProjectOverview from "./pages/app/ProjectOverview";
 import Materials from "./pages/app/Materials";
@@ -84,7 +86,7 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
-            <Route path="/pricing" element={<Landing />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/trial" element={<TrialRequest />} />
             <Route path="/demo/login" element={<DemoLogin />} />
             <Route path="/app/login" element={<AppLogin />} />
@@ -118,6 +120,14 @@ const App = () => (
               element={
                 <RequireAuth>
                   <Members />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <RequireAuth allowInactive>
+                  <Billing />
                 </RequireAuth>
               }
             />

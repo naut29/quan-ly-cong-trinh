@@ -1,10 +1,46 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useSession } from "@/app/session/useSession";
-import { hasSupabaseEnv } from "@/lib/supabaseClient";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
-const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean }> = ({
+  children,
+  allowInactive = false,
+}) => {
   const { user, profile, memberStatus, orgId, loading } = useSession();
+  const [activeLoading, setActiveLoading] = useState(true);
+  const [isActive, setIsActive] = useState(true);
+
+  useEffect(() => {
+    let isActiveFlag = true;
+    const client = supabase;
+
+    if (!client || !orgId || !user) {
+      setIsActive(true);
+      setActiveLoading(false);
+      return () => {
+        isActiveFlag = false;
+      };
+    }
+
+    const loadStatus = async () => {
+      setActiveLoading(true);
+      const { data, error } = await client.rpc("is_org_active", { org_id: orgId });
+      if (!isActiveFlag) return;
+      if (error) {
+        setIsActive(true);
+      } else {
+        setIsActive(Boolean(data));
+      }
+      setActiveLoading(false);
+    };
+
+    loadStatus();
+
+    return () => {
+      isActiveFlag = false;
+    };
+  }, [orgId, user]);
 
   if (!hasSupabaseEnv) {
     return (
@@ -33,6 +69,18 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (!orgId) {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  if (activeLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Đang kiểm tra trạng thái...</p>
+      </div>
+    );
+  }
+
+  if (!allowInactive && !isActive) {
+    return <Navigate to="/billing" replace />;
   }
 
   if (!profile) {

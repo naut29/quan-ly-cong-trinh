@@ -27,6 +27,7 @@ const CreateProject: React.FC<CreateProjectProps> = ({ orgId, onCreated, canCrea
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [maxProjects, setMaxProjects] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -36,6 +37,31 @@ const CreateProject: React.FC<CreateProjectProps> = ({ orgId, onCreated, canCrea
       setSubmitting(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !orgId) {
+      setMaxProjects(null);
+      return;
+    }
+
+    const loadSubscription = async () => {
+      const { data, error } = await client
+        .from("org_subscriptions")
+        .select("max_projects")
+        .eq("org_id", orgId)
+        .maybeSingle();
+
+      if (error) {
+        setMaxProjects(null);
+        return;
+      }
+
+      setMaxProjects(typeof data?.max_projects === "number" ? data.max_projects : null);
+    };
+
+    loadSubscription();
+  }, [orgId]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -54,6 +80,21 @@ const CreateProject: React.FC<CreateProjectProps> = ({ orgId, onCreated, canCrea
 
     setSubmitting(true);
     try {
+      if (maxProjects !== null) {
+        const { count, error: countError } = await supabase
+          .from("projects")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId);
+
+        if (countError) {
+          throw countError;
+        }
+
+        if ((count ?? 0) >= maxProjects) {
+          throw new Error("Đã đạt giới hạn số lượng dự án của gói hiện tại.");
+        }
+      }
+
       const { error: insertError } = await supabase
         .from("projects")
         .insert({
