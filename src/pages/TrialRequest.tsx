@@ -1,5 +1,4 @@
-
-import React, { useMemo, useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,18 +28,50 @@ const TrialRequest: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [needs, setNeeds] = useState('');
+  const [website, setWebsite] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const isValid = useMemo(() => {
-    return fullName.trim() && companyName.trim() && email.trim();
-  }, [fullName, companyName, email]);
+  const validate = () => {
+    const nextErrors: Record<string, string> = {};
+    const nameValue = fullName.trim();
+    const companyValue = companyName.trim();
+    const emailValue = email.trim();
+    const phoneValue = phone.trim();
+    const noteValue = needs.trim();
+
+    if (nameValue.length < 2) {
+      nextErrors.name = 'Vui lòng nhập họ tên (tối thiểu 2 ký tự).';
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      nextErrors.email = 'Email không hợp lệ.';
+    }
+    if (companyValue.length < 2) {
+      nextErrors.company = 'Vui lòng nhập tên công ty (tối thiểu 2 ký tự).';
+    }
+    if (phoneValue && !/^\+?\d{8,15}$/.test(phoneValue)) {
+      nextErrors.phone = 'Số điện thoại không hợp lệ.';
+    }
+    if (noteValue.length > 1000) {
+      nextErrors.note = 'Ghi chú tối đa 1000 ký tự.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const generateNonce = () => {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) {
+    if (!validate()) {
       toast({
-        title: 'Thiếu thông tin bắt buộc',
-        description: 'Vui lòng nhập họ và tên, tên công ty và email.',
+        title: 'Thông tin không hợp lệ',
+        description: 'Vui lòng kiểm tra lại các trường bắt buộc.',
         variant: 'destructive',
       });
       return;
@@ -48,27 +79,41 @@ const TrialRequest: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/trial', {
+      const response = await fetch('/api/trial-register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: fullName.trim(),
-          companyName: companyName.trim(),
+          name: fullName.trim(),
+          company: companyName.trim(),
           email: email.trim(),
           phone: phone.trim(),
-          companySize: companySize || null,
-          needs: needs.trim(),
+          note: needs.trim(),
+          website: website.trim(),
+          ts: Date.now(),
+          nonce: generateNonce(),
         }),
       });
 
       if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || 'Không thể gửi yêu cầu.');
+        let payload: any = null;
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+        if (payload?.fields) {
+          setErrors(payload.fields);
+        }
+        const message =
+          response.status === 400
+            ? 'Thông tin không hợp lệ, vui lòng kiểm tra lại.'
+            : 'Gửi thông tin thất bại, vui lòng thử lại.';
+        throw new Error(message);
       }
 
       toast({
-        title: 'Gửi yêu cầu thành công!',
-        description: 'Chúng tôi sẽ liên hệ sớm để bắt đầu dùng thử.',
+        title: 'Đăng ký thành công! Chúng tôi sẽ liên hệ sớm.',
+        description: 'Đăng ký thành công! Chúng tôi sẽ liên hệ sớm.',
       });
 
       setFullName('');
@@ -77,10 +122,13 @@ const TrialRequest: React.FC = () => {
       setPhone('');
       setCompanySize('');
       setNeeds('');
+      setWebsite('');
+      setErrors({});
     } catch (error: any) {
+      const fallback = 'Gửi thông tin thất bại, vui lòng thử lại.';
       toast({
-        title: 'Gửi yêu cầu thất bại',
-        description: error?.message || 'Vui lòng thử lại sau.',
+        title: fallback,
+        description: error?.message || fallback,
         variant: 'destructive',
       });
     } finally {
@@ -105,26 +153,56 @@ const TrialRequest: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="absolute left-[-10000px] top-auto h-0 w-0 overflow-hidden">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                autoComplete="off"
+                tabIndex={-1}
+              />
+            </div>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Họ và tên *</Label>
                 <Input
                   id="fullName"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    if (errors.name) {
+                      setErrors((prev) => ({ ...prev, name: '' }));
+                    }
+                  }}
                   placeholder="Họ và tên của bạn"
                   required
+                  aria-invalid={Boolean(errors.name)}
+                  className={errors.name ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="companyName">Tên công ty *</Label>
                 <Input
                   id="companyName"
                   value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                  onChange={(e) => {
+                    setCompanyName(e.target.value);
+                    if (errors.company) {
+                      setErrors((prev) => ({ ...prev, company: '' }));
+                    }
+                  }}
                   placeholder="Tên công ty"
                   required
+                  aria-invalid={Boolean(errors.company)}
+                  className={errors.company ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
+                {errors.company && (
+                  <p className="text-sm text-destructive">{errors.company}</p>
+                )}
               </div>
             </div>
 
@@ -135,19 +213,39 @@ const TrialRequest: React.FC = () => {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) {
+                      setErrors((prev) => ({ ...prev, email: '' }));
+                    }
+                  }}
                   placeholder="ten@congty.com"
                   required
+                  aria-invalid={Boolean(errors.email)}
+                  className={errors.email ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Số điện thoại</Label>
                 <Input
                   id="phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (errors.phone) {
+                      setErrors((prev) => ({ ...prev, phone: '' }));
+                    }
+                  }}
                   placeholder="+84 ..."
+                  aria-invalid={Boolean(errors.phone)}
+                  className={errors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
+                {errors.phone && (
+                  <p className="text-sm text-destructive">{errors.phone}</p>
+                )}
               </div>
             </div>
 
@@ -172,10 +270,20 @@ const TrialRequest: React.FC = () => {
               <Textarea
                 id="needs"
                 value={needs}
-                onChange={(e) => setNeeds(e.target.value)}
+                onChange={(e) => {
+                  setNeeds(e.target.value);
+                  if (errors.note) {
+                    setErrors((prev) => ({ ...prev, note: '' }));
+                  }
+                }}
                 placeholder="Chia sẻ nhu cầu quản lý hoặc cải thiện"
                 rows={5}
+                aria-invalid={Boolean(errors.note)}
+                className={errors.note ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
+              {errors.note && (
+                <p className="text-sm text-destructive">{errors.note}</p>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
