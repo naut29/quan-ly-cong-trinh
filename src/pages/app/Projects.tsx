@@ -54,12 +54,16 @@ import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
 import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
 import { getAppBasePath } from '@/lib/appMode';
+import UpgradeModal from '@/components/plans/UpgradeModal';
+import { usePlanContext } from '@/hooks/usePlanContext';
+import { canCreateProject, canDownload, canExport } from '@/lib/planLimits';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
   const { companyId, role } = useCompany();
+  const { limits, usage, recordUsageEvent } = usePlanContext(companyId);
   const repo = useMemo(() => (companyId ? createSupabaseRepo(companyId) : null), [companyId]);
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -79,8 +83,42 @@ const Projects: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectEntry | undefined>(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
+  const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>(undefined);
 
   const canEdit = role === 'owner' || role === 'admin';
+
+  const openUpgrade = (feature: string, reason: string) => {
+    setUpgradeFeature(feature);
+    setUpgradeReason(reason);
+    setUpgradeOpen(true);
+  };
+
+  const ensureCreateAllowed = () => {
+    const gate = canCreateProject(limits, usage, 1);
+    if (!gate.allowed) {
+      openUpgrade('tao du an', gate.reason ?? 'Da dat gioi han du an cua goi hien tai.');
+      return false;
+    }
+    return true;
+  };
+
+  const ensureExportAllowed = (feature: string, estimatedDownloadGb: number) => {
+    const exportGate = canExport(limits, usage);
+    if (!exportGate.allowed) {
+      openUpgrade(feature, exportGate.reason ?? 'Da dat gioi han xuat du lieu/ngay.');
+      return false;
+    }
+
+    const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
+    if (!downloadGate.allowed) {
+      openUpgrade(feature, downloadGate.reason ?? 'Da dat gioi han bang thong tai xuong/thang.');
+      return false;
+    }
+
+    return true;
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -106,6 +144,10 @@ const Projects: React.FC = () => {
   }, [repo]);
 
   const handleCreateProject = () => {
+    if (!ensureCreateAllowed()) {
+      return;
+    }
+
     setProjectDialogMode('create');
     setSelectedProject(undefined);
     setProjectDialogOpen(true);
@@ -137,6 +179,10 @@ const Projects: React.FC = () => {
 
   const handleProjectSubmit = async (data: any) => {
     if (projectDialogMode === 'create') {
+      if (!ensureCreateAllowed()) {
+        return;
+      }
+
       if (!repo) return;
       const created = await repo.createProject({
         code: data.code,
@@ -211,6 +257,11 @@ const Projects: React.FC = () => {
 
   // Export functions
   const handleExportExcel = () => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed('xuat du lieu', estimatedDownloadGb)) {
+      return;
+    }
+
     const exportData = filteredProjects.map(p => ({
       code: p.code,
       name: p.name,
@@ -248,6 +299,8 @@ const Projects: React.FC = () => {
       data: exportData,
     });
 
+    void recordUsageEvent('export', estimatedDownloadGb);
+
     toast({
       title: 'Xuất Excel thành công',
       description: `Đã xuất ${filteredProjects.length} dự án ra file Excel.`,
@@ -255,6 +308,11 @@ const Projects: React.FC = () => {
   };
 
   const handleExportPDF = () => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed('xuat du lieu', estimatedDownloadGb)) {
+      return;
+    }
+
     const exportData = filteredProjects.map(p => ({
       code: p.code,
       name: p.name,
@@ -282,6 +340,8 @@ const Projects: React.FC = () => {
       ],
       data: exportData,
     });
+
+    void recordUsageEvent('export', estimatedDownloadGb);
 
     toast({
       title: 'Xuất PDF thành công',
@@ -713,6 +773,13 @@ const Projects: React.FC = () => {
           onConfirm={handleConfirmDelete}
         />
       )}
+
+      <UpgradeModal
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        featureName={upgradeFeature}
+        reason={upgradeReason ?? undefined}
+      />
     </div>
   );
 };

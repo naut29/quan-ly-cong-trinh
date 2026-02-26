@@ -11,9 +11,7 @@ const Header: React.FC = () => {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
             <Building2 className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-lg font-bold text-foreground">
-            Quan Ly Cong Trinh
-          </span>
+          <span className="font-display text-lg font-bold text-foreground">Quan Ly Cong Trinh</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -24,25 +22,25 @@ const Header: React.FC = () => {
             Bang gia
           </Link>
           <Link
-            to="/trial"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Dung thu
-          </Link>
-          <Link
             to="/demo/login"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Demo
           </Link>
+          <a
+            href="mailto:contact@quanlycongtrinh.com"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Lien he
+          </a>
         </nav>
 
         <div className="flex items-center gap-3">
           <Link to="/app/login">
             <Button variant="ghost">Dang nhap</Button>
           </Link>
-          <Link to="/trial">
-            <Button>Dung thu mien phi</Button>
+          <Link to="/pricing">
+            <Button>Xem bang gia</Button>
           </Link>
         </div>
       </div>

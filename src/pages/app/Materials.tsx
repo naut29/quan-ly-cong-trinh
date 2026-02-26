@@ -55,6 +55,9 @@ import { MaterialRequest, mockMaterialRequests } from '@/data/materialRequestDat
 import { useCompany } from '@/app/context/CompanyContext';
 import { transitionApproval } from '@/app/api/approvals';
 import { supabase } from '@/lib/supabaseClient';
+import UpgradeModal from '@/components/plans/UpgradeModal';
+import { usePlanContext } from '@/hooks/usePlanContext';
+import { canDownload, canExport, canUseApproval } from '@/lib/planLimits';
 // Mock material data
 const materialCategories = [
   { id: 'overview', label: 'Tổng quan', icon: Package },
@@ -105,6 +108,7 @@ const mockTransactions = [
 const Materials: React.FC = () => {
   const { id: projectId } = useParams();
   const { companyId, role } = useCompany();
+  const { limits, usage, recordUsageEvent } = usePlanContext(companyId);
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [approvalId, setApprovalId] = useState<string | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
@@ -125,9 +129,43 @@ const Materials: React.FC = () => {
   const [warehouseDialogOpen, setWarehouseDialogOpen] = useState(false);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
+  const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>(undefined);
 
   // Material requests state for chart sync
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>(mockMaterialRequests);
+
+  const openUpgrade = (feature: string, reason: string) => {
+    setUpgradeFeature(feature);
+    setUpgradeReason(reason);
+    setUpgradeOpen(true);
+  };
+
+  const ensureExportAllowed = (estimatedDownloadGb: number) => {
+    const exportGate = canExport(limits, usage);
+    if (!exportGate.allowed) {
+      openUpgrade('xuat du lieu', exportGate.reason ?? 'Da dat gioi han xuat du lieu/ngay.');
+      return false;
+    }
+
+    const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
+    if (!downloadGate.allowed) {
+      openUpgrade('tai xuong', downloadGate.reason ?? 'Da dat gioi han bang thong tai xuong/thang.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const ensureApprovalAllowed = () => {
+    const approvalGate = canUseApproval(limits);
+    if (!approvalGate.allowed) {
+      openUpgrade('phe duyet', approvalGate.reason ?? 'Tinh nang phe duyet khong co trong goi hien tai.');
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -152,6 +190,7 @@ const Materials: React.FC = () => {
 
   const runApprovalAction = async (action: "create_draft" | "submit" | "approve" | "reject" | "cancel") => {
     if (!projectId) return;
+    if (!ensureApprovalAllowed()) return;
     setApprovalLoading(true);
     try {
       const result = await transitionApproval({
@@ -290,6 +329,11 @@ const Materials: React.FC = () => {
 
   // Export functions
   const handleExportMaterialsExcel = () => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed(estimatedDownloadGb)) {
+      return;
+    }
+
     const exportData = mockMaterials.map(m => ({
       code: m.code,
       name: m.name,
@@ -319,6 +363,8 @@ const Materials: React.FC = () => {
       data: exportData,
     });
 
+    void recordUsageEvent('export', estimatedDownloadGb);
+
     toast({
       title: 'Xuất Excel thành công',
       description: `Đã xuất ${mockMaterials.length} vật tư ra file Excel.`,
@@ -326,6 +372,11 @@ const Materials: React.FC = () => {
   };
 
   const handleExportMaterialsPDF = () => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed(estimatedDownloadGb)) {
+      return;
+    }
+
     const exportData = mockMaterials.map(m => ({
       code: m.code,
       name: m.name,
@@ -353,6 +404,8 @@ const Materials: React.FC = () => {
       ],
       data: exportData,
     });
+
+    void recordUsageEvent('export', estimatedDownloadGb);
 
     toast({
       title: 'Xuất PDF thành công',
@@ -742,6 +795,13 @@ const Materials: React.FC = () => {
       <SupplierManagementDialog
         open={supplierDialogOpen}
         onOpenChange={setSupplierDialogOpen}
+      />
+
+      <UpgradeModal
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        featureName={upgradeFeature}
+        reason={upgradeReason ?? undefined}
       />
     </div>
   );

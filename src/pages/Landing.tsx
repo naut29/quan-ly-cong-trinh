@@ -72,9 +72,9 @@ const Landing: React.FC = () => {
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <Link to="/trial">
+            <Link to="/pricing">
               <Button size="lg" className="h-12 gap-2 px-8">
-                Start free trial
+                View pricing plans
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -183,7 +183,7 @@ const Landing: React.FC = () => {
             Ready to get started?
           </h2>
           <p className="mb-8 text-lg text-muted-foreground">
-            Start with a 14-day trial and explore the full workflow.
+            Choose a plan that fits your team and scale when needed.
           </p>
           <div className="flex items-center justify-center gap-4">
             <Link to="/demo/login">

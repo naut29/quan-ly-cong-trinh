@@ -2,48 +2,36 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase, hasSupabaseEnv } from "@/lib/supabaseClient";
 import { useSession } from "@/app/session/useSession";
+import { usePlanContext } from "@/hooks/usePlanContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Subscription {
-  tier: string | null;
-  expires_at: string | null;
-  max_members: number | null;
-  max_projects: number | null;
-}
+const formatLimit = (value: number | null, unit = "") => {
+  if (value === null) return "Khong gioi han";
+  return `${value}${unit}`;
+};
 
 const Billing: React.FC = () => {
   const { orgId, orgRole, loading: sessionLoading } = useSession();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const { context, loading: planLoading } = usePlanContext(orgId);
   const [activeStatus, setActiveStatus] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
   const isAdmin = orgRole === "owner" || orgRole === "admin";
 
   useEffect(() => {
     const client = supabase;
     if (!client || !orgId) {
-      setSubscription(null);
       setActiveStatus(null);
-      setLoading(false);
       return;
     }
 
-    const load = async () => {
-      setLoading(true);
-      const { data } = await client
-        .from("org_subscriptions")
-        .select("tier, expires_at, max_members, max_projects")
-        .eq("org_id", orgId)
-        .maybeSingle();
-
-      setSubscription((data ?? null) as Subscription | null);
-
-      const { data: activeData } = await client.rpc("is_org_active", { org_id: orgId });
-      setActiveStatus(Boolean(activeData));
-      setLoading(false);
-    };
-
-    load();
+    client
+      .rpc("is_org_active", { org_id: orgId })
+      .then(({ data }) => {
+        setActiveStatus(Boolean(data));
+      })
+      .catch(() => {
+        setActiveStatus(null);
+      });
   }, [orgId]);
 
   if (!hasSupabaseEnv) {
@@ -59,10 +47,10 @@ const Billing: React.FC = () => {
     );
   }
 
-  if (sessionLoading || loading) {
+  if (sessionLoading || planLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Đang tải...</p>
+        <p className="text-muted-foreground">Dang tai...</p>
       </div>
     );
   }
@@ -73,38 +61,42 @@ const Billing: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Billing</h1>
-            <p className="text-sm text-muted-foreground">Thông tin gói dịch vụ hiện tại.</p>
+            <p className="text-sm text-muted-foreground">Thong tin goi dich vu hien tai.</p>
           </div>
           <Button variant="outline" asChild>
-            <Link to="/dashboard">Quay lại Dashboard</Link>
+            <Link to="/dashboard">Quay lai Dashboard</Link>
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Gói hiện tại</CardTitle>
+            <CardTitle>Goi hien tai</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>Tier: {subscription?.tier ?? "-"}</p>
-            <p>
-              Hạn sử dụng:{" "}
-              {subscription?.expires_at
-                ? new Date(subscription.expires_at).toLocaleDateString("vi-VN")
-                : "-"}
-            </p>
-            <p>Trạng thái: {activeStatus === null ? "-" : activeStatus ? "Đang hoạt động" : "Đã hết hạn"}</p>
-            <p>Giới hạn thành viên: {subscription?.max_members ?? "Không giới hạn"}</p>
-            <p>Giới hạn dự án: {subscription?.max_projects ?? "Không giới hạn"}</p>
+            <p>Plan: {context.planName ?? "-"}</p>
+            <p>Ma goi: {context.planCode ?? "-"}</p>
+            <p>Trang thai: {activeStatus === null ? "-" : activeStatus ? "Dang hoat dong" : "Da het han"}</p>
+
+            <p>Thanh vien toi da: {formatLimit(context.limits.max_members)}</p>
+            <p>Du an dang hoat dong toi da: {formatLimit(context.limits.max_active_projects)}</p>
+            <p>Luu tru toi da: {formatLimit(context.limits.max_storage_mb, " MB")}</p>
+            <p>Upload moi ngay: {formatLimit(context.limits.max_upload_mb_per_day, " MB")}</p>
+            <p>Kich thuoc tep toi da: {formatLimit(context.limits.max_file_mb, " MB")}</p>
+            <p>Bang thong tai xuong/thang: {formatLimit(context.limits.max_download_gb_per_month, " GB")}</p>
+            <p>Xuat du lieu/ngay: {formatLimit(context.limits.export_per_day)}</p>
+            <p>Phe duyet: {context.limits.approval_enabled}</p>
+            <p>Ho tro: {context.limits.support}</p>
+
             {!activeStatus && activeStatus !== null && (
               <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                <p>Tài khoản đã hết hạn. Vui lòng liên hệ để gia hạn.</p>
+                <p>Tai khoan da het han. Vui long lien he de gia han.</p>
                 {isAdmin ? (
                   <div className="mt-2 text-destructive">
                     <p>Email : contact@quanlycongtrinh.com</p>
-                    <p>Điện thoại : 0988097621</p>
+                    <p>Dien thoai : 0988097621</p>
                   </div>
                 ) : (
-                  <p className="mt-2">Liên hệ quản trị viên công ty</p>
+                  <p className="mt-2">Lien he quan tri vien cong ty</p>
                 )}
               </div>
             )}

@@ -47,6 +47,10 @@ import ExportDialog from '@/components/reports/ExportDialog';
 import EmailReportDialog from '@/components/reports/EmailReportDialog';
 import ScheduleReportDialog from '@/components/reports/ScheduleReportDialog';
 import ReportHistoryDialog from '@/components/reports/ReportHistoryDialog';
+import UpgradeModal from '@/components/plans/UpgradeModal';
+import { useCompany } from '@/app/context/CompanyContext';
+import { usePlanContext } from '@/hooks/usePlanContext';
+import { canDownload, canExport } from '@/lib/planLimits';
 import {
   BarChart,
   Bar,
@@ -127,12 +131,16 @@ const categoryDistribution = [
 
 const Reports: React.FC = () => {
   const { id: projectId } = useParams();
+  const { companyId } = useCompany();
+  const { limits, usage, recordUsageEvent } = usePlanContext(companyId);
   const [activeTab, setActiveTab] = useState('materials');
   const [dateRange, setDateRange] = useState('month');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
 
   // Report types for schedule dialog
   const reportTypeOptions = [
@@ -160,8 +168,34 @@ const Reports: React.FC = () => {
     receivables: 'Báo cáo công nợ',
   };
 
+  const openUpgrade = (reason: string) => {
+    setUpgradeReason(reason);
+    setUpgradeOpen(true);
+  };
+
+  const ensureExportAllowed = (estimatedDownloadGb: number) => {
+    const exportGate = canExport(limits, usage);
+    if (!exportGate.allowed) {
+      openUpgrade(exportGate.reason ?? 'Da dat gioi han xuat du lieu/ngay.');
+      return false;
+    }
+
+    const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
+    if (!downloadGate.allowed) {
+      openUpgrade(downloadGate.reason ?? 'Da dat gioi han bang thong tai xuong/thang.');
+      return false;
+    }
+
+    return true;
+  };
+
   // Export handler
   const handleExport = async (format: 'pdf' | 'excel') => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed(estimatedDownloadGb)) {
+      return;
+    }
+
     const today = new Date().toLocaleDateString('vi-VN');
     const fileName = `${reportNames[activeTab]}_${today.replace(/\//g, '-')}`;
 
@@ -284,6 +318,8 @@ const Reports: React.FC = () => {
     } else {
       exportToPDF(exportOptions);
     }
+
+    void recordUsageEvent('export', estimatedDownloadGb);
   };
 
   return (
@@ -386,6 +422,12 @@ const Reports: React.FC = () => {
       <ReportHistoryDialog
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
+      />
+      <UpgradeModal
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        featureName="xuat bao cao"
+        reason={upgradeReason ?? undefined}
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
