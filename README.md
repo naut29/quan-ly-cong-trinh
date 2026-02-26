@@ -83,7 +83,7 @@ Deployment steps:
 1) Create a Cloudflare Worker and set the route to `quanlycongtrinh.com/api/*`.
 2) Set secrets (Worker environment variables):
    - `RESEND_API_KEY`
-   - `TO_EMAIL=contact@simpletoolset.com`
+   - `TO_EMAIL=contact@quanlycongtrinh.com`
    - `FROM_EMAIL` (must be a verified sender)
 3) Deploy the worker:
 
@@ -102,7 +102,7 @@ Deployment steps:
 1) Create a Cloudflare Worker and set the route to `quanlycongtrinh.com/api/*`.
 2) Set secrets (Worker environment variables):
    - `RESEND_API_KEY`
-   - `TO_EMAIL=contact@simpletoolset.com`
+   - `TO_EMAIL=contact@quanlycongtrinh.com`
    - `FROM_EMAIL` (verified sender)
 3) Deploy the worker:
 

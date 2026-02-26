@@ -15,10 +15,10 @@ const Footer: React.FC = () => (
         <div className="text-sm text-muted-foreground">
           <span>Email: </span>
           <a
-            href="mailto:contact@simpletoolset.com"
+            href="mailto:contact@quanlycongtrinh.com"
             className="text-primary hover:underline"
           >
-            contact@simpletoolset.com
+            contact@quanlycongtrinh.com
           </a>
         </div>
       </div>

@@ -105,7 +105,7 @@ export const onRequestPost = async (context: any) => {
       },
       body: JSON.stringify({
         from: 'Trial <onboarding@resend.dev>',
-        to: 'contact@simpletoolset.com',
+        to: 'contact@quanlycongtrinh.com',
         subject: 'Đăng ký dùng thử SaaS',
         html,
       }),
