@@ -51,12 +51,12 @@ values
     3000000,
     null,
     jsonb_build_object(
-      'max_members', 30,
-      'max_active_projects', 30,
-      'max_storage_mb', 204800,
-      'max_upload_mb_per_day', 10240,
-      'max_file_mb', 200,
-      'max_download_gb_per_month', 1024,
+      'max_members', 50,
+      'max_active_projects', 50,
+      'max_storage_mb', 307200,
+      'max_upload_mb_per_day', 20480,
+      'max_file_mb', 500,
+      'max_download_gb_per_month', 3072,
       'export_per_day', null,
       'approval_enabled', 'multi_step',
       'support', 'priority'

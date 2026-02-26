@@ -14,11 +14,12 @@ import { usePlanContext } from "@/hooks/usePlanContext";
 import { marketingPlans, type MarketingPlan } from "@/lib/planCatalog";
 
 const Pricing: React.FC = () => {
-  const { orgId } = useSession();
-  const { context } = usePlanContext(orgId);
+  const { orgId, loading: sessionLoading } = useSession();
+  const { context, loading: planLoading } = usePlanContext(orgId);
   const [modalPlan, setModalPlan] = useState<MarketingPlan | null>(null);
 
-  const activePlanCode = context.planCode;
+  const canShowCurrentPlan = Boolean(orgId) && !sessionLoading && !planLoading;
+  const activePlanCode = canShowCurrentPlan ? context.planCode : null;
   const activePlanName = useMemo(
     () => marketingPlans.find((plan) => plan.code === activePlanCode)?.name ?? null,
     [activePlanCode],
@@ -30,23 +31,40 @@ const Pricing: React.FC = () => {
     <div className="bg-background px-6 py-16">
       <div className="mx-auto w-full max-w-6xl space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-semibold text-foreground">Bang gia</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Bảng giá</h1>
           <p className="text-muted-foreground">
             {activePlanName
-              ? `Goi hien tai: ${activePlanName}`
-              : "3 goi dich vu toi uu cho nhu cau luu tru va bang thong cao."}
+              ? `Gói hiện tại: ${activePlanName}`
+              : "3 gói dịch vụ tối ưu cho nhu cầu lưu trữ và băng thông cao."}
           </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           {marketingPlans.map((plan) => {
             const isCurrent = activePlanCode === plan.code;
+            const isFeatured = Boolean(plan.featured);
             return (
-              <Card key={plan.code} className={isCurrent ? "border-primary" : undefined}>
+              <Card
+                key={plan.code}
+                className={[
+                  "transition-all",
+                  isFeatured ? "relative border-primary/80 bg-primary/5 shadow-xl shadow-primary/10 ring-2 ring-primary/20" : "",
+                  isCurrent ? "border-primary ring-2 ring-primary/40" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{plan.name}</span>
-                    {isCurrent && <span className="text-xs font-medium text-primary">Hien tai</span>}
+                    <div className="flex items-center gap-2">
+                      {plan.featuredBadge && (
+                        <span className="rounded-full bg-primary px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
+                          {plan.featuredBadge}
+                        </span>
+                      )}
+                      {isCurrent && <span className="text-xs font-medium text-primary">Hiện tại</span>}
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -65,7 +83,7 @@ const Pricing: React.FC = () => {
                     disabled={isCurrent}
                     onClick={() => !isCurrent && setModalPlan(plan)}
                   >
-                    {isCurrent ? "Hien tai" : plan.ctaLabel}
+                    {isCurrent ? "Hiện tại" : plan.ctaLabel}
                   </Button>
                 </CardContent>
               </Card>
@@ -77,18 +95,18 @@ const Pricing: React.FC = () => {
       <Dialog open={modalOpen} onOpenChange={(open) => !open && setModalPlan(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Lien he de kich hoat goi</DialogTitle>
+            <DialogTitle>Liên hệ để kích hoạt gói</DialogTitle>
             <DialogDescription>
-              Goi da chon: <span className="font-medium">{modalPlan?.name}</span>
+              Gói đã chọn: <span className="font-medium">{modalPlan?.name}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>Email : contact@quanlycongtrinh.com</p>
-            <p>Dien thoai : 0988097621</p>
+            <p>Điện thoại : 0988097621</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalPlan(null)}>
-              Dong
+              Đóng
             </Button>
           </DialogFooter>
         </DialogContent>

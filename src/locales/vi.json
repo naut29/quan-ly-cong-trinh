@@ -81,5 +81,15 @@
     "introVideoTitle": "Video giới thiệu",
     "productDemoTitle": "Demo sản phẩm",
     "videoFallback": "Trình duyệt của bạn không hỗ trợ video."
+  },
+  "pricingPage": {
+    "title": "Bảng giá",
+    "subtitle": "3 gói dịch vụ tối ưu cho nhu cầu lưu trữ và băng thông cao.",
+    "currentPlan": "Gói hiện tại",
+    "current": "Hiện tại",
+    "mostChosen": "Chọn nhiều nhất",
+    "contactTitle": "Liên hệ để kích hoạt gói",
+    "selectedPlan": "Gói đã chọn",
+    "close": "Đóng"
   }
 }
