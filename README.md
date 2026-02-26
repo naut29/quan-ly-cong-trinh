@@ -60,17 +60,24 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Contact form email (Cloudflare Pages + Resend)
+
+The `/contact` page submits to the Cloudflare Pages Function endpoint:
+`POST /api/contact` (`functions/api/contact.ts`).
+
+Set these environment variables in Cloudflare Pages:
+
+- `RESEND_API_KEY` (required)
+- `CONTACT_TO_EMAIL` (optional, default `contact@quanlycongtrinh.com`)
+- `CONTACT_FROM_EMAIL` (optional, default `no-reply@quanlycongtrinh.com`)
+
+Cloudflare Pages dashboard path:
+`Workers & Pages` -> `<your-project>` -> `Settings` -> `Environment variables`.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 
 
 ## Trial form worker (Cloudflare)
