@@ -92,7 +92,7 @@ const Pricing: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background px-6 py-16">
+    <div className="bg-background px-6 py-16">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-semibold text-foreground">Bảng giá</h1>

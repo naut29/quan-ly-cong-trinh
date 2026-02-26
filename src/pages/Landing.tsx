@@ -1,50 +1,48 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Building2, 
-  BarChart3, 
-  Package, 
-  Shield, 
-  Users, 
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  BarChart3,
+  Package,
+  Shield,
+  Users,
   Zap,
   CheckCircle2,
   ArrowRight,
   Play,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import VideoModal from '@/components/landing/VideoModal';
-import introVideo from '@/assets/intro-video.mp4';
-import demoVideo from '@/assets/demo-video.mp4';
-import Footer from '@/components/layout/Footer';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import VideoModal from "@/components/landing/VideoModal";
+import introVideo from "@/assets/intro-video.mp4";
+import demoVideo from "@/assets/demo-video.mp4";
 
 const features = [
   {
     icon: BarChart3,
-    title: 'Kiểm soát Chi phí',
-    description: 'Theo dõi ngân sách, thực chi, cam kết và dự báo theo thời gian thực.',
+    title: "Cost control",
+    description: "Track budget, actuals, and forecast in real time.",
   },
   {
     icon: Package,
-    title: 'Quản lý Vật tư',
-    description: 'Nhập xuất tồn, định mức, hao hụt - tất cả được kiểm soát chặt chẽ.',
+    title: "Material management",
+    description: "Control inventory, norms, and waste from one place.",
   },
   {
     icon: Shield,
-    title: 'An toàn & Bảo mật',
-    description: 'Phân quyền chi tiết theo vai trò và dự án. Dữ liệu được mã hóa.',
+    title: "Security and access",
+    description: "Role-based access control with secure data handling.",
   },
   {
     icon: Users,
-    title: 'Đa công ty',
-    description: 'Kiến trúc multi-tenant cho phép quản lý nhiều công ty độc lập.',
+    title: "Multi-company",
+    description: "Operate separate organizations on a single platform.",
   },
 ];
 
 const benefits = [
-  'Giảm 30% thất thoát vật tư',
-  'Tiết kiệm 20+ giờ/tuần cho báo cáo',
-  'Phát hiện sớm vượt ngân sách',
-  'Tích hợp với hệ thống hiện có',
+  "Reduce material loss by up to 30%",
+  "Save reporting time every week",
+  "Detect budget overruns earlier",
+  "Work with your current process",
 ];
 
 const Landing: React.FC = () => {
@@ -52,111 +50,86 @@ const Landing: React.FC = () => {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-display font-bold text-lg">Quản lý Công trình</span>
-          </Link>
-          
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Bảng giá
-            </Link>
-            <Link to="/demo/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Yêu cầu demo
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link to="/app/login">
-              <Button variant="ghost">Đăng nhập</Button>
-            </Link>
-            <Link to="/trial">
-              <Button>Dùng thử miễn phí</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8">
+    <div className="bg-background">
+      <section className="px-6 pb-20 pt-20">
+        <div className="container mx-auto max-w-4xl text-center">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Zap className="h-4 w-4" />
-            Nền tảng #1 Việt Nam cho ngành xây dựng
+            Construction management platform
           </div>
-          
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground leading-tight mb-6">
-            Kiểm soát toàn diện
+
+          <h1 className="mb-6 text-4xl font-display font-bold leading-tight text-foreground md:text-6xl">
+            End-to-end control
             <br />
-            <span className="text-primary">Chi phí & Tiến độ</span>
+            <span className="text-primary">Cost and progress</span>
             <br />
-            Dự án Xây dựng
+            for construction projects
           </h1>
-          
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-            Nền tảng quản lý công trình hiện đại, giúp bạn kiểm soát chi phí, vật tư, 
-            nhân công và tiến độ một cách chính xác và hiệu quả.
+
+          <p className="mx-auto mb-10 max-w-2xl text-xl text-muted-foreground">
+            Modern software that helps teams manage budget, materials, labor,
+            and delivery with confidence.
           </p>
 
           <div className="flex items-center justify-center gap-4">
             <Link to="/trial">
-              <Button size="lg" className="gap-2 h-12 px-8">
-                Dùng thử miễn phí
+              <Button size="lg" className="h-12 gap-2 px-8">
+                Start free trial
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="gap-2 h-12 px-8" onClick={() => setIntroModalOpen(true)}>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 gap-2 px-8"
+              onClick={() => setIntroModalOpen(true)}
+            >
               <Play className="h-4 w-4" />
-              Xem video giới thiệu
+              Watch intro video
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-16 border-y border-border bg-muted/30">
+      <section className="border-y border-border bg-muted/30 py-16">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 gap-8 text-center md:grid-cols-4">
             {[
-              { value: '500+', label: 'Dự án đang quản lý' },
-              { value: '50+', label: 'Công ty tin dùng' },
-              { value: '₫2T+', label: 'Giá trị kiểm soát' },
-              { value: '99.9%', label: 'Uptime' },
+              { value: "500+", label: "Projects managed" },
+              { value: "50+", label: "Companies onboarded" },
+              { value: "$80M+", label: "Budget monitored" },
+              { value: "99.9%", label: "Uptime" },
             ].map((stat, index) => (
               <div key={index}>
-                <p className="text-3xl md:text-4xl font-display font-bold text-primary">{stat.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                <p className="text-3xl font-display font-bold text-primary md:text-4xl">
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 px-6">
+      <section className="px-6 py-20">
         <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-              Tính năng nổi bật
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-3xl font-display font-bold text-foreground md:text-4xl">
+              Core features
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Được thiết kế đặc biệt cho ngành xây dựng Việt Nam, đáp ứng mọi nhu cầu quản lý công trình.
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              Built for construction teams that need practical control and clear,
+              reliable reporting.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature, index) => (
               <div key={index} className="kpi-card group">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
                   <feature.icon className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
+                <h3 className="mb-2 font-semibold text-foreground">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </div>
             ))}
@@ -164,37 +137,39 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Benefits */}
-      <section className="py-20 px-6 bg-primary text-primary-foreground" style={{ background: 'var(--gradient-hero)' }}>
+      <section
+        className="bg-primary px-6 py-20 text-primary-foreground"
+        style={{ background: "var(--gradient-hero)" }}
+      >
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid items-center gap-12 md:grid-cols-2">
             <div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
-                Tại sao chọn chúng tôi?
+              <h2 className="mb-6 text-3xl font-display font-bold md:text-4xl">
+                Why teams choose us
               </h2>
-              <p className="text-lg opacity-80 mb-8">
-                Hơn 50 công ty xây dựng hàng đầu đã tin tưởng sử dụng nền tảng của chúng tôi 
-                để quản lý hàng trăm dự án với tổng giá trị hơn 2,000 tỷ đồng.
+              <p className="mb-8 text-lg opacity-80">
+                Leading contractors use this platform to improve project visibility
+                and reduce execution risk.
               </p>
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-accent shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-accent" />
                     <span>{benefit}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setDemoModalOpen(true)}
-                className="w-full aspect-video rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center hover:bg-white/15 transition-colors cursor-pointer group"
+                className="group flex aspect-video w-full cursor-pointer items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur transition-colors hover:bg-white/15"
               >
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-colors">
-                    <Play className="h-8 w-8 ml-1" />
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 transition-colors group-hover:bg-white/30">
+                    <Play className="ml-1 h-8 w-8" />
                   </div>
-                  <p className="text-sm opacity-70">Xem demo sản phẩm</p>
+                  <p className="text-sm opacity-70">Watch product demo</p>
                 </div>
               </button>
             </div>
@@ -202,43 +177,39 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-            Sẵn sàng bắt đầu?
+      <section className="px-6 py-20">
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="mb-4 text-3xl font-display font-bold text-foreground md:text-4xl">
+            Ready to get started?
           </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Đăng ký dùng thử miễn phí 14 ngày. Không cần thẻ tín dụng.
+          <p className="mb-8 text-lg text-muted-foreground">
+            Start with a 14-day trial and explore the full workflow.
           </p>
           <div className="flex items-center justify-center gap-4">
             <Link to="/demo/login">
               <Button size="lg" className="h-12 px-8">
-                Yêu cầu demo
+                Request demo
               </Button>
             </Link>
             <Link to="/pricing">
               <Button size="lg" variant="outline" className="h-12 px-8">
-                Xem bảng giá
+                View pricing
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      <Footer />
-
-      {/* Video Modals */}
       <VideoModal
         open={introModalOpen}
         onOpenChange={setIntroModalOpen}
-        title="Video giới thiệu"
+        title="Intro video"
         videoSrc={introVideo}
       />
       <VideoModal
         open={demoModalOpen}
         onOpenChange={setDemoModalOpen}
-        title="Demo sản phẩm"
+        title="Product demo"
         videoSrc={demoVideo}
       />
     </div>
