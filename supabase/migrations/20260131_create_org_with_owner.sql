@@ -1,3 +1,5 @@
+drop function if exists public.create_organization_with_owner(text, text);
+
 create or replace function public.create_organization_with_owner(p_name text, p_slug text)
 returns public.organizations
 language plpgsql
