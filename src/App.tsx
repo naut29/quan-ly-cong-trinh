@@ -15,6 +15,7 @@ import AppLayoutApp from "./components/layout/AppLayoutApp";
 
 import Landing from "./pages/Landing";
 import Pricing from "./pages/Pricing";
+import TrialRequest from "./pages/TrialRequest";
 import DemoLogin from "./pages/demo/Login";
 import AppLogin from "./pages/app/Login";
 import Onboarding from "./pages/Onboarding";
@@ -90,6 +91,7 @@ const App = () => (
             <Route element={<PublicLayout />}>
               <Route path="/" element={<Landing />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/contact" element={<TrialRequest />} />
               <Route path="*" element={<NotFound />} />
             </Route>
 

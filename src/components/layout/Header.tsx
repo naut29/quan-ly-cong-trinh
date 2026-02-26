@@ -33,12 +33,12 @@ const Header: React.FC = () => {
           >
             {t("header.demo")}
           </Link>
-          <a
-            href="mailto:contact@quanlycongtrinh.com"
+          <Link
+            to="/contact"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("header.contact")}
-          </a>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">

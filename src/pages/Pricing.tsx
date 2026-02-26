@@ -14,11 +14,17 @@ import { usePlanContext } from "@/hooks/usePlanContext";
 import { marketingPlans, type MarketingPlan } from "@/lib/planCatalog";
 
 const Pricing: React.FC = () => {
-  const { orgId, loading: sessionLoading } = useSession();
-  const { context, loading: planLoading } = usePlanContext(orgId);
+  const { user, orgId, loading: sessionLoading } = useSession();
+  const effectiveOrgId = user ? orgId : null;
+  const { context, loading: planLoading } = usePlanContext(effectiveOrgId);
   const [modalPlan, setModalPlan] = useState<MarketingPlan | null>(null);
 
-  const canShowCurrentPlan = Boolean(orgId) && !sessionLoading && !planLoading;
+  const canShowCurrentPlan =
+    Boolean(user) &&
+    Boolean(effectiveOrgId) &&
+    !sessionLoading &&
+    !planLoading &&
+    Boolean(context.planCode);
   const activePlanCode = canShowCurrentPlan ? context.planCode : null;
   const activePlanName = useMemo(
     () => marketingPlans.find((plan) => plan.code === activePlanCode)?.name ?? null,
@@ -33,7 +39,7 @@ const Pricing: React.FC = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-semibold text-foreground">Bảng giá</h1>
           <p className="text-muted-foreground">
-            {activePlanName
+            {canShowCurrentPlan && activePlanName
               ? `Gói hiện tại: ${activePlanName}`
               : "3 gói dịch vụ tối ưu cho nhu cầu lưu trữ và băng thông cao."}
           </p>
