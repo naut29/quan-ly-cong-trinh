@@ -100,8 +100,8 @@ const Billing: React.FC = () => {
                 <p>Tài khoản đã hết hạn. Vui lòng liên hệ để gia hạn.</p>
                 {isAdmin ? (
                   <div className="mt-2 text-destructive">
-                    <p>Email: admin@congty.vn</p>
-                    <p>Điện thoại: 0901 234 567</p>
+                    <p>Email : contact@quanlycongtrinh.com</p>
+                    <p>Điện thoại : 0988097621</p>
                   </div>
                 ) : (
                   <p className="mt-2">Liên hệ quản trị viên công ty</p>

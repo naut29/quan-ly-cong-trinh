@@ -504,7 +504,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({
                     <FormItem>
                       <FormLabel>Số điện thoại</FormLabel>
                       <FormControl>
-                        <Input placeholder="VD: 0901 234 567" {...field} />
+                        <Input placeholder="VD: 0988097621" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -149,8 +149,8 @@ const Pricing: React.FC = () => {
           </DialogHeader>
           <div className="text-sm text-muted-foreground space-y-2">
             <p>Vui lòng liên hệ admin để nâng cấp gói dịch vụ.</p>
-            <p>Email: admin@congty.vn</p>
-            <p>Điện thoại: 0901 234 567</p>
+            <p>Email : contact@quanlycongtrinh.com</p>
+            <p>Điện thoại : 0988097621</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalPlan(null)}>
