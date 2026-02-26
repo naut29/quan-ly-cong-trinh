@@ -1,0 +1,85 @@
+{
+  "common": {
+    "brandName": "Quản Lý Công Trình",
+    "localeLabel": "Ngôn ngữ",
+    "locales": {
+      "vi": "VI",
+      "en": "EN"
+    }
+  },
+  "header": {
+    "pricing": "Bảng giá",
+    "demo": "Demo",
+    "contact": "Liên hệ",
+    "login": "Đăng nhập",
+    "viewPricing": "Xem bảng giá"
+  },
+  "footer": {
+    "emailLabel": "Email"
+  },
+  "landing": {
+    "badge": "Nền tảng quản lý công trình",
+    "titleLine1": "Kiểm soát",
+    "titleHighlight": "chi phí và tiến độ",
+    "titleLine2": "từ đầu đến cuối",
+    "subtitle": "Phần mềm giúp đội ngũ quản lý ngân sách, vật tư, nhân công và tiến độ một cách rõ ràng, chính xác.",
+    "ctaPrimary": "Xem demo",
+    "ctaSecondary": "Xem video giới thiệu",
+    "stats": {
+      "projects": {
+        "value": "500+",
+        "label": "Dự án đã quản lý"
+      },
+      "companies": {
+        "value": "50+",
+        "label": "Doanh nghiệp đã triển khai"
+      },
+      "budget": {
+        "value": "1.000+ tỷ",
+        "label": "Ngân sách được theo dõi"
+      },
+      "uptime": {
+        "value": "99.9%",
+        "label": "Thời gian hoạt động"
+      }
+    },
+    "features": {
+      "title": "Tính năng cốt lõi",
+      "subtitle": "Xây dựng cho đội ngũ thi công cần kiểm soát thực tế và báo cáo rõ ràng, đáng tin cậy.",
+      "items": {
+        "costControl": {
+          "title": "Kiểm soát chi phí",
+          "description": "Theo dõi ngân sách, thực chi và dự báo theo thời gian thực."
+        },
+        "materialManagement": {
+          "title": "Quản lý vật tư",
+          "description": "Kiểm soát tồn kho, định mức và hao hụt tại một nơi."
+        },
+        "securityAccess": {
+          "title": "Bảo mật và phân quyền",
+          "description": "Phân quyền theo vai trò cùng cơ chế bảo vệ dữ liệu an toàn."
+        },
+        "multiCompany": {
+          "title": "Đa doanh nghiệp",
+          "description": "Vận hành nhiều công ty độc lập trên cùng một nền tảng."
+        }
+      }
+    },
+    "whyTitle": "Vì sao đội ngũ chọn chúng tôi",
+    "whySubtitle": "Các nhà thầu hàng đầu dùng nền tảng này để tăng minh bạch dự án và giảm rủi ro thi công.",
+    "benefits": {
+      "lossReduction": "Giảm thất thoát vật tư đến 30%",
+      "reportingTime": "Tiết kiệm thời gian lập báo cáo mỗi tuần",
+      "detectOverrun": "Phát hiện vượt ngân sách sớm hơn",
+      "processFit": "Phù hợp với quy trình hiện có"
+    },
+    "watchProductDemo": "Xem video sản phẩm",
+    "readyTitle": "Sẵn sàng bắt đầu?",
+    "readySubtitle": "Chọn gói phù hợp với đội ngũ của bạn và mở rộng khi cần.",
+    "requestDemo": "Đăng ký demo",
+    "viewPricing": "Xem bảng giá",
+    "introVideoTitle": "Video giới thiệu",
+    "productDemoTitle": "Demo sản phẩm",
+    "videoFallback": "Trình duyệt của bạn không hỗ trợ video."
+  }
+}

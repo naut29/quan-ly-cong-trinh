@@ -1,0 +1,85 @@
+{
+  "common": {
+    "brandName": "Construction Management",
+    "localeLabel": "Language",
+    "locales": {
+      "vi": "VI",
+      "en": "EN"
+    }
+  },
+  "header": {
+    "pricing": "Pricing",
+    "demo": "Demo",
+    "contact": "Contact",
+    "login": "Login",
+    "viewPricing": "View pricing"
+  },
+  "footer": {
+    "emailLabel": "Email"
+  },
+  "landing": {
+    "badge": "Construction management platform",
+    "titleLine1": "Control cost and progress",
+    "titleHighlight": "end to end",
+    "titleLine2": "for every project",
+    "subtitle": "Software that helps teams manage budget, materials, labor, and progress with clear, reliable execution.",
+    "ctaPrimary": "View demo",
+    "ctaSecondary": "Watch intro video",
+    "stats": {
+      "projects": {
+        "value": "500+",
+        "label": "Projects managed"
+      },
+      "companies": {
+        "value": "50+",
+        "label": "Companies onboarded"
+      },
+      "budget": {
+        "value": "1,000B+ VND",
+        "label": "Budget monitored"
+      },
+      "uptime": {
+        "value": "99.9%",
+        "label": "Uptime"
+      }
+    },
+    "features": {
+      "title": "Core features",
+      "subtitle": "Built for construction teams that need practical control and dependable reporting.",
+      "items": {
+        "costControl": {
+          "title": "Cost control",
+          "description": "Track budget, actuals, and forecast in real time."
+        },
+        "materialManagement": {
+          "title": "Material management",
+          "description": "Control inventory, norms, and waste from one place."
+        },
+        "securityAccess": {
+          "title": "Security and access",
+          "description": "Role-based access control with secure data handling."
+        },
+        "multiCompany": {
+          "title": "Multi-company",
+          "description": "Operate separate organizations on a single platform."
+        }
+      }
+    },
+    "whyTitle": "Why teams choose us",
+    "whySubtitle": "Leading contractors use this platform to improve visibility and reduce execution risk.",
+    "benefits": {
+      "lossReduction": "Reduce material loss by up to 30%",
+      "reportingTime": "Save reporting time every week",
+      "detectOverrun": "Detect budget overruns earlier",
+      "processFit": "Work with your current process"
+    },
+    "watchProductDemo": "Watch product video",
+    "readyTitle": "Ready to get started?",
+    "readySubtitle": "Choose a plan that fits your team and scale when needed.",
+    "requestDemo": "Request demo",
+    "viewPricing": "View pricing",
+    "introVideoTitle": "Intro video",
+    "productDemoTitle": "Product demo",
+    "videoFallback": "Your browser does not support video playback."
+  }
+}
