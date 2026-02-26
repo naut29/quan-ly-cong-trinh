@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,12 +33,12 @@ const Header: React.FC = () => {
           >
             {t("header.demo")}
           </Link>
-          <Link
+          <NavLink
             to="/contact"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("header.contact")}
-          </Link>
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-3">
