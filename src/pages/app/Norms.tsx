@@ -1,9 +1,9 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { MaterialNormsTab } from '@/components/materials/MaterialNormsTab';
 
 const Norms: React.FC = () => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
 
   return (
     <div className="animate-fade-in">

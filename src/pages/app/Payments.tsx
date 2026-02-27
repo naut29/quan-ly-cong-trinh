@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { 
   Wallet,
   FileText,
@@ -304,7 +304,7 @@ const statusConfig: Record<PaymentStatus, { label: string; status: 'danger' | 'w
 };
 
 const Payments: React.FC = () => {
-  const { id } = useParams();
+  const id = useProjectIdParam();
   const { hasPermission } = useAuth();
   
   const project = projects.find(p => p.id === id);

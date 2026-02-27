@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Wallet, 
   TrendingUp, 
@@ -29,9 +29,10 @@ import { createSupabaseRepo } from '@/data/supabaseRepo';
 import type { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
 import { getAppBasePath } from '@/lib/appMode';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 
 const ProjectOverview: React.FC = () => {
-  const { id } = useParams();
+  const id = useProjectIdParam();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
   const { companyId } = useCompany();

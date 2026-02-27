@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { 
   FileText, 
   Download, 
@@ -130,7 +130,7 @@ const categoryDistribution = [
 ];
 
 const Reports: React.FC = () => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const { companyId } = useCompany();
   const { limits, usage, recordUsageEvent } = usePlanContext(companyId);
   const [activeTab, setActiveTab] = useState('materials');

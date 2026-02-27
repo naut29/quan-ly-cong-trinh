@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { 
   FileText, 
   Search, 
@@ -47,7 +47,7 @@ const mockBOQItems = [
 ];
 
 const BOQ: React.FC = () => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 

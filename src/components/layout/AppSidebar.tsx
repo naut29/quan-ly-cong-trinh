@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   FolderKanban, 
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAppBasePath, isDemoPath } from '@/lib/appMode';
+import { getProjectPath, isProjectDetailPath, useProjectIdParam } from '@/lib/projectRoutes';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -70,12 +71,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon: Icon, label, disabl
 
 const AppSidebar: React.FC = () => {
   const { hasPermission, user } = useAuth();
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const location = useLocation();
   
   const basePath = getAppBasePath(location.pathname);
   const isDemo = isDemoPath(location.pathname);
-  const isInProject = location.pathname.includes('/projects/') && projectId;
+  const isInProject = isProjectDetailPath(location.pathname) && !!projectId;
   const isAdmin = user?.role === 'company_owner' || user?.role === 'super_admin';
   const isSuperAdmin = user?.role === 'super_admin';
 
@@ -85,17 +86,17 @@ const AppSidebar: React.FC = () => {
   ];
 
   const projectNavItems = projectId ? [
-    { to: `${basePath}/projects/${projectId}/overview`, icon: Home, label: 'Tổng quan', module: 'projects' },
-    { to: `${basePath}/projects/${projectId}/wbs`, icon: Building2, label: 'Cấu trúc công việc', module: 'wbs' },
-    { to: `${basePath}/projects/${projectId}/boq`, icon: Calculator, label: 'Dự toán', module: 'boq' },
-    { to: `${basePath}/projects/${projectId}/materials`, icon: Package, label: 'Vật tư', module: 'materials' },
-    { to: `${basePath}/projects/${projectId}/norms`, icon: Activity, label: 'Định mức', module: 'norms' },
-    { to: `${basePath}/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí', module: 'costs' },
-    { to: `${basePath}/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng', module: 'contracts' },
-    { to: `${basePath}/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán', module: 'payments' },
-    { to: `${basePath}/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt', module: 'approvals' },
-    { to: `${basePath}/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ', module: 'progress' },
-    { to: `${basePath}/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo', module: 'reports' },
+    { to: getProjectPath(location.pathname, projectId), icon: Home, label: 'Tổng quan', module: 'projects' },
+    { to: getProjectPath(location.pathname, projectId, 'wbs'), icon: Building2, label: 'Cấu trúc công việc', module: 'wbs' },
+    { to: getProjectPath(location.pathname, projectId, 'boq'), icon: Calculator, label: 'Dự toán', module: 'boq' },
+    { to: getProjectPath(location.pathname, projectId, 'materials'), icon: Package, label: 'Vật tư', module: 'materials' },
+    { to: getProjectPath(location.pathname, projectId, 'norms'), icon: Activity, label: 'Định mức', module: 'norms' },
+    { to: getProjectPath(location.pathname, projectId, 'costs'), icon: Wallet, label: 'Chi phí', module: 'costs' },
+    { to: getProjectPath(location.pathname, projectId, 'contracts'), icon: FileText, label: 'Hợp đồng', module: 'contracts' },
+    { to: getProjectPath(location.pathname, projectId, 'payments'), icon: CreditCard, label: 'Thanh toán', module: 'payments' },
+    { to: getProjectPath(location.pathname, projectId, 'approvals'), icon: ClipboardCheck, label: 'Phê duyệt', module: 'approvals' },
+    { to: getProjectPath(location.pathname, projectId, 'progress'), icon: TrendingUp, label: 'Tiến độ', module: 'progress' },
+    { to: getProjectPath(location.pathname, projectId, 'reports'), icon: BarChart3, label: 'Báo cáo', module: 'reports' },
   ] : [];
 
   const adminNavItems = [

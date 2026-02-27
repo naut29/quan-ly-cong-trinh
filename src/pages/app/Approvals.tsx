@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -224,7 +224,7 @@ const defaultFormData: ApprovalFormData = {
 };
 
 const Approvals: React.FC = () => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const { hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState('materials');
   const [searchQuery, setSearchQuery] = useState('');

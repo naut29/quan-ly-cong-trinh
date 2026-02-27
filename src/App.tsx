@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/app/context/CompanyContext";
 import RequireAuth from "@/app/auth/RequireAuth";
@@ -159,6 +159,98 @@ const App = () => (
               <Route path="company" element={<PlatformTenants />} />
               <Route path="users" element={<PlatformUsers />} />
               <Route path="billing" element={<PlatformBilling />} />
+
+              <Route
+                path="project/:projectId"
+                element={
+                  <ProjectGuard>
+                    <Outlet />
+                  </ProjectGuard>
+                }
+              >
+                <Route index element={<DemoProjectOverview />} />
+                <Route path="overview" element={<Navigate to=".." replace />} />
+                <Route
+                  path="wbs"
+                  element={
+                    <PermissionGuard module="wbs">
+                      <DemoWBS />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="boq"
+                  element={
+                    <PermissionGuard module="boq">
+                      <DemoBOQ />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="materials"
+                  element={
+                    <PermissionGuard module="materials">
+                      <DemoMaterials />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="norms"
+                  element={
+                    <PermissionGuard module="norms">
+                      <DemoNorms />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="costs"
+                  element={
+                    <PermissionGuard module="costs">
+                      <DemoCosts />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="contracts"
+                  element={
+                    <PermissionGuard module="contracts">
+                      <DemoContracts />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="payments"
+                  element={
+                    <PermissionGuard module="payments">
+                      <DemoPayments />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="approvals"
+                  element={
+                    <PermissionGuard module="approvals">
+                      <DemoApprovals />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="progress"
+                  element={
+                    <PermissionGuard module="progress">
+                      <DemoProgress />
+                    </PermissionGuard>
+                  }
+                />
+                <Route
+                  path="reports"
+                  element={
+                    <PermissionGuard module="reports">
+                      <DemoReports />
+                    </PermissionGuard>
+                  }
+                />
+              </Route>
 
               <Route
                 path="projects/:id/overview"

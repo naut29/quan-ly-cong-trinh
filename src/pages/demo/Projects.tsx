@@ -53,12 +53,11 @@ import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFo
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
 import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
-import { getAppBasePath } from '@/lib/appMode';
+import { getProjectPath } from '@/lib/projectRoutes';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const basePath = getAppBasePath(location.pathname);
   const { hasPermission } = useAuth();
   const repo = demoRepo;
 
@@ -459,7 +458,7 @@ const Projects: React.FC = () => {
             <div
               key={project.id}
               className="kpi-card cursor-pointer group"
-              onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
+              onClick={() => navigate(getProjectPath(location.pathname, project.id))}
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -486,7 +485,7 @@ const Projects: React.FC = () => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`${basePath}/projects/${project.id}/overview`);
+                      navigate(getProjectPath(location.pathname, project.id));
                     }}>
                       <Eye className="h-4 w-4 mr-2" />
                       Xem chi tiết
@@ -604,7 +603,7 @@ const Projects: React.FC = () => {
                 <tr 
                   key={project.id} 
                   className="cursor-pointer"
-                  onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
+                  onClick={() => navigate(getProjectPath(location.pathname, project.id))}
                 >
                   <td>
                     <div>
@@ -658,7 +657,7 @@ const Projects: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}>
+                        <DropdownMenuItem onClick={() => navigate(getProjectPath(location.pathname, project.id))}>
                           <Eye className="h-4 w-4 mr-2" />
                           Xem chi tiết
                         </DropdownMenuItem>
@@ -712,4 +711,3 @@ const Projects: React.FC = () => {
 };
 
 export default Projects;
-

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useSession } from "@/app/session/useSession";
+import { isDemoPath } from "@/lib/appMode";
 
 interface CompanyContextValue {
   companyId: string | null;
@@ -71,7 +73,18 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 export const useCompany = () => {
   const context = useContext(CompanyContext);
+  const location = useLocation();
+
   if (!context) {
+    if (isDemoPath(location.pathname)) {
+      return {
+        companyId: null,
+        companyName: "Demo",
+        role: null,
+        loading: false,
+      };
+    }
+
     throw new Error("useCompany must be used within a CompanyProvider");
   }
   return context;

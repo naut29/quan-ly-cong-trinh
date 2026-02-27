@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { 
   Search, 
   Plus, 
@@ -243,7 +243,7 @@ const topOverruns = [
 ];
 
 const Costs: React.FC = () => {
-  const { id } = useParams();
+  const id = useProjectIdParam();
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeTab, setActiveTab] = useState('entries');
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { 
   Package, 
   Plus,
@@ -106,7 +106,7 @@ const mockTransactions = [
 ];
 
 const Materials: React.FC = () => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const { companyId, role } = useCompany();
   const { limits, usage, recordUsageEvent } = usePlanContext(companyId);
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);

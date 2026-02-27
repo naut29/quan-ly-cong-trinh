@@ -3,8 +3,16 @@ import type { Project, ProjectInput, Repo } from './repo';
 
 const DEMO_PROJECTS_KEY = 'demo_projects_store';
 
+const getStorage = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.sessionStorage;
+};
+
 const loadProjects = (): Project[] => {
-  const raw = localStorage.getItem(DEMO_PROJECTS_KEY);
+  const raw = getStorage()?.getItem(DEMO_PROJECTS_KEY);
   if (!raw) return seedProjects;
   try {
     return JSON.parse(raw) as Project[];
@@ -14,7 +22,7 @@ const loadProjects = (): Project[] => {
 };
 
 const saveProjects = (projects: Project[]) => {
-  localStorage.setItem(DEMO_PROJECTS_KEY, JSON.stringify(projects));
+  getStorage()?.setItem(DEMO_PROJECTS_KEY, JSON.stringify(projects));
 };
 
 let cachedProjects: Project[] | null = null;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -333,7 +333,7 @@ const flattenWBS = (items: WBSItem[]): WBSItem[] => {
 };
 
 const WBS: React.FC = () => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedItems, setExpandedItems] = useState<string[]>(['wbs-1', 'wbs-2', 'wbs-1.1', 'wbs-1.2', 'wbs-2.1']);

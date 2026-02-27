@@ -1,16 +1,17 @@
 import React from 'react';
-import { useParams, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ShieldX, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAppBasePath, isDemoPath } from '@/lib/appMode';
+import { useProjectIdParam } from '@/lib/projectRoutes';
 
 interface ProjectGuardProps {
   children: React.ReactNode;
 }
 
 const ProjectGuard: React.FC<ProjectGuardProps> = ({ children }) => {
-  const { id: projectId } = useParams();
+  const projectId = useProjectIdParam();
   const { canAccessProject, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,7 +19,7 @@ const ProjectGuard: React.FC<ProjectGuardProps> = ({ children }) => {
   const isDemo = isDemoPath(location.pathname);
 
   if (isDemo && !isAuthenticated) {
-    return <Navigate to={`${basePath}/login`} replace />;
+    return <>{children}</>;
   }
 
   if (isDemo && projectId && !canAccessProject(projectId)) {
