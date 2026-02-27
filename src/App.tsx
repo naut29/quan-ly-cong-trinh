@@ -10,6 +10,7 @@ import RequireRole from "@/app/auth/RequireRole";
 
 import PublicLayout from "@/components/layout/PublicLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
+import AppEntryGuard from "./components/layout/AppEntryGuard";
 import DemoLayout from "./components/layout/DemoLayout";
 import AppLayout from "./components/layout/AppLayout";
 import AppLayoutApp from "./components/layout/AppLayoutApp";
@@ -81,6 +82,14 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppProtectedLayout = () => (
+  <RequireAuth>
+    <CompanyProvider>
+      <AppLayoutApp />
+    </CompanyProvider>
+  </RequireAuth>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -97,8 +106,6 @@ const App = () => (
             </Route>
 
             <Route element={<AuthLayout />}>
-              <Route path="/demo/login" element={<DemoLogin />} />
-              <Route path="/app/login" element={<AppLogin />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route
                 path="/select-plan"
@@ -108,7 +115,6 @@ const App = () => (
                   </RequireAuth>
                 }
               />
-              <Route path="/app/invite" element={<InviteAccept />} />
             </Route>
 
             <Route
@@ -153,6 +159,7 @@ const App = () => (
             />
 
             <Route path="/demo" element={<DemoLayout />}>
+              <Route path="login" element={<DemoLogin />} />
               <Route index element={<Navigate to="/demo/dashboard" replace />} />
               <Route path="dashboard" element={<DemoDashboard />} />
               <Route path="projects" element={<DemoProjects />} />
@@ -161,7 +168,7 @@ const App = () => (
               <Route path="billing" element={<PlatformBilling />} />
 
               <Route
-                path="project/:projectId"
+                path="projects/:id"
                 element={
                   <ProjectGuard>
                     <Outlet />
@@ -170,426 +177,201 @@ const App = () => (
               >
                 <Route index element={<DemoProjectOverview />} />
                 <Route path="overview" element={<Navigate to=".." replace />} />
+                <Route path="wbs" element={<DemoWBS />} />
+                <Route path="boq" element={<DemoBOQ />} />
+                <Route path="materials" element={<DemoMaterials />} />
+                <Route path="norms" element={<DemoNorms />} />
+                <Route path="costs" element={<DemoCosts />} />
+                <Route path="contracts" element={<DemoContracts />} />
+                <Route path="payments" element={<DemoPayments />} />
+                <Route path="approvals" element={<DemoApprovals />} />
+                <Route path="progress" element={<DemoProgress />} />
+                <Route path="reports" element={<DemoReports />} />
+              </Route>
+
+              <Route path="admin/company" element={<DemoAdminCompany />} />
+              <Route path="admin/users" element={<DemoAdminUsers />} />
+              <Route path="admin/roles" element={<DemoAdminRoles />} />
+              <Route path="admin/audit-log" element={<DemoAdminAuditLog />} />
+              <Route path="admin/integrations" element={<DemoAdminIntegrations />} />
+              <Route path="admin/billing" element={<DemoAdminBilling />} />
+            </Route>
+
+            <Route path="/app" element={<AppEntryGuard />}>
+              <Route path="login" element={<AppLogin />} />
+              <Route path="invite" element={<InviteAccept />} />
+
+              <Route element={<AppProtectedLayout />}>
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="dashboard" element={<AppDashboard />} />
+                <Route path="projects" element={<AppProjects />} />
+
                 <Route
-                  path="wbs"
+                  path="projects/:id/overview"
                   element={
-                    <PermissionGuard module="wbs">
-                      <DemoWBS />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <ProjectOverview />
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="boq"
+                  path="projects/:id/wbs"
                   element={
-                    <PermissionGuard module="boq">
-                      <DemoBOQ />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="wbs">
+                        <WBS />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="materials"
+                  path="projects/:id/boq"
                   element={
-                    <PermissionGuard module="materials">
-                      <DemoMaterials />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="boq">
+                        <BOQ />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="norms"
+                  path="projects/:id/materials"
                   element={
-                    <PermissionGuard module="norms">
-                      <DemoNorms />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="materials">
+                        <Materials />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="costs"
+                  path="projects/:id/norms"
                   element={
-                    <PermissionGuard module="costs">
-                      <DemoCosts />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="norms">
+                        <Norms />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="contracts"
+                  path="projects/:id/costs"
                   element={
-                    <PermissionGuard module="contracts">
-                      <DemoContracts />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="costs">
+                        <Costs />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="payments"
+                  path="projects/:id/contracts"
                   element={
-                    <PermissionGuard module="payments">
-                      <DemoPayments />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="contracts">
+                        <Contracts />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="approvals"
+                  path="projects/:id/payments"
                   element={
-                    <PermissionGuard module="approvals">
-                      <DemoApprovals />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="payments">
+                        <Payments />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="progress"
+                  path="projects/:id/approvals"
                   element={
-                    <PermissionGuard module="progress">
-                      <DemoProgress />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="approvals">
+                        <Approvals />
+                      </PermissionGuard>
+                    </ProjectGuard>
                   }
                 />
                 <Route
-                  path="reports"
+                  path="projects/:id/progress"
                   element={
-                    <PermissionGuard module="reports">
-                      <DemoReports />
-                    </PermissionGuard>
+                    <ProjectGuard>
+                      <PermissionGuard module="progress">
+                        <Progress />
+                      </PermissionGuard>
+                    </ProjectGuard>
+                  }
+                />
+                <Route
+                  path="projects/:id/reports"
+                  element={
+                    <ProjectGuard>
+                      <PermissionGuard module="reports">
+                        <Reports />
+                      </PermissionGuard>
+                    </ProjectGuard>
+                  }
+                />
+
+                <Route
+                  path="admin/company"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminCompany />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="admin/members"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminMembers />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="admin/users"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminUsers />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="admin/roles"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminRoles />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="admin/audit-log"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminAuditLog />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="admin/integrations"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminIntegrations />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="admin/billing"
+                  element={
+                    <RequireRole allowed={["owner", "admin"]}>
+                      <AdminBilling />
+                    </RequireRole>
                   }
                 />
               </Route>
-
-              <Route
-                path="projects/:id/overview"
-                element={
-                  <ProjectGuard>
-                    <DemoProjectOverview />
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/wbs"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="wbs">
-                      <DemoWBS />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/boq"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="boq">
-                      <DemoBOQ />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/materials"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="materials">
-                      <DemoMaterials />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/norms"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="norms">
-                      <DemoNorms />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/costs"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="costs">
-                      <DemoCosts />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/contracts"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="contracts">
-                      <DemoContracts />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/payments"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="payments">
-                      <DemoPayments />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/approvals"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="approvals">
-                      <DemoApprovals />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/progress"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="progress">
-                      <DemoProgress />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/reports"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="reports">
-                      <DemoReports />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-
-              <Route
-                path="admin/company"
-                element={
-                  <PermissionGuard module="admin">
-                    <DemoAdminCompany />
-                  </PermissionGuard>
-                }
-              />
-              <Route
-                path="admin/users"
-                element={
-                  <PermissionGuard module="admin">
-                    <DemoAdminUsers />
-                  </PermissionGuard>
-                }
-              />
-              <Route
-                path="admin/roles"
-                element={
-                  <PermissionGuard module="admin">
-                    <DemoAdminRoles />
-                  </PermissionGuard>
-                }
-              />
-              <Route
-                path="admin/audit-log"
-                element={
-                  <PermissionGuard module="admin">
-                    <DemoAdminAuditLog />
-                  </PermissionGuard>
-                }
-              />
-              <Route
-                path="admin/integrations"
-                element={
-                  <PermissionGuard module="admin">
-                    <DemoAdminIntegrations />
-                  </PermissionGuard>
-                }
-              />
-              <Route
-                path="admin/billing"
-                element={
-                  <PermissionGuard module="admin">
-                    <DemoAdminBilling />
-                  </PermissionGuard>
-                }
-              />
-            </Route>
-
-            <Route
-              path="/app"
-              element={
-                <RequireAuth>
-                  <CompanyProvider>
-                    <AppLayoutApp />
-                  </CompanyProvider>
-                </RequireAuth>
-              }
-            >
-              <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<AppDashboard />} />
-              <Route path="projects" element={<AppProjects />} />
-
-              <Route
-                path="projects/:id/overview"
-                element={
-                  <ProjectGuard>
-                    <ProjectOverview />
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/wbs"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="wbs">
-                      <WBS />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/boq"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="boq">
-                      <BOQ />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/materials"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="materials">
-                      <Materials />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/norms"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="norms">
-                      <Norms />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/costs"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="costs">
-                      <Costs />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/contracts"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="contracts">
-                      <Contracts />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/payments"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="payments">
-                      <Payments />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/approvals"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="approvals">
-                      <Approvals />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/progress"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="progress">
-                      <Progress />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-              <Route
-                path="projects/:id/reports"
-                element={
-                  <ProjectGuard>
-                    <PermissionGuard module="reports">
-                      <Reports />
-                    </PermissionGuard>
-                  </ProjectGuard>
-                }
-              />
-
-              <Route
-                path="admin/company"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminCompany />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="admin/members"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminMembers />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="admin/users"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminUsers />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="admin/roles"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminRoles />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="admin/audit-log"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminAuditLog />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="admin/integrations"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminIntegrations />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="admin/billing"
-                element={
-                  <RequireRole allowed={["owner", "admin"]}>
-                    <AdminBilling />
-                  </RequireRole>
-                }
-              />
             </Route>
 
             <Route path="/platform" element={<AppLayout />}>

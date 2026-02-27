@@ -1,7 +1,9 @@
 import { projects as seedProjects, tenants } from '@/data/mockData';
+import { DEMO_STORAGE_PREFIX } from '@/lib/demoStorage';
 import type { Project, ProjectInput, Repo } from './repo';
 
-const DEMO_PROJECTS_KEY = 'demo_projects_store';
+const LEGACY_DEMO_PROJECTS_KEY = 'demo_projects_store';
+export const DEMO_PROJECTS_KEY = `${DEMO_STORAGE_PREFIX}projects_store`;
 
 const getStorage = () => {
   if (typeof window === 'undefined') {
@@ -12,17 +14,25 @@ const getStorage = () => {
 };
 
 const loadProjects = (): Project[] => {
-  const raw = getStorage()?.getItem(DEMO_PROJECTS_KEY);
+  const storage = getStorage();
+  const raw = storage?.getItem(DEMO_PROJECTS_KEY) ?? storage?.getItem(LEGACY_DEMO_PROJECTS_KEY);
   if (!raw) return seedProjects;
   try {
-    return JSON.parse(raw) as Project[];
+    const projects = JSON.parse(raw) as Project[];
+    storage?.setItem(DEMO_PROJECTS_KEY, JSON.stringify(projects));
+    storage?.removeItem(LEGACY_DEMO_PROJECTS_KEY);
+    return projects;
   } catch {
+    storage?.removeItem(DEMO_PROJECTS_KEY);
+    storage?.removeItem(LEGACY_DEMO_PROJECTS_KEY);
     return seedProjects;
   }
 };
 
 const saveProjects = (projects: Project[]) => {
-  getStorage()?.setItem(DEMO_PROJECTS_KEY, JSON.stringify(projects));
+  const storage = getStorage();
+  storage?.setItem(DEMO_PROJECTS_KEY, JSON.stringify(projects));
+  storage?.removeItem(LEGACY_DEMO_PROJECTS_KEY);
 };
 
 let cachedProjects: Project[] | null = null;
@@ -32,6 +42,13 @@ const getProjects = () => {
     cachedProjects = loadProjects();
   }
   return cachedProjects;
+};
+
+export const purgeDemoProjects = () => {
+  cachedProjects = null;
+  const storage = getStorage();
+  storage?.removeItem(DEMO_PROJECTS_KEY);
+  storage?.removeItem(LEGACY_DEMO_PROJECTS_KEY);
 };
 
 const generateId = () => {

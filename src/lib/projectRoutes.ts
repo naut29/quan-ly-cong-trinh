@@ -14,8 +14,8 @@ export const getProjectPath = (
 ) => {
   if (isDemoPath(pathname)) {
     return section === "overview"
-      ? `/demo/project/${projectId}`
-      : `/demo/project/${projectId}/${section}`;
+      ? `/demo/projects/${projectId}`
+      : `/demo/projects/${projectId}/${section}`;
   }
 
   return `/app/projects/${projectId}/${section}`;

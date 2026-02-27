@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 import { DEFAULT_DEMO_USER_ID } from "@/auth/demoAuth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,12 +10,18 @@ import Footer from "./Footer";
 
 const DemoLayout: React.FC = () => {
   const { isAuthenticated, loadingSession, loginAs } = useAuth();
+  const location = useLocation();
+  const isLoginRoute = location.pathname === "/demo/login";
 
   useEffect(() => {
-    if (!loadingSession && !isAuthenticated) {
+    if (!isLoginRoute && !loadingSession && !isAuthenticated) {
       loginAs(DEFAULT_DEMO_USER_ID);
     }
-  }, [isAuthenticated, loadingSession, loginAs]);
+  }, [isAuthenticated, isLoginRoute, loadingSession, loginAs]);
+
+  if (isLoginRoute) {
+    return <Outlet />;
+  }
 
   if (loadingSession || !isAuthenticated) {
     return (
