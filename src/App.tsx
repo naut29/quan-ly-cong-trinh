@@ -10,6 +10,7 @@ import RequireRole from "@/app/auth/RequireRole";
 
 import PublicLayout from "@/components/layout/PublicLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
+import DemoLayout from "./components/layout/DemoLayout";
 import AppLayout from "./components/layout/AppLayout";
 import AppLayoutApp from "./components/layout/AppLayoutApp";
 
@@ -151,10 +152,13 @@ const App = () => (
               }
             />
 
-            <Route path="/demo" element={<AppLayout />}>
+            <Route path="/demo" element={<DemoLayout />}>
               <Route index element={<Navigate to="/demo/dashboard" replace />} />
               <Route path="dashboard" element={<DemoDashboard />} />
               <Route path="projects" element={<DemoProjects />} />
+              <Route path="company" element={<PlatformTenants />} />
+              <Route path="users" element={<PlatformUsers />} />
+              <Route path="billing" element={<PlatformBilling />} />
 
               <Route
                 path="projects/:id/overview"

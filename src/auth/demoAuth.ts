@@ -1,6 +1,7 @@
 import { users } from "@/data/mockData";
 
 export const DEMO_USERS = users;
+export const DEFAULT_DEMO_USER_ID = "user-super";
 
 const DEMO_SESSION_KEY = "demo_auth_session";
 
