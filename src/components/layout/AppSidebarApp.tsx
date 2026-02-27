@@ -25,7 +25,6 @@ import { cn } from '@/lib/utils';
 import { getAppBasePath } from '@/lib/appMode';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCompany } from '@/app/context/CompanyContext';
-import { useSession } from '@/app/session/useSession';
 
 interface SidebarItemProps {
   to: string;
@@ -49,18 +48,15 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon: Icon, label, end })
 
 const AppSidebarApp: React.FC = () => {
   const { role } = useCompany();
-  const { orgRole } = useSession();
   const { id: projectId } = useParams();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
   const isInProject = location.pathname.includes('/projects/') && projectId;
   const isAdmin = role === 'owner' || role === 'admin';
-  const isOrgAdmin = orgRole === 'owner' || orgRole === 'admin';
 
   const mainNavItems = [
     { to: `${basePath}/dashboard`, icon: LayoutDashboard, label: 'Bảng điều khiển' },
     { to: `${basePath}/projects`, icon: FolderKanban, label: 'Dự án' },
-    ...(isOrgAdmin ? [{ to: '/members', icon: Users, label: 'Thành viên' }] : []),
   ];
 
   const projectNavItems = projectId ? [
@@ -79,7 +75,6 @@ const AppSidebarApp: React.FC = () => {
 
   const adminNavItems = [
     { to: `${basePath}/admin/company`, icon: Building2, label: 'Công ty' },
-    { to: `${basePath}/admin/members`, icon: Users, label: 'Thành viên' },
     { to: `${basePath}/admin/users`, icon: Users, label: 'Người dùng' },
     { to: `${basePath}/admin/roles`, icon: Shield, label: 'Vai trò & Quyền' },
     { to: `${basePath}/admin/audit-log`, icon: Activity, label: 'Nhật ký hoạt động' },

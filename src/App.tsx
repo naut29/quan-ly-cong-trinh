@@ -27,7 +27,6 @@ import SelectPlan from "./pages/SelectPlan";
 import LegacyDashboard from "./pages/Dashboard";
 import LegacyProjects from "./pages/Projects";
 import LegacyProjectDetail from "./pages/ProjectDetail";
-import LegacyMembers from "./pages/Members";
 import LegacyBilling from "./pages/Billing";
 
 import AppDashboard from "./pages/app/Dashboard";
@@ -49,7 +48,6 @@ import AdminCompany from "./pages/app/AdminCompany";
 import AdminAuditLog from "./pages/app/AdminAuditLog";
 import AdminIntegrations from "./pages/app/AdminIntegrations";
 import AdminBilling from "./pages/app/AdminBilling";
-import AdminMembers from "./pages/app/AdminMembers";
 import InviteAccept from "./pages/app/InviteAccept";
 
 import DemoDashboard from "./pages/demo/Dashboard";
@@ -151,11 +149,15 @@ const App = () => (
             />
             <Route
               path="/members"
-              element={
-                <RequireOrg>
-                  <LegacyMembers />
-                </RequireOrg>
-              }
+              element={<Navigate to="/app/admin/users" replace />}
+            />
+            <Route
+              path="/team"
+              element={<Navigate to="/app/admin/users" replace />}
+            />
+            <Route
+              path="/thanh-vien"
+              element={<Navigate to="/app/admin/users" replace />}
             />
             <Route
               path="/billing"
@@ -208,6 +210,9 @@ const App = () => (
             <Route path="/app" element={<AppEntryGuard />}>
               <Route path="login" element={<AppLogin />} />
               <Route path="invite" element={<InviteAccept />} />
+              <Route path="members" element={<Navigate to="/app/admin/users" replace />} />
+              <Route path="team" element={<Navigate to="/app/admin/users" replace />} />
+              <Route path="thanh-vien" element={<Navigate to="/app/admin/users" replace />} />
 
               <Route element={<AppProtectedLayout />}>
                 <Route index element={<Navigate to="/app/dashboard" replace />} />
@@ -335,7 +340,7 @@ const App = () => (
                   path="admin/members"
                   element={
                     <RequireRole allowed={["owner", "admin"]}>
-                      <AdminMembers />
+                      <Navigate to="/app/admin/users" replace />
                     </RequireRole>
                   }
                 />

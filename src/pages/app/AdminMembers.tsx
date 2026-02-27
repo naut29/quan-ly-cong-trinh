@@ -5,7 +5,7 @@ const AdminMembers: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate("/members", { replace: true });
+    navigate("/app/admin/users", { replace: true });
   }, [navigate]);
 
   return null;

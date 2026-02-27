@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
             </Button>
             {isAdmin && (
               <Button variant="outline" asChild>
-                <Link to="/members">Thành viên</Link>
+                <Link to="/app/admin/users">Người dùng</Link>
               </Button>
             )}
             <CreateProject
