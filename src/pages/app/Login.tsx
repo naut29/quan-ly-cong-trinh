@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { signInWithPassword } from '@/auth/supabaseAuth';
 import { hasSupabaseEnv } from '@/lib/supabaseClient';
+import { getLastPath } from '@/lib/lastPath';
 
 const AppLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const AppLogin: React.FC = () => {
     try {
       const { error: signInError } = await signInWithPassword(email, password);
       if (!signInError) {
-        navigate(next || '/app/dashboard');
+        navigate(next || getLastPath('/app/dashboard'), { replace: true });
       } else {
         setError(signInError.message || 'Email hoặc mật khẩu không đúng');
       }
@@ -192,3 +193,4 @@ const AppLogin: React.FC = () => {
 };
 
 export default AppLogin;
+

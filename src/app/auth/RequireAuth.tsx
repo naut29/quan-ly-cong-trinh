@@ -7,7 +7,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
   children,
   allowInactive = false,
 }) => {
-  const { isAuthenticated, currentOrgId, loadingSession, loadingMembership } = useAuth();
+  const { isAuthenticated, currentOrgId, loadingSession } = useAuth();
   const [activeLoading, setActiveLoading] = useState(true);
   const [isActive, setIsActive] = useState(true);
 
@@ -15,7 +15,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     let mounted = true;
     const client = supabase;
 
-    if (!client || !currentOrgId || !isAuthenticated || loadingSession || loadingMembership) {
+    if (!client || !currentOrgId || !isAuthenticated || loadingSession) {
       setIsActive(true);
       setActiveLoading(false);
       return () => {
@@ -27,9 +27,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
       setActiveLoading(true);
 
       const timeoutMs = 8000;
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("rpc_timeout")), timeoutMs)
-      );
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("rpc_timeout")), timeoutMs));
 
       try {
         const rpcCall = client.rpc("is_org_active", { org_id: currentOrgId });
@@ -38,25 +36,25 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
         if (!mounted) return;
 
         if (error) {
-          setIsActive(true); // fail-open
+          setIsActive(true);
         } else {
           setIsActive(Boolean(data));
         }
-      } catch (e) {
+      } catch {
         if (!mounted) return;
-        setIsActive(true); // fail-open
+        setIsActive(true);
       } finally {
         if (!mounted) return;
         setActiveLoading(false);
       }
     };
 
-    loadStatus();
+    void loadStatus();
 
     return () => {
       mounted = false;
     };
-  }, [currentOrgId, isAuthenticated, loadingSession, loadingMembership]);
+  }, [currentOrgId, isAuthenticated, loadingSession]);
 
   if (!hasSupabaseEnv) {
     return (
@@ -71,10 +69,10 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     );
   }
 
-  if (loadingSession || loadingMembership) {
+  if (loadingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+        <p className="text-muted-foreground">Loading session...</p>
       </div>
     );
   }
@@ -83,14 +81,10 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
     return <Navigate to="/app/login" replace />;
   }
 
-  if (!currentOrgId) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
   if (activeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Đang kiểm tra trạng thái...</p>
+        <p className="text-muted-foreground">Checking organization state...</p>
       </div>
     );
   }
@@ -98,7 +92,6 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
   if (!allowInactive && !isActive) {
     return <Navigate to="/billing" replace />;
   }
-
 
   return <>{children}</>;
 };

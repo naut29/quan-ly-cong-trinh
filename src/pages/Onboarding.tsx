@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { getLastPath } from "@/lib/lastPath";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,75 +25,30 @@ const toSlug = (value: string) => {
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { currentOrgId, loadingMembership, loadingSession, setCurrentOrgId, setCurrentRole } = useAuth();
+  const { setOrgMembership } = useAuth();
   const [companyName, setCompanyName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const suggestedSlug = useMemo(() => toSlug(companyName), [companyName]);
-
-  useEffect(() => {
-    let isActive = true;
-    const client = supabase;
-
-    if (!client) {
-      setLoading(false);
-      return () => {
-        isActive = false;
-      };
-    }
-
-    const load = async () => {
-      setLoading(true);
-      const { data: userData } = await client.auth.getUser();
-      if (!isActive) return;
-
-      const user = userData.user;
-      if (!user) {
-        navigate("/app/login", { replace: true });
-        return;
-      }
-
-      if (!isActive) return;
-      if (loadingSession || loadingMembership) {
-        setLoading(true);
-        return;
-      }
-      if (currentOrgId) {
-        navigate("/app/dashboard", { replace: true });
-        return;
-      }
-
-      setLoading(false);
-    };
-
-    load();
-
-    return () => {
-      isActive = false;
-    };
-  }, [navigate, currentOrgId, loadingMembership, loadingSession]);
-
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
     if (!companyName.trim()) {
-      setError("Vui lòng nhập tên công ty.");
+      setError("Please enter company name.");
       return;
     }
 
     if (!supabase) {
-      setError("Thiếu cấu hình Supabase.");
+      setError("Missing Supabase configuration.");
       return;
     }
 
     const slug = suggestedSlug;
     if (!slug) {
-      setError("Không thể tạo slug từ tên công ty.");
+      setError("Cannot create slug from company name.");
       return;
     }
 
@@ -112,7 +68,7 @@ const Onboarding: React.FC = () => {
         (Array.isArray(orgData) ? (orgData[0] as { id?: string } | undefined)?.id : undefined);
 
       if (!orgId) {
-        throw new Error("Không lấy được thông tin tổ chức.");
+        throw new Error("Cannot resolve organization id after onboarding.");
       }
 
       const { error: subscriptionError } = await supabase.rpc("ensure_org_subscription", {
@@ -123,40 +79,24 @@ const Onboarding: React.FC = () => {
         throw subscriptionError;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const userId = user?.id ?? "";
+      setOrgMembership({ orgId, role: "owner" });
 
-      setCurrentOrgId(orgId);
-      setCurrentRole("owner");
-      navigate("/select-plan", { replace: true });
+      // Helpful flag only; org_members remains source of truth.
+      void supabase.auth.updateUser({
+        data: {
+          onboarding_completed: true,
+        },
+      });
 
-      // Non-blocking membership refresh with retries
-      (async () => {
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-          const { data: membership, error } = await supabase.rpc("get_my_membership_for_org", {
-            p_org_id: orgId,
-          });
-
-          if (error) {
-            console.warn("Membership refresh failed", {
-              message: error.message,
-              details: error.details,
-              code: error.code,
-            });
-          }
-
-          if (membership && membership.length > 0) {
-            setCurrentRole(membership[0]?.role ?? "owner");
-            return;
-          }
-
-          await wait(300);
-        }
-      })();
-    } catch (err: any) {
-      setError(err?.message ?? "Có lỗi xảy ra, vui lòng thử lại.");
+      navigate(getLastPath("/app/dashboard"), { replace: true });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err && "message" in err
+            ? String((err as { message?: unknown }).message ?? "Onboarding failed")
+            : "Onboarding failed";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -175,34 +115,24 @@ const Onboarding: React.FC = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Tạo công ty</CardTitle>
-          <CardDescription>
-            Nhập tên công ty để bắt đầu sử dụng ứng dụng.
-          </CardDescription>
+          <CardTitle>Create company</CardTitle>
+          <CardDescription>Enter your company name to start using the app.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="companyName">Tên công ty</Label>
+              <Label htmlFor="companyName">Company name</Label>
               <Input
                 id="companyName"
                 type="text"
                 required
                 value={companyName}
                 onChange={(event) => setCompanyName(event.target.value)}
-                placeholder="Ví dụ: Công ty ABC"
+                placeholder="Example: ABC Construction"
               />
               {companyName && (
                 <p className="text-xs text-muted-foreground">
@@ -218,7 +148,7 @@ const Onboarding: React.FC = () => {
             )}
 
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Đang tạo..." : "Tạo công ty"}
+              {submitting ? "Creating company..." : "Create company"}
             </Button>
           </form>
         </CardContent>

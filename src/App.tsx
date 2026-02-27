@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/app/context/CompanyContext";
-import RequireAuth from "@/app/auth/RequireAuth";
+import RequireNoOrg from "@/app/auth/RequireNoOrg";
+import RequireOrg from "@/app/auth/RequireOrg";
 import RequireRole from "@/app/auth/RequireRole";
 
 import PublicLayout from "@/components/layout/PublicLayout";
@@ -83,11 +84,11 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppProtectedLayout = () => (
-  <RequireAuth>
+  <RequireOrg>
     <CompanyProvider>
       <AppLayoutApp />
     </CompanyProvider>
-  </RequireAuth>
+  </RequireOrg>
 );
 
 const App = () => (
@@ -106,13 +107,20 @@ const App = () => (
             </Route>
 
             <Route element={<AuthLayout />}>
-              <Route path="/onboarding" element={<Onboarding />} />
+              <Route
+                path="/onboarding"
+                element={
+                  <RequireNoOrg>
+                    <Onboarding />
+                  </RequireNoOrg>
+                }
+              />
               <Route
                 path="/select-plan"
                 element={
-                  <RequireAuth>
+                  <RequireOrg>
                     <SelectPlan />
-                  </RequireAuth>
+                  </RequireOrg>
                 }
               />
             </Route>
@@ -120,41 +128,41 @@ const App = () => (
             <Route
               path="/dashboard"
               element={
-                <RequireAuth>
+                <RequireOrg>
                   <LegacyDashboard />
-                </RequireAuth>
+                </RequireOrg>
               }
             />
             <Route
               path="/projects"
               element={
-                <RequireAuth>
+                <RequireOrg>
                   <LegacyProjects />
-                </RequireAuth>
+                </RequireOrg>
               }
             />
             <Route
               path="/projects/:id"
               element={
-                <RequireAuth>
+                <RequireOrg>
                   <LegacyProjectDetail />
-                </RequireAuth>
+                </RequireOrg>
               }
             />
             <Route
               path="/members"
               element={
-                <RequireAuth>
+                <RequireOrg>
                   <LegacyMembers />
-                </RequireAuth>
+                </RequireOrg>
               }
             />
             <Route
               path="/billing"
               element={
-                <RequireAuth allowInactive>
+                <RequireOrg allowInactive>
                   <LegacyBilling />
-                </RequireAuth>
+                </RequireOrg>
               }
             />
 

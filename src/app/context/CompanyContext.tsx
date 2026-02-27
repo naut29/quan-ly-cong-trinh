@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { useSession } from "@/app/session/useSession";
 import { isDemoPath } from "@/lib/appMode";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CompanyContextValue {
   companyId: string | null;
@@ -14,7 +14,7 @@ interface CompanyContextValue {
 const CompanyContext = createContext<CompanyContextValue | undefined>(undefined);
 
 export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { orgId, orgRole, loading: sessionLoading } = useSession();
+  const { currentOrgId, currentRole, loadingSession, loadingMembership } = useAuth();
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [loadingCompany, setLoadingCompany] = useState(true);
 
@@ -23,7 +23,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const client = supabase;
 
     const loadCompany = async () => {
-      if (!orgId) {
+      if (!currentOrgId) {
         setCompanyName(null);
         setLoadingCompany(false);
         return;
@@ -39,7 +39,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const { data, error } = await client
         .from("organizations")
         .select("id, name")
-        .eq("id", orgId)
+        .eq("id", currentOrgId)
         .single();
 
       if (!isActive) return;
@@ -56,16 +56,16 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       isActive = false;
     };
-  }, [orgId]);
+  }, [currentOrgId]);
 
   const value = useMemo<CompanyContextValue>(
     () => ({
-      companyId: orgId ?? null,
+      companyId: currentOrgId ?? null,
       companyName,
-      role: orgRole ?? null,
-      loading: sessionLoading || loadingCompany,
+      role: currentRole ?? null,
+      loading: loadingSession || loadingMembership || loadingCompany,
     }),
-    [orgId, orgRole, companyName, sessionLoading, loadingCompany]
+    [currentOrgId, currentRole, companyName, loadingSession, loadingMembership, loadingCompany]
   );
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
