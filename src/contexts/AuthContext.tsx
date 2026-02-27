@@ -27,6 +27,25 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const SESSION_TIMEOUT_MS = 8000;
+const MEMBERSHIP_TIMEOUT_MS = 8000;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
@@ -40,24 +59,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingMembership, setLoadingMembership] = useState(false);
 
   const loadMembership = useCallback(async () => {
-    if (!supabase) {
-      setCurrentOrgId(null);
-      setCurrentRole(null);
-      setLoadingMembership(false);
-      return;
-    }
-
     setLoadingMembership(true);
-    const { data, error } = await supabase.rpc('get_my_membership');
 
-    if (error || !data || data.length === 0) {
-      setCurrentOrgId(null);
-      setCurrentRole(null);
-    } else {
+    try {
+      if (!supabase) {
+        setCurrentOrgId(null);
+        setCurrentRole(null);
+        return;
+      }
+
+      const { data, error } = await withTimeout(
+        supabase.rpc('get_my_membership'),
+        MEMBERSHIP_TIMEOUT_MS,
+        'membership_timeout',
+      );
+
+      if (error || !Array.isArray(data) || data.length === 0) {
+        setCurrentOrgId(null);
+        setCurrentRole(null);
+        return;
+      }
+
       setCurrentOrgId(data[0]?.org_id ?? null);
       setCurrentRole(data[0]?.role ?? null);
+    } catch {
+      setCurrentOrgId(null);
+      setCurrentRole(null);
+    } finally {
+      setLoadingMembership(false);
     }
-    setLoadingMembership(false);
   }, []);
 
   const mapSupabaseUser = useCallback((email?: string | null) => {
@@ -100,22 +130,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const initSupabaseSession = async () => {
-      setLoadingSession(true);
-      const { data } = await getSession();
-      const mappedUser = mapSupabaseUser(data.session?.user.email);
       if (isActive) {
+        setLoadingSession(true);
+      }
+
+      try {
+        const { data } = await withTimeout(getSession(), SESSION_TIMEOUT_MS, 'session_timeout');
+        if (!isActive) return;
+
+        setCurrentOrgId(null);
+        setCurrentRole(null);
+        const mappedUser = mapSupabaseUser(data.session?.user.email);
         setUser(mappedUser);
         setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
-      }
-      if (data.session?.user?.id) {
-        await loadMembership();
-        if (isActive) {
-          setLoadingSession(false);
+
+        if (data.session?.user?.id) {
+          await loadMembership();
+          return;
         }
-      } else {
+
+        setLoadingMembership(false);
+      } catch {
+        if (!isActive) return;
+        setUser(null);
+        setCurrentTenantId(null);
         setCurrentOrgId(null);
         setCurrentRole(null);
         setLoadingMembership(false);
+      } finally {
         if (isActive) {
           setLoadingSession(false);
         }
@@ -143,22 +185,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    initSupabaseSession();
+    void initSupabaseSession();
     const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       if (!isActive) return;
+
       setLoadingSession(true);
-      const mappedUser = mapSupabaseUser(session?.user.email);
-      setUser(mappedUser);
-      setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
-      if (session?.user?.id) {
-        await loadMembership();
-        if (isActive) {
-          setLoadingSession(false);
+
+      try {
+        const mappedUser = mapSupabaseUser(session?.user.email);
+        setUser(mappedUser);
+        setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
+
+        if (session?.user?.id) {
+          await loadMembership();
+          return;
         }
-      } else {
+
         setCurrentOrgId(null);
         setCurrentRole(null);
         setLoadingMembership(false);
+      } catch {
+        if (isActive) {
+          setUser(null);
+          setCurrentTenantId(null);
+          setCurrentOrgId(null);
+          setCurrentRole(null);
+          setLoadingMembership(false);
+        }
+      } finally {
         if (isActive) {
           setLoadingSession(false);
         }
@@ -169,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isActive = false;
       subscription?.unsubscribe();
     };
-  }, [isDemo, isApp, mapSupabaseUser]);
+  }, [hasSupabaseEnv, isDemo, isApp, loadMembership, mapSupabaseUser]);
 
   const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
     if (isDemo) {
@@ -192,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
     await loadMembership();
     return true;
-  }, [isDemo, mapSupabaseUser, loadMembership]);
+  }, [hasSupabaseEnv, isDemo, isApp, mapSupabaseUser, loadMembership]);
 
   const loginAs = useCallback((userId: string) => {
     if (!isDemo) return;
@@ -215,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentOrgId(null);
     setCurrentRole(null);
     setLoadingMembership(false);
-  }, [isDemo, isApp]);
+  }, [hasSupabaseEnv, isDemo, isApp]);
 
   const hasPermission = useCallback((module: string, action: 'view' | 'edit' | 'approve'): boolean => {
     if (!user) return false;
