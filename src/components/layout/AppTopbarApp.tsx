@@ -30,7 +30,8 @@ import { cn } from '@/lib/utils';
 import { getAppBasePath } from '@/lib/appMode';
 import { useSession } from '@/app/session/useSession';
 import { useCompany } from '@/app/context/CompanyContext';
-import { createSupabaseRepo } from '@/data/supabaseRepo';
+import { listProjectsByOrg } from '@/lib/api/projects';
+import { logActivity } from '@/lib/api/activity';
 import type { Project } from '@/data/repo';
 import { signOut } from '@/auth/supabaseAuth';
 
@@ -48,8 +49,7 @@ const AppTopbarApp: React.FC = () => {
       setProjects([]);
       return;
     }
-    const repo = createSupabaseRepo(companyId);
-    repo.listProjects()
+    listProjectsByOrg(companyId)
       .then((data) => {
         if (isActive) setProjects(data);
       })
@@ -61,8 +61,23 @@ const AppTopbarApp: React.FC = () => {
     };
   }, [companyId]);
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = async () => {
+    if (companyId && user?.id) {
+      try {
+        await logActivity({
+          orgId: companyId,
+          actorUserId: user.id,
+          module: 'auth',
+          action: 'logout',
+          description: `User ${user.email ?? user.id} dang xuat`,
+          status: 'success',
+        });
+      } catch {
+        // Ignore logging errors on logout.
+      }
+    }
+
+    await signOut();
     navigate(`${basePath}/login`);
   };
 

@@ -1,71 +1,47 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabaseClient";
 import { isDemoPath } from "@/lib/appMode";
-import { useAuth } from "@/contexts/AuthContext";
+import { useOrgContext } from "@/app/context/useOrgContext";
 
 interface CompanyContextValue {
   companyId: string | null;
   companyName: string | null;
   role: string | null;
   loading: boolean;
+  organizations: Array<{ orgId: string; orgName: string | null; role: string | null }>;
+  switchCompany: (orgId: string) => void;
+  refreshCompanyContext: () => Promise<void>;
+  error: string | null;
 }
 
 const CompanyContext = createContext<CompanyContextValue | undefined>(undefined);
 
 export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentOrgId, currentRole, loadingSession, loadingMembership } = useAuth();
-  const [companyName, setCompanyName] = useState<string | null>(null);
-  const [loadingCompany, setLoadingCompany] = useState(true);
-
-  useEffect(() => {
-    let isActive = true;
-    const client = supabase;
-
-    const loadCompany = async () => {
-      if (!currentOrgId) {
-        setCompanyName(null);
-        setLoadingCompany(false);
-        return;
-      }
-
-      if (!client) {
-        setCompanyName(null);
-        setLoadingCompany(false);
-        return;
-      }
-
-      setLoadingCompany(true);
-      const { data, error } = await client
-        .from("organizations")
-        .select("id, name")
-        .eq("id", currentOrgId)
-        .single();
-
-      if (!isActive) return;
-      if (error) {
-        setCompanyName(null);
-      } else {
-        setCompanyName(data?.name ?? null);
-      }
-      setLoadingCompany(false);
-    };
-
-    loadCompany();
-
-    return () => {
-      isActive = false;
-    };
-  }, [currentOrgId]);
+  const {
+    currentOrgId,
+    currentRole,
+    currentOrgName,
+    organizations,
+    loading,
+    error,
+    switchOrganization,
+    reload,
+  } = useOrgContext();
 
   const value = useMemo<CompanyContextValue>(
     () => ({
       companyId: currentOrgId ?? null,
-      companyName,
+      companyName: currentOrgName,
       role: currentRole ?? null,
-      loading: loadingSession || loadingMembership || loadingCompany,
+      loading,
+      organizations,
+      switchCompany: switchOrganization,
+      refreshCompanyContext: async () => {
+        await reload();
+      },
+      error,
     }),
-    [currentOrgId, currentRole, companyName, loadingSession, loadingMembership, loadingCompany]
+    [currentOrgId, currentOrgName, currentRole, error, loading, organizations, reload, switchOrganization],
   );
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
@@ -82,6 +58,10 @@ export const useCompany = () => {
         companyName: "Demo",
         role: null,
         loading: false,
+        organizations: [],
+        switchCompany: () => {},
+        refreshCompanyContext: async () => {},
+        error: null,
       };
     }
 

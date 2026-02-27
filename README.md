@@ -74,6 +74,24 @@ Set these environment variables in Cloudflare Pages:
 Cloudflare Pages dashboard path:
 `Workers & Pages` -> `<your-project>` -> `Settings` -> `Environment variables`.
 
+## Environment variables (Supabase + Demo mode)
+
+Client-side variables for Vite (set in Cloudflare Pages for both `Production` and `Preview`):
+
+- `VITE_SUPABASE_URL` (required)
+- `VITE_SUPABASE_ANON_KEY` (required)
+- `VITE_DEMO_MODE` (optional, default `false` in production; set `true` only for explicit demo build)
+
+Server-side variables (never expose to browser):
+
+- `SUPABASE_SERVICE_ROLE_KEY` (only for server/edge functions, not in Vite client env)
+
+CI/CD (GitHub Actions secrets):
+
+- `SUPABASE_ACCESS_TOKEN` (required for `supabase db push` in CI)
+- `SUPABASE_PROJECT_REF` (recommended)
+- `SUPABASE_DB_PASSWORD` (if your workflow requires database password auth)
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.

@@ -6,14 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { signInWithPassword } from '@/auth/supabaseAuth';
-import { hasSupabaseEnv } from '@/lib/supabaseClient';
+import { hasSupabaseEnv, supabase } from '@/lib/supabaseClient';
 import { getLastPath } from '@/lib/lastPath';
+import { logActivity } from '@/lib/api/activity';
+import { isDemoModeEnabled } from '@/lib/appMode';
 
 const AppLogin: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const next = params.get("next");
+  const demoModeEnabled = isDemoModeEnabled();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,8 +31,34 @@ const AppLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error: signInError } = await signInWithPassword(email, password);
+      const { data, error: signInError } = await signInWithPassword(email, password);
       if (!signInError) {
+        const userId = data?.user?.id ?? null;
+        if (supabase && userId) {
+          try {
+            const { data: membership } = await supabase
+              .from('org_members')
+              .select('org_id')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: true })
+              .limit(1)
+              .maybeSingle();
+
+            if (membership?.org_id) {
+              await logActivity({
+                orgId: membership.org_id,
+                actorUserId: userId,
+                module: 'auth',
+                action: 'login',
+                description: `User ${email} dang nhap`,
+                status: 'success',
+              });
+            }
+          } catch {
+            // Ignore activity log errors in login flow.
+          }
+        }
+
         navigate(next || getLastPath('/app/dashboard'), { replace: true });
       } else {
         setError(signInError.message || 'Email hoặc mật khẩu không đúng');
@@ -180,12 +209,14 @@ const AppLogin: React.FC = () => {
             </Button>
           </form>
 
-          <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
-            <span>Muốn xem thử?</span>
-            <Link to="/demo/login" className="text-primary font-medium hover:underline">
-              View demo
-            </Link>
-          </div>
+          {demoModeEnabled && (
+            <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Muốn xem thử?</span>
+              <Link to="/demo/login" className="text-primary font-medium hover:underline">
+                View demo
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

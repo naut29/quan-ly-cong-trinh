@@ -77,7 +77,7 @@ const AppSidebarApp: React.FC = () => {
     { to: `${basePath}/admin/company`, icon: Building2, label: 'Công ty' },
     { to: `${basePath}/admin/users`, icon: Users, label: 'Người dùng' },
     { to: `${basePath}/admin/roles`, icon: Shield, label: 'Vai trò & Quyền' },
-    { to: `${basePath}/admin/audit-log`, icon: Activity, label: 'Nhật ký hoạt động' },
+    { to: `${basePath}/admin/activity`, icon: Activity, label: 'Nhật ký hoạt động' },
     { to: `${basePath}/admin/integrations`, icon: Plug, label: 'Tích hợp' },
     { to: `${basePath}/admin/billing`, icon: Receipt, label: 'Thanh toán' },
   ];
