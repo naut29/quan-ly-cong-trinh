@@ -241,7 +241,7 @@ const AdminUsers: React.FC = () => {
         orgId: companyId,
         module: 'users',
         action: 'update',
-        description: `Doi role thanh vien ${member.email ?? member.user_id} -> ${role}`,
+        description: `Đổi vai trò thành viên ${member.email ?? member.user_id} -> ${role}`,
         status: 'success',
       });
       await loadData();
@@ -259,7 +259,7 @@ const AdminUsers: React.FC = () => {
         orgId: companyId,
         module: 'users',
         action: 'update',
-        description: `Doi trang thai thanh vien ${member.email ?? member.user_id} -> ${status}`,
+        description: `Đổi trạng thái thành viên ${member.email ?? member.user_id} -> ${status}`,
         status: 'success',
       });
       await loadData();
@@ -322,7 +322,7 @@ const AdminUsers: React.FC = () => {
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Them người dùng moi</DialogTitle>
+                <DialogTitle>Thêm người dùng mới</DialogTitle>
                 <DialogDescription>
                   Nhập email người dùng đã tồn tại trong hệ thống để thêm vào công ty.
                 </DialogDescription>
@@ -357,7 +357,7 @@ const AdminUsers: React.FC = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Trang thai</Label>
+                    <Label>Trạng thái</Label>
                     <Select value={addStatus} onValueChange={setAddStatus}>
                       <SelectTrigger>
                         <SelectValue />
@@ -450,7 +450,7 @@ const AdminUsers: React.FC = () => {
               <tr>
                 <th>Người dùng</th>
                 <th>Vai trò</th>
-                <th>Trang thai</th>
+                <th>Trạng thái</th>
                 <th>Dự án phân công</th>
                 <th></th>
               </tr>
