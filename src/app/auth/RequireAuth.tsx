@@ -12,35 +12,51 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
-    let isActiveFlag = true;
+    let mounted = true;
     const client = supabase;
 
-  if (!client || !currentOrgId || !isAuthenticated || loadingSession || loadingMembership) {
+    if (!client || !currentOrgId || !isAuthenticated || loadingSession || loadingMembership) {
       setIsActive(true);
       setActiveLoading(false);
       return () => {
-        isActiveFlag = false;
+        mounted = false;
       };
     }
 
     const loadStatus = async () => {
       setActiveLoading(true);
-      const { data, error } = await client.rpc("is_org_active", { org_id: currentOrgId });
-      if (!isActiveFlag) return;
-      if (error) {
-        setIsActive(true);
-      } else {
-        setIsActive(Boolean(data));
+
+      const timeoutMs = 8000;
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("rpc_timeout")), timeoutMs)
+      );
+
+      try {
+        const rpcCall = client.rpc("is_org_active", { org_id: currentOrgId });
+        const { data, error } = await Promise.race([rpcCall, timeout]);
+
+        if (!mounted) return;
+
+        if (error) {
+          setIsActive(true); // fail-open
+        } else {
+          setIsActive(Boolean(data));
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setIsActive(true); // fail-open
+      } finally {
+        if (!mounted) return;
+        setActiveLoading(false);
       }
-      setActiveLoading(false);
     };
 
     loadStatus();
 
     return () => {
-      isActiveFlag = false;
+      mounted = false;
     };
-  }, [currentOrgId, isAuthenticated]);
+  }, [currentOrgId, isAuthenticated, loadingSession, loadingMembership]);
 
   if (!hasSupabaseEnv) {
     return (
