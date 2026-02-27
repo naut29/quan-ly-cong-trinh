@@ -205,7 +205,7 @@ const AdminAuditLog: React.FC = () => {
             <SelectItem value="all">Tất cả hành động</SelectItem>
             <SelectItem value="login">Đăng nhập</SelectItem>
             <SelectItem value="logout">Đăng xuất</SelectItem>
-            <SelectItem value="create">Tao moi</SelectItem>
+            <SelectItem value="create">Tạo mới</SelectItem>
             <SelectItem value="update">Cập nhật</SelectItem>
             <SelectItem value="delete">Xóa</SelectItem>
             <SelectItem value="view">Xem</SelectItem>
@@ -232,13 +232,13 @@ const AdminAuditLog: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[180px]">Thoi gian</TableHead>
+                <TableHead className="w-[180px]">Thời gian</TableHead>
                 <TableHead>Người dùng</TableHead>
-                <TableHead>Hanh dong</TableHead>
+                <TableHead>Hành động</TableHead>
                 <TableHead>Module</TableHead>
-                <TableHead>Mo ta</TableHead>
+                <TableHead>Mô tả</TableHead>
                 <TableHead>IP</TableHead>
-                <TableHead>Trang thai</TableHead>
+                <TableHead>Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
