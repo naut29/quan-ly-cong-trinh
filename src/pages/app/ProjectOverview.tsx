@@ -30,6 +30,7 @@ import type { Project } from '@/data/repo';
 import { cn } from '@/lib/utils';
 import { getAppBasePath } from '@/lib/appMode';
 import { useProjectIdParam } from '@/lib/projectRoutes';
+import UploadWidget from '@/components/projects/UploadWidget';
 
 const ProjectOverview: React.FC = () => {
   const id = useProjectIdParam();
@@ -318,6 +319,9 @@ const ProjectOverview: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Project files */}
+        <UploadWidget projectId={id} />
 
         {/* Quick Links */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
