@@ -145,13 +145,13 @@ const Materials: React.FC = () => {
   const ensureExportAllowed = (estimatedDownloadGb: number) => {
     const exportGate = canExport(limits, usage);
     if (!exportGate.allowed) {
-      openUpgrade('xuat du lieu', exportGate.reason ?? 'Da dat gioi han xuat du lieu/ngay.');
+      openUpgrade('xuất dữ liệu', exportGate.reason ?? 'Đã đạt giới hạn xuất dữ liệu/ngày.');
       return false;
     }
 
     const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
     if (!downloadGate.allowed) {
-      openUpgrade('tai xuong', downloadGate.reason ?? 'Da dat gioi han bang thong tai xuong/thang.');
+      openUpgrade('tải xuống', downloadGate.reason ?? 'Đã đạt giới hạn băng thông tải xuống/tháng.');
       return false;
     }
 
@@ -161,7 +161,7 @@ const Materials: React.FC = () => {
   const ensureApprovalAllowed = () => {
     const approvalGate = canUseApproval(limits);
     if (!approvalGate.allowed) {
-      openUpgrade('phe duyet', approvalGate.reason ?? 'Tinh nang phe duyet khong co trong goi hien tai.');
+      openUpgrade('phê duyệt', approvalGate.reason ?? 'Tính năng phê duyệt không có trong gói hiện tại.');
       return false;
     }
     return true;

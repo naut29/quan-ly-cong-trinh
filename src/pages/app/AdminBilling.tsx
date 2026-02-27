@@ -56,7 +56,7 @@ const planCatalog = [
     users: 10,
     projects: 10,
     storage: 30,
-    features: ['10 thanh vien', '10 du an dang hoat dong', '30GB luu tru', 'Ho tro email'],
+    features: ['10 thành viên', '10 dự án đang hoạt động', '30GB lưu trữ', 'Hỗ trợ email'],
   },
   {
     code: 'pro',
@@ -65,7 +65,7 @@ const planCatalog = [
     users: 50,
     projects: 50,
     storage: 300,
-    features: ['50 thanh vien', '50 du an dang hoat dong', '300GB luu tru', 'Ho tro uu tien'],
+    features: ['50 thành viên', '50 dự án đang hoạt động', '300GB lưu trữ', 'Hỗ trợ ưu tiên'],
   },
   {
     code: 'enterprise',
@@ -74,14 +74,14 @@ const planCatalog = [
     users: null,
     projects: null,
     storage: 500,
-    features: ['Khong gioi han thanh vien', 'Khong gioi han du an', '500GB+ luu tru', 'SLA support'],
+    features: ['Không giới hạn thành viên', 'Không giới hạn dự án', '500GB+ lưu trữ', 'SLA support'],
   },
 ];
 
 const mapInvoiceStatus = (status: string) => {
-  if (status === 'paid') return <StatusBadge status="success">Da thanh toan</StatusBadge>;
-  if (status === 'pending') return <StatusBadge status="warning">Cho thanh toan</StatusBadge>;
-  if (status === 'overdue') return <StatusBadge status="danger">Qua han</StatusBadge>;
+  if (status === 'paid') return <StatusBadge status="success">Đã thanh toán</StatusBadge>;
+  if (status === 'pending') return <StatusBadge status="warning">Chờ thanh toán</StatusBadge>;
+  if (status === 'overdue') return <StatusBadge status="danger">Quá hạn</StatusBadge>;
   return <StatusBadge status="neutral">{status}</StatusBadge>;
 };
 
@@ -107,7 +107,7 @@ const AdminBilling: React.FC = () => {
   const loadData = async () => {
     if (!companyId) {
       setLoading(false);
-      setError('Chua co to chuc.');
+      setError('Chưa có tổ chức.');
       return;
     }
 
@@ -174,15 +174,15 @@ const AdminBilling: React.FC = () => {
         orgId: companyId,
         module: 'billing',
         action: 'update',
-        description: `Cap nhat goi dich vu -> ${planCode}`,
+        description: `Cập nhật gói dịch vụ -> ${planCode}`,
         status: 'success',
       });
 
       setSubscription(next);
-      toast({ title: 'Cap nhat goi dich vu thanh cong' });
+      toast({ title: 'Cập nhật gói dịch vụ thành công' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Khong the cap nhat goi';
-      toast({ title: 'Cap nhat goi that bai', description: message, variant: 'destructive' });
+      const message = err instanceof Error ? err.message : 'Không thể cập nhật gói';
+      toast({ title: 'Cập nhật gói thất bại', description: message, variant: 'destructive' });
     } finally {
       setUpdatingPlan(null);
     }
@@ -191,7 +191,7 @@ const AdminBilling: React.FC = () => {
   const handleSavePaymentMethod = async () => {
     if (!companyId) return;
     if (newLast4.trim().length !== 4) {
-      toast({ title: 'Last4 khong hop le', variant: 'destructive' });
+      toast({ title: 'Last4 không hợp lệ', variant: 'destructive' });
       return;
     }
 
@@ -208,17 +208,17 @@ const AdminBilling: React.FC = () => {
         orgId: companyId,
         module: 'billing',
         action: 'create',
-        description: `Them phuong thuc thanh toan ${newBrand.toUpperCase()} ****${newLast4}`,
+        description: `Thêm phương thức thanh toán ${newBrand.toUpperCase()} ****${newLast4}`,
         status: 'success',
       });
 
-      toast({ title: 'Da luu phuong thuc thanh toan' });
+      toast({ title: 'Đã lưu phương thức thanh toán' });
       setPaymentDialogOpen(false);
       setNewLast4('');
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Khong the luu phuong thuc thanh toan';
-      toast({ title: 'Luu that bai', description: message, variant: 'destructive' });
+      const message = err instanceof Error ? err.message : 'Không thể lưu phương thức thanh toán';
+      toast({ title: 'Lưu thất bại', description: message, variant: 'destructive' });
     } finally {
       setSavingMethod(false);
     }
@@ -227,7 +227,7 @@ const AdminBilling: React.FC = () => {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-muted-foreground">Dang tai du lieu billing...</p>
+        <p className="text-muted-foreground">Đang tải dữ liệu thanh toán...</p>
       </div>
     );
   }
@@ -236,8 +236,8 @@ const AdminBilling: React.FC = () => {
     <div className="p-6 space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Thanh toan & Goi dich vu</h1>
-          <p className="text-muted-foreground">Du lieu lay truc tiep tu bang subscriptions, invoices, payment_methods</p>
+          <h1 className="text-2xl font-bold text-foreground">Thanh toán & Gói dịch vụ</h1>
+          <p className="text-muted-foreground">Quản lý gói dịch vụ và thanh toán của bạn </p>
         </div>
       </div>
 
@@ -268,10 +268,10 @@ const AdminBilling: React.FC = () => {
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  Nguoi dung
+                  Người dùng
                 </span>
                 <span className="font-medium">
-                  {stats.membersCount} / {currentPlan.users ?? 'Khong gioi han'}
+                  {stats.membersCount} / {currentPlan.users ?? 'Không giới hạn'}
                 </span>
               </div>
               <Progress
@@ -283,10 +283,10 @@ const AdminBilling: React.FC = () => {
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
-                  Du an
+                  Dự án
                 </span>
                 <span className="font-medium">
-                  {stats.projectsCount} / {currentPlan.projects ?? 'Khong gioi han'}
+                  {stats.projectsCount} / {currentPlan.projects ?? 'Không giới hạn'}
                 </span>
               </div>
               <Progress
@@ -311,7 +311,7 @@ const AdminBilling: React.FC = () => {
           <Separator />
 
           <div>
-            <h4 className="font-medium mb-3">Tinh nang bao gom:</h4>
+            <h4 className="font-medium mb-3">Tính năng bao gồm:</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {currentPlan.features.map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm">
@@ -325,7 +325,7 @@ const AdminBilling: React.FC = () => {
       </Card>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Cac goi dich vu</h2>
+        <h2 className="text-lg font-semibold">Các gói dịch vụ</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {planCatalog.map((plan) => (
             <Card key={plan.code} className={plan.code === currentPlan.code ? 'border-primary' : ''}>
@@ -341,9 +341,9 @@ const AdminBilling: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm">
-                  <p>{plan.users ? `${plan.users} nguoi dung` : 'Nguoi dung khong gioi han'}</p>
-                  <p>{plan.projects ? `${plan.projects} du an` : 'Du an khong gioi han'}</p>
-                  <p>{plan.storage} GB luu tru</p>
+                  <p>{plan.users ? `${plan.users} người dùng` : 'Người dùng không giới hạn'}</p>
+                  <p>{plan.projects ? `${plan.projects} dự án` : 'Dự án không giới hạn'}</p>
+                  <p>{plan.storage} GB lưu trữ</p>
                 </div>
                 <Button
                   variant={plan.code === currentPlan.code ? 'secondary' : 'default'}
@@ -354,8 +354,8 @@ const AdminBilling: React.FC = () => {
                   {plan.code === currentPlan.code
                     ? 'Goi hien tai'
                     : updatingPlan === plan.code
-                      ? 'Dang cap nhat...'
-                      : 'Chon goi nay'}
+                      ? 'Đang cập nhật...'
+                      : 'Chọn gói này'}
                 </Button>
               </CardContent>
             </Card>
@@ -372,7 +372,7 @@ const AdminBilling: React.FC = () => {
             </CardTitle>
             <Button variant="outline" size="sm" disabled>
               <Download className="h-4 w-4 mr-2" />
-              Xuat tat ca
+              Xuất tất cả
             </Button>
           </div>
         </CardHeader>
@@ -390,7 +390,7 @@ const AdminBilling: React.FC = () => {
               {invoices.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Chua co hoa don trong DB.
+                    Chưa có hóa đơn trong thanh toán.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -415,17 +415,17 @@ const AdminBilling: React.FC = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Phuong thuc thanh toan
+              Phương thức thanh toán
             </CardTitle>
             <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">Them phuong thuc</Button>
+                <Button variant="outline" size="sm">Thêm phương thức</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Them phuong thuc thanh toan (stub)</DialogTitle>
+                  <DialogTitle>Thêm phương thức thanh toán (stub)</DialogTitle>
                   <DialogDescription>
-                    Chua ket noi payment gateway. Form nay van luu vao DB that de quan ly metadata.
+                    Chưa kết nối hình thức thanh toán nào. Form này vẫn lưu vào để quản lý metadata.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -455,7 +455,7 @@ const AdminBilling: React.FC = () => {
                     Huy
                   </Button>
                   <Button onClick={handleSavePaymentMethod} disabled={savingMethod}>
-                    {savingMethod ? 'Dang luu...' : 'Luu'}
+                    {savingMethod ? 'Đang lưu...' : 'Lưu'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -464,7 +464,7 @@ const AdminBilling: React.FC = () => {
         </CardHeader>
         <CardContent>
           {paymentMethods.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Chua co payment method nao trong DB.</p>
+            <p className="text-sm text-muted-foreground">Chưa có hình thức thanh toán nào.</p>
           ) : (
             <div className="space-y-3">
               {paymentMethods.map((method) => (

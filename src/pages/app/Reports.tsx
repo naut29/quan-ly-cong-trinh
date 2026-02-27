@@ -176,13 +176,13 @@ const Reports: React.FC = () => {
   const ensureExportAllowed = (estimatedDownloadGb: number) => {
     const exportGate = canExport(limits, usage);
     if (!exportGate.allowed) {
-      openUpgrade(exportGate.reason ?? 'Da dat gioi han xuat du lieu/ngay.');
+      openUpgrade(exportGate.reason ?? 'Đã đạt giới hạn xuất dữ liệu/ngày.');
       return false;
     }
 
     const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
     if (!downloadGate.allowed) {
-      openUpgrade(downloadGate.reason ?? 'Da dat gioi han bang thong tai xuong/thang.');
+      openUpgrade(downloadGate.reason ?? 'Đã đạt giới hạn băng thông tải xuống/tháng.');
       return false;
     }
 
@@ -426,7 +426,7 @@ const Reports: React.FC = () => {
       <UpgradeModal
         open={upgradeOpen}
         onOpenChange={setUpgradeOpen}
-        featureName="xuat bao cao"
+        featureName="xuất báo cáo"
         reason={upgradeReason ?? undefined}
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

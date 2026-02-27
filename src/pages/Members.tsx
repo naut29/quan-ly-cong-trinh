@@ -114,18 +114,18 @@ const Members: React.FC = () => {
 
     const trimmedUserId = userIdInput.trim();
     if (!trimmedUserId || !isUuid(trimmedUserId)) {
-      setSubmitError("User ID khong hop le.");
+      setSubmitError("User ID không hợp lệ.");
       return;
     }
 
     if (!supabase || !orgId) {
-      setSubmitError("Thieu du lieu to chuc.");
+      setSubmitError("Thiếu dữ liệu tổ chức.");
       return;
     }
 
     const gate = canInviteMember(limits, usage, 1);
     if (!gate.allowed) {
-      openUpgrade(gate.reason ?? "Da dat gioi han thanh vien cua goi hien tai.");
+      openUpgrade(gate.reason ?? "Đã đạt giới hạn thành viên của gói hiện tại.");
       return;
     }
 
@@ -139,7 +139,7 @@ const Members: React.FC = () => {
 
       if (error) {
         if (error.code === "23505" || /duplicate/i.test(error.message)) {
-          throw new Error("User da thuoc cong ty");
+          throw new Error("User đã thuộc công ty");
         }
         throw error;
       }
@@ -148,7 +148,7 @@ const Members: React.FC = () => {
       setRoleInput("viewer");
       await Promise.all([loadMembers(), refreshPlanContext()]);
     } catch (err: any) {
-      setSubmitError(err?.message ?? "Khong the them thanh vien.");
+      setSubmitError(err?.message ?? "Không thể thêm thành viên.");
     } finally {
       setSubmitting(false);
     }
@@ -159,7 +159,7 @@ const Members: React.FC = () => {
     if (!supabase || !orgId) return;
 
     if (member.role === "owner" && nextRole !== "owner" && ownersCount <= 1) {
-      setSubmitError("Khong the thay doi quyen cua owner cuoi cung.");
+      setSubmitError("Không thể thay đổi quyền của owner cuối cùng.");
       return;
     }
 
@@ -185,7 +185,7 @@ const Members: React.FC = () => {
 
     const target = members.find((member) => member.user_id === deleteMemberId);
     if (target?.role === "owner" && ownersCount <= 1) {
-      setSubmitError("Khong the xoa owner cuoi cung.");
+      setSubmitError("Không thể xóa owner cuối cùng.");
       setDeleteMemberId(null);
       return;
     }
@@ -205,7 +205,7 @@ const Members: React.FC = () => {
       setDeleteMemberId(null);
       await Promise.all([loadMembers(), refreshPlanContext()]);
     } catch (err: any) {
-      setSubmitError(err?.message ?? "Khong the xoa thanh vien.");
+      setSubmitError(err?.message ?? "Không thể xóa thành viên.");
       setDeleteMemberId(null);
     } finally {
       setDeleteSubmitting(false);
@@ -228,7 +228,7 @@ const Members: React.FC = () => {
   if (sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Dang tai...</p>
+        <p className="text-muted-foreground">Đang tải...</p>
       </div>
     );
   }
@@ -237,9 +237,9 @@ const Members: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-3">
-          <p className="text-muted-foreground">Khong co quyen</p>
+          <p className="text-muted-foreground">Không có quyền</p>
           <Button variant="outline" asChild>
-            <Link to="/dashboard">Quay lai Dashboard</Link>
+            <Link to="/dashboard">Quay lại Dashboard</Link>
           </Button>
         </div>
       </div>
@@ -250,8 +250,8 @@ const Members: React.FC = () => {
     <div className="min-h-screen bg-background px-6 py-10">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Thanh vien</h1>
-          <p className="text-sm text-muted-foreground">Quan ly thanh vien trong to chuc.</p>
+          <h1 className="text-2xl font-semibold text-foreground">Thành viên</h1>
+          <p className="text-sm text-muted-foreground">Quản lý thành viên trong tổ chức.</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4">
@@ -268,10 +268,10 @@ const Members: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Quyen</Label>
+                <Label>Quyền</Label>
                 <Select value={roleInput} onValueChange={(value) => setRoleInput(value as MemberRole)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chon quyen" />
+                    <SelectValue placeholder="Chọn quyền" />
                   </SelectTrigger>
                   <SelectContent>
                     {roleOptions.map((role) => (
@@ -283,7 +283,7 @@ const Members: React.FC = () => {
                 </Select>
               </div>
               <Button type="submit" className="w-full sm:w-auto" disabled={submitting}>
-                {submitting ? "Dang them..." : "Them thanh vien"}
+                {submitting ? "Đang thêm..." : "Thêm thành viên"}
               </Button>
             </div>
             {submitError && (
@@ -299,17 +299,17 @@ const Members: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
-                <TableHead>Ho ten</TableHead>
-                <TableHead>Quyen</TableHead>
-                <TableHead>Ngay tham gia</TableHead>
-                <TableHead className="text-right">Hanh dong</TableHead>
+                <TableHead>Họ tên</TableHead>
+                <TableHead>Quyền</TableHead>
+                <TableHead>Ngày tham gia</TableHead>
+                <TableHead className="text-right">Hành động</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Dang tai...
+                    Đang tải...
                   </TableCell>
                 </TableRow>
               ) : error ? (
@@ -321,7 +321,7 @@ const Members: React.FC = () => {
               ) : members.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Chua co thanh vien
+                    Chưa có thành viên
                   </TableCell>
                 </TableRow>
               ) : (
@@ -357,7 +357,7 @@ const Members: React.FC = () => {
                         size="sm"
                         onClick={() => setDeleteMemberId(member.user_id)}
                       >
-                        Xoa
+                        Xóa
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -371,15 +371,15 @@ const Members: React.FC = () => {
       <AlertDialog open={!!deleteMemberId} onOpenChange={(open) => !open && setDeleteMemberId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xoa thanh vien</AlertDialogTitle>
+            <AlertDialogTitle>Xóa thành viên</AlertDialogTitle>
             <AlertDialogDescription>
-              Ban co chac chan muon xoa thanh vien nay khoi cong ty khong?
+              Bạn có chắc chắn muốn xóa thành viên này khỏi công ty không?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteSubmitting}>Huy</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteSubmitting}>Hủy</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteMember} disabled={deleteSubmitting}>
-              {deleteSubmitting ? "Dang xoa..." : "Xoa"}
+              {deleteSubmitting ? "Đang xóa..." : "Xóa"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -388,7 +388,7 @@ const Members: React.FC = () => {
       <UpgradeModal
         open={upgradeOpen}
         onOpenChange={setUpgradeOpen}
-        featureName="quan ly thanh vien"
+        featureName="quản lý thành viên"
         reason={upgradeReason ?? undefined}
       />
     </div>

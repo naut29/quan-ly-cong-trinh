@@ -102,7 +102,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-muted-foreground">Dang tai du lieu dashboard...</p>
+        <p className="text-muted-foreground">Đang tải dữ liệu dashboard...</p>
       </div>
     );
   }
@@ -121,37 +121,37 @@ const Dashboard: React.FC = () => {
     <div className="p-6 space-y-6 animate-fade-in">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Xin chao, {userName}!</h1>
-          <p className="text-muted-foreground mt-1">{companyName ?? 'To chuc cua ban'}</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Xin chào, {userName}!</h1>
+          <p className="text-muted-foreground mt-1">{companyName ?? 'Tổ chức của bạn'}</p>
         </div>
         <Button onClick={() => navigate(`${basePath}/projects`)} className="gap-2">
           <FolderKanban className="h-4 w-4" />
-          Xem tat ca du an
+          Xem tất cả dự án
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Tong du toan"
+          title="Tổng dự toán"
           value={formatCurrencyCompact(metrics.totalBudget)}
-          subtitle={`${projects.length} du an`}
+          subtitle={`${projects.length} dự án`}
           icon={Wallet}
           variant="primary"
         />
         <KPICard
-          title="Tien do trung binh"
+          title="Tiến độ trung bình"
           value={`${metrics.avgProgress}%`}
           icon={TrendingUp}
           variant={metrics.avgProgress >= 50 ? 'success' : 'default'}
         />
         <KPICard
-          title="Du an dang thi cong"
+          title="Dự án đang thi công"
           value={metrics.activeProjects}
           icon={FolderKanban}
           variant="success"
         />
         <KPICard
-          title="Du an tam dung"
+          title="Dự án tạm dừng"
           value={metrics.pausedProjects}
           icon={AlertTriangle}
           variant="warning"
@@ -161,14 +161,14 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">Du an cua ban</h2>
+            <h2 className="font-semibold text-foreground">Dự án của bạn</h2>
             <Button variant="ghost" size="sm" onClick={() => navigate(`${basePath}/projects`)}>
-              Xem tat ca
+              Xem tất cả
             </Button>
           </div>
           <div className="divide-y divide-border">
             {projects.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">Chua co du an trong to chuc.</div>
+              <div className="p-8 text-center text-muted-foreground text-sm">Chưa có dự án trong tổ chức.</div>
             ) : (
               projects.slice(0, 5).map((project) => (
                 <button
@@ -222,13 +222,13 @@ const Dashboard: React.FC = () => {
 
         <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-foreground">Canh bao gan day</h2>
+            <h2 className="font-semibold text-foreground">Cảnh báo gần đây</h2>
           </div>
           <div className="divide-y divide-border">
             {warnings.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Khong co canh bao nao</p>
+                <p className="text-sm">Không có cảnh báo nào</p>
               </div>
             ) : (
               warnings.map((log) => (

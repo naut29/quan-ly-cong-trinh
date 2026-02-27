@@ -135,8 +135,8 @@ const AdminAuditLog: React.FC = () => {
 
   const getStatusBadge = (status: string | null) => {
     if (status === 'success') return <StatusBadge status="success">Thanh cong</StatusBadge>;
-    if (status === 'warn') return <StatusBadge status="warning">Canh bao</StatusBadge>;
-    if (status === 'fail') return <StatusBadge status="danger">That bai</StatusBadge>;
+    if (status === 'warn') return <StatusBadge status="warning">Cảnh báo</StatusBadge>;
+    if (status === 'fail') return <StatusBadge status="danger">Thất bại</StatusBadge>;
     return <StatusBadge status="neutral">{status ?? '-'}</StatusBadge>;
   };
 
@@ -144,12 +144,12 @@ const AdminAuditLog: React.FC = () => {
     <div className="p-6 space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Nhat ky hoat dong</h1>
-          <p className="text-muted-foreground">Theo doi cac thao tac dang duoc luu tu DB that</p>
+          <h1 className="text-2xl font-bold text-foreground">Nhật ký hoạt động</h1>
+          <p className="text-muted-foreground">Theo dõi các hoạt động trong hệ thống</p>
         </div>
         <Button variant="outline" disabled>
           <Download className="h-4 w-4 mr-2" />
-          Xuat bao cao
+          Xuất báo cáo
         </Button>
       </div>
 
@@ -162,25 +162,25 @@ const AdminAuditLog: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Tong hoat dong</p>
+            <p className="text-sm text-muted-foreground">Tổng hoạt động</p>
             <p className="text-2xl font-bold">{logs.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Dang nhap</p>
+            <p className="text-sm text-muted-foreground">Đăng nhập</p>
             <p className="text-2xl font-bold">{logs.filter((item) => item.action === 'login').length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Cap nhat</p>
+            <p className="text-sm text-muted-foreground">Cập nhật</p>
             <p className="text-2xl font-bold">{logs.filter((item) => item.action === 'update').length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Xoa</p>
+            <p className="text-sm text-muted-foreground">Xóa</p>
             <p className="text-2xl font-bold">{logs.filter((item) => item.action === 'delete').length}</p>
           </CardContent>
         </Card>
@@ -190,7 +190,7 @@ const AdminAuditLog: React.FC = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tim theo nguoi dung, mo ta..."
+            placeholder="Tìm theo người dùng, mô tả..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             className="pl-9"
@@ -202,12 +202,12 @@ const AdminAuditLog: React.FC = () => {
             <SelectValue placeholder="Hanh dong" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tat ca hanh dong</SelectItem>
-            <SelectItem value="login">Dang nhap</SelectItem>
-            <SelectItem value="logout">Dang xuat</SelectItem>
+            <SelectItem value="all">Tất cả hành động</SelectItem>
+            <SelectItem value="login">Đăng nhập</SelectItem>
+            <SelectItem value="logout">Đăng xuất</SelectItem>
             <SelectItem value="create">Tao moi</SelectItem>
-            <SelectItem value="update">Cap nhat</SelectItem>
-            <SelectItem value="delete">Xoa</SelectItem>
+            <SelectItem value="update">Cập nhật</SelectItem>
+            <SelectItem value="delete">Xóa</SelectItem>
             <SelectItem value="view">Xem</SelectItem>
           </SelectContent>
         </Select>
@@ -217,7 +217,7 @@ const AdminAuditLog: React.FC = () => {
             <SelectValue placeholder="Module" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tat ca module</SelectItem>
+            <SelectItem value="all">Tất cả module</SelectItem>
             {uniqueModules.map((module) => (
               <SelectItem key={module} value={module}>
                 {module}
@@ -233,7 +233,7 @@ const AdminAuditLog: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[180px]">Thoi gian</TableHead>
-                <TableHead>Nguoi dung</TableHead>
+                <TableHead>Người dùng</TableHead>
                 <TableHead>Hanh dong</TableHead>
                 <TableHead>Module</TableHead>
                 <TableHead>Mo ta</TableHead>
@@ -245,13 +245,13 @@ const AdminAuditLog: React.FC = () => {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Dang tai du lieu...
+                    Đang tải dữ liệu...
                   </TableCell>
                 </TableRow>
               ) : filteredLogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Khong co nhat ky nao.
+                    Không có nhật ký nào.
                   </TableCell>
                 </TableRow>
               ) : (

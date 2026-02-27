@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prebuild": "node scripts/check-encoding.mjs src public index.html"
+    "i18n:vi-guard": "node --experimental-strip-types scripts/vi-diacritics-guard.ts",
+    "prebuild": "npm run i18n:vi-guard && node scripts/check-encoding.mjs src public index.html"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

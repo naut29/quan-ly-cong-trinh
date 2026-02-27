@@ -70,7 +70,7 @@ const AdminCompany: React.FC = () => {
       if (!companyId) {
         if (isMounted) {
           setLoading(false);
-          setError('Chua co to chuc. Vui long hoan tat onboarding.');
+          setError('Chưa có tổ chức. Vui lòng hoàn tất onboarding.');
         }
         return;
       }
@@ -87,7 +87,7 @@ const AdminCompany: React.FC = () => {
         if (!isMounted) return;
 
         if (!organization) {
-          setError('Khong tim thay thong tin to chuc.');
+          setError('Không tìm thấy thông tin tổ chức.');
           setFormData(defaultForm);
         } else {
           setFormData({
@@ -130,8 +130,8 @@ const AdminCompany: React.FC = () => {
 
   const statCards = useMemo(
     () => [
-      { label: 'Nguoi dung', value: String(stats.membersCount), icon: Users, color: 'text-primary' },
-      { label: 'Du an', value: String(stats.projectsCount), icon: FolderKanban, color: 'text-success' },
+      { label: 'Người dùng', value: String(stats.membersCount), icon: Users, color: 'text-primary' },
+      { label: 'Dự án', value: String(stats.projectsCount), icon: FolderKanban, color: 'text-success' },
       { label: 'Goi dich vu', value: stats.plan, icon: CreditCard, color: 'text-warning' },
       { label: 'Ngay tham gia', value: formatDate(createdAt), icon: Calendar, color: 'text-muted-foreground' },
     ],
@@ -163,13 +163,13 @@ const AdminCompany: React.FC = () => {
         orgId: companyId,
         module: 'settings',
         action: 'update',
-        description: `Cap nhat thong tin cong ty: ${updated.name}`,
+        description: `Cập nhật thông tin công ty: ${updated.name}`,
         status: 'success',
       });
 
       toast({
-        title: 'Cap nhat thanh cong',
-        description: 'Thong tin cong ty da duoc luu vao he thong.',
+        title: 'Cập nhật thành công',
+        description: 'Thông tin công ty đã được lưu vào hệ thống.',
       });
       setIsEditing(false);
     } catch (err) {
@@ -180,7 +180,7 @@ const AdminCompany: React.FC = () => {
             ? String((err as { message?: unknown }).message ?? 'Failed to update company')
             : 'Failed to update company';
       toast({
-        title: 'Cap nhat that bai',
+        title: 'Cập nhật thất bại',
         description: message,
         variant: 'destructive',
       });
@@ -192,7 +192,7 @@ const AdminCompany: React.FC = () => {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-muted-foreground">Dang tai thong tin cong ty...</p>
+        <p className="text-muted-foreground">Đang tải thông tin công ty...</p>
       </div>
     );
   }
@@ -201,8 +201,8 @@ const AdminCompany: React.FC = () => {
     <div className="p-6 space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Thong tin Cong ty</h1>
-          <p className="text-muted-foreground">Quan ly thong tin va cau hinh cong ty</p>
+          <h1 className="text-2xl font-bold text-foreground">Thông tin Công ty</h1>
+          <p className="text-muted-foreground">Quản lý thông tin và cấu hình công ty</p>
         </div>
         {!isEditing ? (
           <Button onClick={() => setIsEditing(true)}>
@@ -217,7 +217,7 @@ const AdminCompany: React.FC = () => {
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Dang luu...' : 'Luu thay doi'}
+              {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </Button>
           </div>
         )}
@@ -250,13 +250,13 @@ const AdminCompany: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Thong tin co ban
+              Thông tin cơ bản
             </CardTitle>
-            <CardDescription>Thong tin phap ly va lien he cua cong ty</CardDescription>
+            <CardDescription>Thông tin pháp lý và liên hệ của công ty</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Ten cong ty</Label>
+              <Label>Tên công ty</Label>
               {isEditing ? (
                 <Input value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} />
               ) : (
@@ -350,9 +350,9 @@ const AdminCompany: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Nguoi dai dien
+              Người đại diện
             </CardTitle>
-            <CardDescription>Thong tin nguoi dai dien phap luat</CardDescription>
+            <CardDescription>Thông tin người đại diện pháp luật</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -382,7 +382,7 @@ const AdminCompany: React.FC = () => {
             <Separator />
 
             <div className="space-y-2">
-              <Label>Mo ta cong ty</Label>
+              <Label>Mô tả công ty</Label>
               {isEditing ? (
                 <Textarea
                   value={formData.description}

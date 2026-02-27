@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formatLimit = (value: number | null, unit = "") => {
-  if (value === null) return "Khong gioi han";
+  if (value === null) return "Không giới hạn";
   return `${value}${unit}`;
 };
 
@@ -50,7 +50,7 @@ const Billing: React.FC = () => {
   if (sessionLoading || planLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Dang tai...</p>
+        <p className="text-muted-foreground">Đang tải...</p>
       </div>
     );
   }
@@ -61,42 +61,42 @@ const Billing: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Billing</h1>
-            <p className="text-sm text-muted-foreground">Thong tin goi dich vu hien tai.</p>
+            <p className="text-sm text-muted-foreground">Thông tin gói dịch vụ hiện tại.</p>
           </div>
           <Button variant="outline" asChild>
-            <Link to="/dashboard">Quay lai Dashboard</Link>
+            <Link to="/dashboard">Quay lại Dashboard</Link>
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Goi hien tai</CardTitle>
+            <CardTitle>Gói hiện tại</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>Plan: {context.planName ?? "-"}</p>
-            <p>Ma goi: {context.planCode ?? "-"}</p>
-            <p>Trang thai: {activeStatus === null ? "-" : activeStatus ? "Dang hoat dong" : "Da het han"}</p>
+            <p>Mã gói: {context.planCode ?? "-"}</p>
+            <p>Trạng thái: {activeStatus === null ? "-" : activeStatus ? "Đang hoạt động" : "Đã hết hạn"}</p>
 
-            <p>Thanh vien toi da: {formatLimit(context.limits.max_members)}</p>
-            <p>Du an dang hoat dong toi da: {formatLimit(context.limits.max_active_projects)}</p>
-            <p>Luu tru toi da: {formatLimit(context.limits.max_storage_mb, " MB")}</p>
-            <p>Upload moi ngay: {formatLimit(context.limits.max_upload_mb_per_day, " MB")}</p>
-            <p>Kich thuoc tep toi da: {formatLimit(context.limits.max_file_mb, " MB")}</p>
-            <p>Bang thong tai xuong/thang: {formatLimit(context.limits.max_download_gb_per_month, " GB")}</p>
-            <p>Xuat du lieu/ngay: {formatLimit(context.limits.export_per_day)}</p>
-            <p>Phe duyet: {context.limits.approval_enabled}</p>
-            <p>Ho tro: {context.limits.support}</p>
+            <p>Thành viên tối đa: {formatLimit(context.limits.max_members)}</p>
+            <p>Dự án đang hoạt động tối đa: {formatLimit(context.limits.max_active_projects)}</p>
+            <p>Lưu trữ tối đa: {formatLimit(context.limits.max_storage_mb, " MB")}</p>
+            <p>Upload mỗi ngày: {formatLimit(context.limits.max_upload_mb_per_day, " MB")}</p>
+            <p>Kích thước tệp tối đa: {formatLimit(context.limits.max_file_mb, " MB")}</p>
+            <p>Băng thông tải xuống/tháng: {formatLimit(context.limits.max_download_gb_per_month, " GB")}</p>
+            <p>Xuất dữ liệu/ngày: {formatLimit(context.limits.export_per_day)}</p>
+            <p>Phê duyệt: {context.limits.approval_enabled}</p>
+            <p>Hỗ trợ: {context.limits.support}</p>
 
             {!activeStatus && activeStatus !== null && (
               <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                <p>Tai khoan da het han. Vui long lien he de gia han.</p>
+                <p>Tài khoản đã hết hạn. Vui lòng liên hệ để gia hạn.</p>
                 {isAdmin ? (
                   <div className="mt-2 text-destructive">
                     <p>Email : contact@quanlycongtrinh.com</p>
-                    <p>Dien thoai : 0988097621</p>
+                    <p>Điện thoại : 0988097621</p>
                   </div>
                 ) : (
-                  <p className="mt-2">Lien he quan tri vien cong ty</p>
+                  <p className="mt-2">Liên hệ quản trị viên công ty</p>
                 )}
               </div>
             )}

@@ -101,7 +101,7 @@ const AdminUsers: React.FC = () => {
   const loadData = async () => {
     if (!companyId) {
       setLoading(false);
-      setError('Chua co to chuc.');
+      setError('Chưa có tổ chức.');
       return;
     }
 
@@ -184,8 +184,8 @@ const AdminUsers: React.FC = () => {
 
       if (!result.ok && result.reason === 'not_found') {
         toast({
-          title: 'Chua tim thay nguoi dung',
-          description: 'Email chua ton tai trong he thong. Chua ho tro moi truc tiep, se bo sung sau.',
+          title: 'Chưa tìm thấy người dùng',
+          description: 'Email chưa tồn tại trong hệ thống. Chưa hỗ trợ mời trực tiếp, sẽ bổ sung sau.',
           variant: 'destructive',
         });
         return;
@@ -193,8 +193,8 @@ const AdminUsers: React.FC = () => {
 
       if (!result.ok && result.reason === 'already_member') {
         toast({
-          title: 'Nguoi dung da ton tai',
-          description: 'Tai khoan nay da la thanh vien cua cong ty.',
+          title: 'Người dùng đã tồn tại',
+          description: 'Tài khoản này đã là thành viên của công ty.',
           variant: 'destructive',
         });
         return;
@@ -205,13 +205,13 @@ const AdminUsers: React.FC = () => {
         orgId: companyId,
         module: 'users',
         action: 'create',
-        description: `Them thanh vien ${addEmail} voi role ${addRole}`,
+        description: `Thêm thành viên ${addEmail} với vai trò ${addRole}`,
         status: 'success',
       });
 
       toast({
-        title: 'Them nguoi dung thanh cong',
-        description: `${addEmail} da duoc them vao ${companyName ?? 'cong ty'}.`,
+        title: 'Thêm người dùng thành công',
+        description: `${addEmail} đã được thêm vào ${companyName ?? 'công ty'}.`,
       });
 
       setAddEmail('');
@@ -227,7 +227,7 @@ const AdminUsers: React.FC = () => {
           : typeof err === 'object' && err && 'message' in err
             ? String((err as { message?: unknown }).message ?? 'Failed to add member')
             : 'Failed to add member';
-      toast({ title: 'Them nguoi dung that bai', description: message, variant: 'destructive' });
+      toast({ title: 'Thêm người dùng thất bại', description: message, variant: 'destructive' });
     } finally {
       setAdding(false);
     }
@@ -246,8 +246,8 @@ const AdminUsers: React.FC = () => {
       });
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Khong cap nhat duoc role';
-      toast({ title: 'Cap nhat role that bai', description: message, variant: 'destructive' });
+      const message = err instanceof Error ? err.message : 'Không cập nhật được vai trò';
+      toast({ title: 'Cập nhật vai trò thất bại', description: message, variant: 'destructive' });
     }
   };
 
@@ -264,8 +264,8 @@ const AdminUsers: React.FC = () => {
       });
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Khong cap nhat duoc trang thai';
-      toast({ title: 'Cap nhat trang thai that bai', description: message, variant: 'destructive' });
+      const message = err instanceof Error ? err.message : 'Không cập nhật được trạng thái';
+      toast({ title: 'Cập nhật trạng thái thất bại', description: message, variant: 'destructive' });
     }
   };
 
@@ -285,18 +285,18 @@ const AdminUsers: React.FC = () => {
         orgId: companyId,
         module: 'users',
         action: 'update',
-        description: `Cap nhat phan cong du an cho ${selectedMember.email ?? selectedMember.user_id}`,
+        description: `Cập nhật phân công dự án cho ${selectedMember.email ?? selectedMember.user_id}`,
         status: 'success',
       });
 
-      toast({ title: 'Da cap nhat phan cong du an' });
+      toast({ title: 'Đã cập nhật phân công dự án' });
       setAssignmentDialogOpen(false);
       setSelectedMember(null);
       setEditingAssignments([]);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Khong luu duoc phan cong';
-      toast({ title: 'Luu phan cong that bai', description: message, variant: 'destructive' });
+      const message = err instanceof Error ? err.message : 'Không lưu được phân công';
+      toast({ title: 'Lưu phân công thất bại', description: message, variant: 'destructive' });
     } finally {
       setSavingAssignments(false);
     }
@@ -307,9 +307,9 @@ const AdminUsers: React.FC = () => {
       <div className="page-header">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="page-title">Quan ly Nguoi dung</h1>
+            <h1 className="page-title">Quản lý Người dùng</h1>
             <p className="page-subtitle">
-              {companyName ?? 'To chuc'} • {users.length} nguoi dung
+              {companyName ?? 'Tổ chức'} • {users.length} người dùng
             </p>
           </div>
 
@@ -317,14 +317,14 @@ const AdminUsers: React.FC = () => {
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                Them nguoi dung
+                Them người dùng
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Them nguoi dung moi</DialogTitle>
+                <DialogTitle>Them người dùng moi</DialogTitle>
                 <DialogDescription>
-                  Nhap email nguoi dung da ton tai trong he thong de them vao cong ty.
+                  Nhập email người dùng đã tồn tại trong hệ thống để thêm vào công ty.
                 </DialogDescription>
               </DialogHeader>
 
@@ -342,7 +342,7 @@ const AdminUsers: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>Vai tro</Label>
+                    <Label>Vai trò</Label>
                     <Select value={addRole} onValueChange={setAddRole}>
                       <SelectTrigger>
                         <SelectValue />
@@ -374,10 +374,10 @@ const AdminUsers: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Phan cong du an</Label>
+                  <Label>Phân công dự án</Label>
                   <div className="border border-border rounded-lg p-3 max-h-44 overflow-y-auto space-y-2">
                     {projects.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Chua co du an nao.</p>
+                      <p className="text-sm text-muted-foreground">Chưa có dự án nào.</p>
                     ) : (
                       projects.map((project) => (
                         <div key={project.id} className="flex items-center gap-2">
@@ -403,7 +403,7 @@ const AdminUsers: React.FC = () => {
                   Huy
                 </Button>
                 <Button onClick={handleAddUser} disabled={adding}>
-                  {adding ? 'Dang them...' : 'Them nguoi dung'}
+                  {adding ? 'Đang thêm...' : 'Them người dùng'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -422,7 +422,7 @@ const AdminUsers: React.FC = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Tim nguoi dung..."
+              placeholder="Tim người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -431,10 +431,10 @@ const AdminUsers: React.FC = () => {
 
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Vai tro" />
+              <SelectValue placeholder="Vai trò" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tat ca vai tro</SelectItem>
+              <SelectItem value="all">Tất cả vai trò</SelectItem>
               {ROLE_OPTIONS.map((role) => (
                 <SelectItem key={role} value={role}>
                   {roleLabels[role] ?? role}
@@ -448,10 +448,10 @@ const AdminUsers: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nguoi dung</th>
-                <th>Vai tro</th>
+                <th>Người dùng</th>
+                <th>Vai trò</th>
                 <th>Trang thai</th>
-                <th>Du an phan cong</th>
+                <th>Dự án phân công</th>
                 <th></th>
               </tr>
             </thead>
@@ -459,13 +459,13 @@ const AdminUsers: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="text-center text-muted-foreground py-8">
-                    Dang tai du lieu...
+                    Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center text-muted-foreground py-8">
-                    Khong co nguoi dung.
+                    Không có người dùng.
                   </td>
                 </tr>
               ) : (
@@ -528,11 +528,11 @@ const AdminUsers: React.FC = () => {
                       </td>
                       <td>
                         {member.role === 'owner' ? (
-                          <span className="text-sm text-muted-foreground">Tat ca du an</span>
+                          <span className="text-sm text-muted-foreground">Tất cả dự án</span>
                         ) : (
                           <div className="flex items-center gap-1">
                             <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-sm">{assignedProjects.size} du an</span>
+                            <span className="text-sm">{assignedProjects.size} dự án</span>
                           </div>
                         )}
                       </td>
@@ -546,7 +546,7 @@ const AdminUsers: React.FC = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openAssignmentDialog(member)}>
                               <UserCog className="mr-2 h-4 w-4" />
-                              Phan cong du an
+                              Phân công dự án
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -563,15 +563,15 @@ const AdminUsers: React.FC = () => {
       <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Phan cong du an</DialogTitle>
+            <DialogTitle>Phân công dự án</DialogTitle>
             <DialogDescription>
-              {selectedMember?.email ?? selectedMember?.user_id ?? 'Nguoi dung'}
+              {selectedMember?.email ?? selectedMember?.user_id ?? 'Người dùng'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="border border-border rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
             {projects.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Chua co du an.</p>
+              <p className="text-sm text-muted-foreground">Chưa có dự án.</p>
             ) : (
               projects.map((project) => (
                 <div key={project.id} className="flex items-center gap-2">
@@ -595,7 +595,7 @@ const AdminUsers: React.FC = () => {
               Huy
             </Button>
             <Button onClick={saveAssignments} disabled={savingAssignments}>
-              {savingAssignments ? 'Dang luu...' : 'Luu phan cong'}
+              {savingAssignments ? 'Đang lưu...' : 'Lưu phân công'}
             </Button>
           </DialogFooter>
         </DialogContent>

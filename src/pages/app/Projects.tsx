@@ -98,7 +98,7 @@ const Projects: React.FC = () => {
   const ensureCreateAllowed = () => {
     const gate = canCreateProject(limits, usage, 1);
     if (!gate.allowed) {
-      openUpgrade('tao du an', gate.reason ?? 'Da dat gioi han du an cua goi hien tai.');
+      openUpgrade('tạo dự án', gate.reason ?? 'Đã đạt giới hạn dự án của gói hiện tại.');
       return false;
     }
     return true;
@@ -107,13 +107,13 @@ const Projects: React.FC = () => {
   const ensureExportAllowed = (feature: string, estimatedDownloadGb: number) => {
     const exportGate = canExport(limits, usage);
     if (!exportGate.allowed) {
-      openUpgrade(feature, exportGate.reason ?? 'Da dat gioi han xuat du lieu/ngay.');
+      openUpgrade(feature, exportGate.reason ?? 'Đã đạt giới hạn xuất dữ liệu/ngày.');
       return false;
     }
 
     const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
     if (!downloadGate.allowed) {
-      openUpgrade(feature, downloadGate.reason ?? 'Da dat gioi han bang thong tai xuong/thang.');
+      openUpgrade(feature, downloadGate.reason ?? 'Đã đạt giới hạn băng thông tải xuống/tháng.');
       return false;
     }
 
@@ -258,7 +258,7 @@ const Projects: React.FC = () => {
   // Export functions
   const handleExportExcel = () => {
     const estimatedDownloadGb = 0.05;
-    if (!ensureExportAllowed('xuat du lieu', estimatedDownloadGb)) {
+    if (!ensureExportAllowed('xuất dữ liệu', estimatedDownloadGb)) {
       return;
     }
 
@@ -309,7 +309,7 @@ const Projects: React.FC = () => {
 
   const handleExportPDF = () => {
     const estimatedDownloadGb = 0.05;
-    if (!ensureExportAllowed('xuat du lieu', estimatedDownloadGb)) {
+    if (!ensureExportAllowed('xuất dữ liệu', estimatedDownloadGb)) {
       return;
     }
 

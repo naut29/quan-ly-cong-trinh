@@ -69,7 +69,7 @@ const AppTopbarApp: React.FC = () => {
           actorUserId: user.id,
           module: 'auth',
           action: 'logout',
-          description: `User ${user.email ?? user.id} dang xuat`,
+          description: `User ${user.email ?? user.id} đăng xuất`,
           status: 'success',
         });
       } catch {
@@ -101,7 +101,7 @@ const AppTopbarApp: React.FC = () => {
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
           <Building2 className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium truncate max-w-[150px]">
-            {companyName || 'Cong ty'}
+            {companyName || 'Công ty'}
           </span>
         </div>
 

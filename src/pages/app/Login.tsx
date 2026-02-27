@@ -50,7 +50,7 @@ const AppLogin: React.FC = () => {
                 actorUserId: userId,
                 module: 'auth',
                 action: 'login',
-                description: `User ${email} dang nhap`,
+                description: `User ${email} đăng nhập`,
                 status: 'success',
               });
             }
