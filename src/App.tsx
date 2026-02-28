@@ -8,12 +8,12 @@ import { CompanyProvider } from "@/app/context/CompanyContext";
 import RequireNoOrg from "@/app/auth/RequireNoOrg";
 import RequireOrg from "@/app/auth/RequireOrg";
 import RequireRole from "@/app/auth/RequireRole";
+import RequireSuperAdmin from "@/app/auth/RequireSuperAdmin";
 
 import PublicLayout from "@/components/layout/PublicLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
 import AppEntryGuard from "./components/layout/AppEntryGuard";
 import DemoLayout from "./components/layout/DemoLayout";
-import AppLayout from "./components/layout/AppLayout";
 import AppLayoutApp from "./components/layout/AppLayoutApp";
 
 import Landing from "./pages/Landing";
@@ -393,13 +393,46 @@ const App = () => {
                     </RequireRole>
                   }
                 />
+                <Route
+                  path="platform"
+                  element={
+                    <RequireSuperAdmin>
+                      <Navigate to="/app/platform/tenants" replace />
+                    </RequireSuperAdmin>
+                  }
+                />
+                <Route
+                  path="platform/tenants"
+                  element={
+                    <RequireSuperAdmin>
+                      <PlatformTenants />
+                    </RequireSuperAdmin>
+                  }
+                />
+                <Route
+                  path="platform/users"
+                  element={
+                    <RequireSuperAdmin>
+                      <PlatformUsers />
+                    </RequireSuperAdmin>
+                  }
+                />
+                <Route
+                  path="platform/billing"
+                  element={
+                    <RequireSuperAdmin>
+                      <PlatformBilling />
+                    </RequireSuperAdmin>
+                  }
+                />
               </Route>
             </Route>
 
-            <Route path="/platform" element={<AppLayout />}>
-              <Route path="tenants" element={<PlatformTenants />} />
-              <Route path="users" element={<PlatformUsers />} />
-              <Route path="billing" element={<PlatformBilling />} />
+            <Route path="/platform" element={<Outlet />}>
+              <Route index element={<Navigate to="/app/platform/tenants" replace />} />
+              <Route path="tenants" element={<Navigate to="/app/platform/tenants" replace />} />
+              <Route path="users" element={<Navigate to="/app/platform/users" replace />} />
+              <Route path="billing" element={<Navigate to="/app/platform/billing" replace />} />
             </Route>
             </Routes>
           </AuthProvider>

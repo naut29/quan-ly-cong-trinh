@@ -1,30 +1,31 @@
 import React from 'react';
 import { NavLink, useLocation, useParams } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  Building2,
-  Package,
-  Calculator,
-  Wallet,
-  FileText,
-  CreditCard,
-  TrendingUp,
-  BarChart3,
-  Users,
-  Shield,
-  Settings,
+import {
   Activity,
+  BarChart3,
+  Building2,
+  Calculator,
+  ChevronRight,
+  ClipboardCheck,
+  CreditCard,
+  FileText,
+  FolderKanban,
+  Home,
+  LayoutDashboard,
+  Package,
   Plug,
   Receipt,
-  ChevronRight,
-  Home,
-  ClipboardCheck,
+  Settings,
+  Shield,
+  TrendingUp,
+  Users,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAppBasePath } from '@/lib/appMode';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCompany } from '@/app/context/CompanyContext';
+import { useSession } from '@/app/session/useSession';
 
 interface SidebarItemProps {
   to: string;
@@ -37,9 +38,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon: Icon, label, end })
   <NavLink
     to={to}
     end={end}
-    className={({ isActive }) =>
-      cn('sidebar-item', isActive && 'sidebar-item-active')
-    }
+    className={({ isActive }) => cn('sidebar-item', isActive && 'sidebar-item-active')}
   >
     <Icon className="h-5 w-5 shrink-0" />
     <span className="truncate">{label}</span>
@@ -48,6 +47,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon: Icon, label, end })
 
 const AppSidebarApp: React.FC = () => {
   const { role } = useCompany();
+  const { isSuperAdmin } = useSession();
   const { id: projectId } = useParams();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
@@ -59,19 +59,21 @@ const AppSidebarApp: React.FC = () => {
     { to: `${basePath}/projects`, icon: FolderKanban, label: 'Dự án' },
   ];
 
-  const projectNavItems = projectId ? [
-    { to: `${basePath}/projects/${projectId}/overview`, icon: Home, label: 'Tổng quan' },
-    { to: `${basePath}/projects/${projectId}/wbs`, icon: Building2, label: 'Cấu trúc công việc' },
-    { to: `${basePath}/projects/${projectId}/boq`, icon: Calculator, label: 'Dự toán' },
-    { to: `${basePath}/projects/${projectId}/materials`, icon: Package, label: 'Vật tư' },
-    { to: `${basePath}/projects/${projectId}/norms`, icon: Activity, label: 'Định mức' },
-    { to: `${basePath}/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí' },
-    { to: `${basePath}/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng' },
-    { to: `${basePath}/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán' },
-    { to: `${basePath}/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt' },
-    { to: `${basePath}/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ' },
-    { to: `${basePath}/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo' },
-  ] : [];
+  const projectNavItems = projectId
+    ? [
+        { to: `${basePath}/projects/${projectId}/overview`, icon: Home, label: 'Tổng quan' },
+        { to: `${basePath}/projects/${projectId}/wbs`, icon: Building2, label: 'Cấu trúc công việc' },
+        { to: `${basePath}/projects/${projectId}/boq`, icon: Calculator, label: 'Dự toán' },
+        { to: `${basePath}/projects/${projectId}/materials`, icon: Package, label: 'Vật tư' },
+        { to: `${basePath}/projects/${projectId}/norms`, icon: Activity, label: 'Định mức' },
+        { to: `${basePath}/projects/${projectId}/costs`, icon: Wallet, label: 'Chi phí' },
+        { to: `${basePath}/projects/${projectId}/contracts`, icon: FileText, label: 'Hợp đồng' },
+        { to: `${basePath}/projects/${projectId}/payments`, icon: CreditCard, label: 'Thanh toán' },
+        { to: `${basePath}/projects/${projectId}/approvals`, icon: ClipboardCheck, label: 'Phê duyệt' },
+        { to: `${basePath}/projects/${projectId}/progress`, icon: TrendingUp, label: 'Tiến độ' },
+        { to: `${basePath}/projects/${projectId}/reports`, icon: BarChart3, label: 'Báo cáo' },
+      ]
+    : [];
 
   const adminNavItems = [
     { to: `${basePath}/admin/company`, icon: Building2, label: 'Công ty' },
@@ -80,6 +82,12 @@ const AppSidebarApp: React.FC = () => {
     { to: `${basePath}/admin/activity`, icon: Activity, label: 'Nhật ký hoạt động' },
     { to: `${basePath}/admin/integrations`, icon: Plug, label: 'Tích hợp' },
     { to: `${basePath}/admin/billing`, icon: Receipt, label: 'Thanh toán' },
+  ];
+
+  const platformNavItems = [
+    { to: `${basePath}/platform/tenants`, icon: Building2, label: 'Công ty' },
+    { to: `${basePath}/platform/users`, icon: Users, label: 'Người dùng' },
+    { to: `${basePath}/platform/billing`, icon: Receipt, label: 'Thanh toán' },
   ];
 
   return (
@@ -100,12 +108,7 @@ const AppSidebarApp: React.FC = () => {
         <nav className="px-3 space-y-6">
           <div className="space-y-1">
             {mainNavItems.map((item) => (
-              <SidebarItem
-                key={item.to}
-                to={item.to}
-                icon={item.icon}
-                label={item.label}
-              />
+              <SidebarItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
             ))}
           </div>
 
@@ -116,12 +119,7 @@ const AppSidebarApp: React.FC = () => {
                 <span>Dự án hiện tại</span>
               </div>
               {projectNavItems.map((item) => (
-                <SidebarItem
-                  key={item.to}
-                  to={item.to}
-                  icon={item.icon}
-                  label={item.label}
-                />
+                <SidebarItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
               ))}
             </div>
           )}
@@ -130,15 +128,22 @@ const AppSidebarApp: React.FC = () => {
             <div className="space-y-1">
               <div className="sidebar-section flex items-center gap-2">
                 <Settings className="h-3 w-3" />
-                <span>Quản trị</span>
+                <span>QUẢN TRỊ</span>
               </div>
               {adminNavItems.map((item) => (
-                <SidebarItem
-                  key={item.to}
-                  to={item.to}
-                  icon={item.icon}
-                  label={item.label}
-                />
+                <SidebarItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
+              ))}
+            </div>
+          )}
+
+          {isSuperAdmin && (
+            <div className="space-y-1">
+              <div className="sidebar-section flex items-center gap-2">
+                <Shield className="h-3 w-3" />
+                <span>NỀN TẢNG</span>
+              </div>
+              {platformNavItems.map((item) => (
+                <SidebarItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
               ))}
             </div>
           )}

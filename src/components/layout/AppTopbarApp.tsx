@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Bell, 
-  Search, 
-  ChevronDown, 
-  LogOut, 
-  User, 
-  Settings,
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Bell,
   Building2,
+  ChevronDown,
+  LogOut,
+  Search,
+  Settings,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,30 +32,51 @@ import { useSession } from '@/app/session/useSession';
 import { useCompany } from '@/app/context/CompanyContext';
 import { listProjectsByOrg } from '@/lib/api/projects';
 import { logActivity } from '@/lib/api/activity';
-import type { Project } from '@/data/repo';
 import { signOut } from '@/auth/supabaseAuth';
 
+type ProjectSummary = Awaited<ReturnType<typeof listProjectsByOrg>>[number];
+
+const ORG_ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  manager: 'Manager',
+  editor: 'Editor',
+  viewer: 'Member',
+};
+
+const getOrgRoleLabel = (role: string | null) => {
+  if (!role) return '';
+  return ORG_ROLE_LABELS[role] ?? role;
+};
+
 const AppTopbarApp: React.FC = () => {
-  const { user } = useSession();
+  const { user, isSuperAdmin } = useSession();
   const { companyName, role, companyId } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
 
   useEffect(() => {
     let isActive = true;
+
     if (!companyId) {
       setProjects([]);
       return;
     }
+
     listProjectsByOrg(companyId)
       .then((data) => {
-        if (isActive) setProjects(data);
+        if (isActive) {
+          setProjects(data);
+        }
       })
       .catch(() => {
-        if (isActive) setProjects([]);
+        if (isActive) {
+          setProjects([]);
+        }
       });
+
     return () => {
       isActive = false;
     };
@@ -81,17 +102,20 @@ const AppTopbarApp: React.FC = () => {
     navigate(`${basePath}/login`);
   };
 
-  const getInitials = (value: string) => {
-    return value.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
+  const getInitials = (value: string) => value
+    .split(' ')
+    .map((item) => item[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Tìm kiếm dự án, vật tư, hợp đồng..." 
+          <Input
+            placeholder="Tìm kiếm dự án, vật tư, hợp đồng..."
             className="w-80 pl-9 bg-muted/50 border-0 focus-visible:ring-1"
           />
         </div>
@@ -131,12 +155,14 @@ const AppTopbarApp: React.FC = () => {
                     onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
                     className="w-full p-3 hover:bg-muted/50 flex items-start gap-3 text-left border-b border-border last:border-0 transition-colors"
                   >
-                    <div className={cn(
-                      "w-2 h-2 rounded-full mt-2 shrink-0",
-                      project.status === 'active' && "bg-success",
-                      project.status === 'paused' && "bg-warning",
-                      project.status === 'completed' && "bg-muted-foreground",
-                    )} />
+                    <div
+                      className={cn(
+                        'w-2 h-2 rounded-full mt-2 shrink-0',
+                        project.status === 'active' && 'bg-success',
+                        project.status === 'paused' && 'bg-warning',
+                        project.status === 'completed' && 'bg-muted-foreground',
+                      )}
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{project.name}</p>
                       <p className="text-xs text-muted-foreground">{project.code}</p>
@@ -163,9 +189,14 @@ const AppTopbarApp: React.FC = () => {
               </Avatar>
               <div className="text-left hidden sm:block">
                 <p className="text-sm font-medium leading-tight">{user?.email}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">
-                  {role ?? ''}
-                </p>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground leading-tight">
+                  {isSuperAdmin && (
+                    <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">
+                      Super Admin
+                    </Badge>
+                  )}
+                  {role && <span>{getOrgRoleLabel(role)}</span>}
+                </div>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>

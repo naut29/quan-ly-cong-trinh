@@ -11,6 +11,7 @@ import {
   primeOrgMembershipCache,
   readOrgMembershipCache,
 } from '@/lib/orgMembership';
+import { getUserPlatformRole, isSuperAdminRole, type PlatformRole } from '@/lib/platformRole';
 import { clearLastPath } from '@/lib/lastPath';
 
 interface AuthContextType {
@@ -31,6 +32,8 @@ interface AuthContextType {
   currentTenantId: string | null;
   currentOrgId: string | null;
   currentRole: string | null;
+  platformRole: PlatformRole | null;
+  isSuperAdmin: boolean;
   setCurrentOrgId: (orgId: string | null) => void;
   setCurrentRole: (role: string | null) => void;
   setOrgMembership: (value: { orgId: string | null; role?: string | null }) => void;
@@ -74,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
   const [currentOrgIdState, setCurrentOrgIdState] = useState<string | null>(null);
   const [currentRoleState, setCurrentRoleState] = useState<string | null>(null);
+  const [platformRoleState, setPlatformRoleState] = useState<PlatformRole | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [membershipError, setMembershipError] = useState<string | null>(null);
@@ -158,6 +162,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [authUserId, loadMembership],
   );
 
+  const loadPlatformRole = useCallback(async (userId: string) => {
+    const client = supabase;
+    if (!client) {
+      setPlatformRoleState(null);
+      return;
+    }
+
+    try {
+      const role = await withTimeout(
+        getUserPlatformRole(client, userId),
+        MEMBERSHIP_TIMEOUT_MS,
+        'platform_role_timeout',
+      );
+      setPlatformRoleState(role);
+    } catch {
+      setPlatformRoleState(null);
+    }
+  }, []);
+
   const setOrgMembership = useCallback(
     ({ orgId, role = null }: { orgId: string | null; role?: string | null }) => {
       const normalizedRole = orgId ? role ?? null : null;
@@ -205,6 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthUserId(null);
       setCurrentOrgIdState(null);
       setCurrentRoleState(null);
+      setPlatformRoleState(null);
       setMembershipError(null);
       setLoadingMembership(false);
     };
@@ -233,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!nextUserId) {
         setCurrentOrgIdState(null);
         setCurrentRoleState(null);
+        setPlatformRoleState(null);
         setMembershipError(null);
         setLoadingMembership(false);
         if (isActive) {
@@ -241,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      await loadMembership(nextUserId);
+      await Promise.all([loadMembership(nextUserId), loadPlatformRole(nextUserId)]);
 
       if (isActive) {
         setLoadingSession(false);
@@ -253,6 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthUserId(null);
       setCurrentOrgIdState(null);
       setCurrentRoleState(null);
+      setPlatformRoleState(null);
       setMembershipError(null);
       setLoadingMembership(false);
 
@@ -269,6 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isActive) {
         setUser(foundUser);
         setCurrentTenantId(foundUser?.tenantId || tenants[0]?.id || null);
+        setPlatformRoleState(foundUser?.role === 'super_admin' ? 'super_admin' : null);
         setLoadingSession(false);
       }
     };
@@ -309,15 +336,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void initSupabaseSession();
     const {
       data: { subscription },
-    } = onAuthStateChange((_event, session) => {
-      void syncSupabaseSession(session ?? null);
+    } = onAuthStateChange(async (_event, session) => {
+      await syncSupabaseSession(session ?? null);
     });
 
     return () => {
       isActive = false;
       subscription?.unsubscribe();
     };
-  }, [hasSupabaseEnv, isDemo, loadMembership, mapSupabaseUser]);
+  }, [hasSupabaseEnv, isDemo, loadMembership, loadPlatformRole, mapSupabaseUser]);
 
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
@@ -327,6 +354,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           demoSignIn(foundUser.id);
           setUser(foundUser);
           setCurrentTenantId(foundUser.tenantId || tenants[0]?.id || null);
+          setPlatformRoleState(foundUser.role === 'super_admin' ? 'super_admin' : null);
           return true;
         }
         return false;
@@ -343,10 +371,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthUserId(userId);
       setUser(mappedUser);
       setCurrentTenantId(mappedUser?.tenantId || tenants[0]?.id || null);
-      await loadMembership(userId, { forceRefresh: true });
+      await Promise.all([
+        loadMembership(userId, { forceRefresh: true }),
+        loadPlatformRole(userId),
+      ]);
       return true;
     },
-    [hasSupabaseEnv, isDemo, loadMembership, mapSupabaseUser],
+    [hasSupabaseEnv, isDemo, loadMembership, loadPlatformRole, mapSupabaseUser],
   );
 
   const loginAs = useCallback(
@@ -357,6 +388,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         demoSignIn(foundUser.id);
         setUser(foundUser);
         setCurrentTenantId(foundUser.tenantId || tenants[0]?.id || null);
+        setPlatformRoleState(foundUser.role === 'super_admin' ? 'super_admin' : null);
       }
     },
     [isDemo],
@@ -377,6 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentTenantId(null);
     setCurrentOrgIdState(null);
     setCurrentRoleState(null);
+    setPlatformRoleState(null);
     setMembershipError(null);
     setLoadingMembership(false);
   }, [hasSupabaseEnv, isDemo]);
@@ -465,6 +498,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentTenantId,
         currentOrgId: currentOrgIdState,
         currentRole: currentRoleState,
+        platformRole: platformRoleState,
+        isSuperAdmin: isSuperAdminRole(platformRoleState),
         setCurrentOrgId,
         setCurrentRole,
         setOrgMembership,
