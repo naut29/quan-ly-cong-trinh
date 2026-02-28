@@ -9,14 +9,13 @@ import { signInWithPassword } from '@/auth/supabaseAuth';
 import { hasSupabaseEnv, supabase } from '@/lib/supabaseClient';
 import { getLastPath } from '@/lib/lastPath';
 import { logActivity } from '@/lib/api/activity';
-import { isDemoModeEnabled } from '@/lib/appMode';
 
 const AppLogin: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const next = params.get("next");
-  const demoModeEnabled = isDemoModeEnabled();
+  const auxiliaryLinkClassName = 'text-sm text-primary hover:underline';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -169,7 +168,7 @@ const AppLogin: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mật khẩu</Label>
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link to="/forgot-password" className={auxiliaryLinkClassName}>
                   Quên mật khẩu?
                 </Link>
               </div>
@@ -207,9 +206,14 @@ const AppLogin: React.FC = () => {
             <Button type="submit" className="w-full" disabled={loading || !hasSupabaseEnv}>
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
+            <div className="flex justify-end">
+              <Link to="/demo" className={auxiliaryLinkClassName}>
+                Dùng thử Demo
+              </Link>
+            </div>
           </form>
 
-          {demoModeEnabled && (
+          {false && (
             <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
               <span>Muốn xem thử?</span>
               <Link to="/demo/login" className="text-primary font-medium hover:underline">
