@@ -27,10 +27,14 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowInactive?: boolean
       setActiveLoading(true);
 
       const timeoutMs = 8000;
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("rpc_timeout")), timeoutMs));
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("rpc_timeout")), timeoutMs),
+      );
 
       try {
-        const rpcCall = client.rpc("is_org_active", { org_id: currentOrgId });
+        const rpcCall = client
+          .rpc("is_org_active", { org_id: currentOrgId })
+          .then((result) => result as { data: boolean | null; error: unknown });
         const { data, error } = await Promise.race([rpcCall, timeout]);
 
         if (!mounted) return;

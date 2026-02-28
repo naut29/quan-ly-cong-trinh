@@ -36,18 +36,18 @@ const Billing: React.FC = () => {
       };
     }
 
-    client
-      .rpc("is_org_active", { org_id: orgId })
-      .then(({ data }) => {
+    void (async () => {
+      try {
+        const { data } = await client.rpc("is_org_active", { org_id: orgId });
         if (active) {
           setActiveStatus(Boolean(data));
         }
-      })
-      .catch(() => {
+      } catch {
         if (active) {
           setActiveStatus(null);
         }
-      });
+      }
+    })();
 
     return () => {
       active = false;

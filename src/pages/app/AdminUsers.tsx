@@ -215,21 +215,23 @@ const AdminUsers: React.FC = () => {
     try {
       const result = await addOrgMemberByEmail(companyId, addEmail.trim(), addRole, addStatus);
 
-      if (!result.ok && result.reason === 'not_found') {
-        toast({
-          title: 'Chưa tìm thấy người dùng',
-          description: 'Email chưa tồn tại trong hệ thống. Chưa hỗ trợ mời trực tiếp, sẽ bổ sung sau.',
-          variant: 'destructive',
-        });
-        return;
-      }
+      if (!result.ok) {
+        if ('reason' in result && result.reason === 'not_found') {
+          toast({
+            title: 'Chưa tìm thấy người dùng',
+            description: 'Email chưa tồn tại trong hệ thống. Chưa hỗ trợ mời trực tiếp, sẽ bổ sung sau.',
+            variant: 'destructive',
+          });
+          return;
+        }
 
-      if (!result.ok && result.reason === 'already_member') {
-        toast({
-          title: 'Người dùng đã tồn tại',
-          description: 'Tài khoản này đã là thành viên của công ty.',
-          variant: 'destructive',
-        });
+        if ('reason' in result && result.reason === 'already_member') {
+          toast({
+            title: 'Người dùng đã tồn tại',
+            description: 'Tài khoản này đã là thành viên của công ty.',
+            variant: 'destructive',
+          });
+        }
         return;
       }
 

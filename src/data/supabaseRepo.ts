@@ -22,3 +22,5 @@ export const createSupabaseRepo = (companyId: string): Repo => ({
     }) as Promise<Project>;
   },
 });
+
+export const supabaseRepo = createSupabaseRepo("");
