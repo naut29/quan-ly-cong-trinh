@@ -161,6 +161,26 @@ export const findUserProfileByEmail = async (email: string) => {
   return (data ?? null) as UserProfileRow | null;
 };
 
+export const listProfilesByIds = async (userIds: string[]) => {
+  const client = assertClient();
+  const uniqueIds = Array.from(new Set(userIds.filter(Boolean)));
+
+  if (uniqueIds.length === 0) {
+    return [] as UserProfileRow[];
+  }
+
+  const { data, error } = await client
+    .from("profiles")
+    .select("id, email, full_name")
+    .in("id", uniqueIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as UserProfileRow[];
+};
+
 export type AddOrgMemberResult =
   | { ok: true; member: OrgMemberRow }
   | { ok: false; reason: "not_found" | "already_member" };

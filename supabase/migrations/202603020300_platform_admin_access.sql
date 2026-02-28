@@ -1,6 +1,8 @@
 do $$
 begin
-  if to_regclass('public.organizations') is not null and not exists (
+  if to_regclass('public.organizations') is not null
+    and to_regprocedure('public.is_super_admin(uuid)') is not null
+    and not exists (
     select 1
     from pg_policies
     where schemaname = 'public'
@@ -14,7 +16,9 @@ begin
       using (public.is_super_admin());
   end if;
 
-  if to_regclass('public.org_members') is not null and not exists (
+  if to_regclass('public.org_members') is not null
+    and to_regprocedure('public.is_super_admin(uuid)') is not null
+    and not exists (
     select 1
     from pg_policies
     where schemaname = 'public'

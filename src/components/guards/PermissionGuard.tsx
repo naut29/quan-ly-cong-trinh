@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft } from 'lucide-react';
+import { useCompany } from '@/app/context/CompanyContext';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { hasOrgPermission } from '@/lib/api/rolePermissions';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -15,10 +16,52 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   module, 
   action = 'view' 
 }) => {
-  const { hasPermission } = useAuth();
+  const { companyId } = useCompany();
   const navigate = useNavigate();
+  const [allowed, setAllowed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  if (!hasPermission(module, action)) {
+  useEffect(() => {
+    let isActive = true;
+
+    if (!companyId) {
+      setAllowed(false);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    hasOrgPermission(companyId, module, action)
+      .then((nextAllowed) => {
+        if (isActive) {
+          setAllowed(nextAllowed);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setAllowed(false);
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [action, companyId, module]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <p className="text-muted-foreground text-sm">Dang kiem tra quyen truy cap...</p>
+      </div>
+    );
+  }
+
+  if (!allowed) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md">

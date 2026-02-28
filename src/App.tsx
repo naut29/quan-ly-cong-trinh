@@ -9,7 +9,8 @@ import RequireNoOrg from "@/app/auth/RequireNoOrg";
 import RequireOrg from "@/app/auth/RequireOrg";
 import RequireRole from "@/app/auth/RequireRole";
 import RequireSuperAdmin from "@/app/auth/RequireSuperAdmin";
-import { DataProvider } from "@/lib/data/DataProvider";
+import { AppDataProvider } from "@/lib/data/appDataLayerProvider";
+import { DemoDataProvider } from "@/lib/data/demoDataLayerProvider";
 
 import PublicLayout from "@/components/layout/PublicLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
@@ -86,9 +87,9 @@ const queryClient = new QueryClient();
 const AppProtectedLayout = () => (
   <RequireOrg>
     <CompanyProvider>
-      <DataProvider mode="app">
+      <AppDataProvider>
         <AppLayoutApp />
-      </DataProvider>
+      </AppDataProvider>
     </CompanyProvider>
   </RequireOrg>
 );
@@ -175,9 +176,9 @@ const App = () => {
             <Route
               path="/demo"
               element={
-                <DataProvider mode="demo">
+                <DemoDataProvider>
                   <DemoLayout />
-                </DataProvider>
+                </DemoDataProvider>
               }
             >
               <Route path="login" element={<DemoLogin />} />

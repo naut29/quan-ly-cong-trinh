@@ -239,7 +239,7 @@ update public.org_members m
 set role_id = r.id
 from public.roles r
 where r.org_id = m.org_id
-  and r.key = case lower(coalesce(m.role, ''))
+  and r.key = case lower(coalesce(m.role::text, ''))
     when 'owner' then 'owner'
     when 'company_owner' then 'owner'
     when 'admin' then 'admin'
@@ -252,10 +252,10 @@ where r.org_id = m.org_id
   end;
 
 update public.org_members m
-set role = r.key
+set role = r.key::public.org_role
 from public.roles r
 where r.id = m.role_id
-  and (m.role is distinct from r.key);
+  and (m.role::text is distinct from r.key);
 
 drop trigger if exists org_members_sync_role_columns on public.org_members;
 create or replace function public.sync_org_member_role_columns()
@@ -274,7 +274,7 @@ begin
 
   perform public.seed_org_roles(new.org_id);
 
-  v_role_key := case lower(coalesce(new.role, ''))
+  v_role_key := case lower(coalesce(new.role::text, ''))
     when 'owner' then 'owner'
     when 'company_owner' then 'owner'
     when 'admin' then 'admin'
@@ -298,7 +298,7 @@ begin
       raise exception 'role_id % does not belong to org %', new.role_id, new.org_id;
     end if;
 
-    new.role := v_role.key;
+    new.role := v_role.key::public.org_role;
     return new;
   end if;
 
@@ -315,7 +315,7 @@ begin
 
   if v_role.id is not null then
     new.role_id := v_role.id;
-    new.role := v_role.key;
+    new.role := v_role.key::public.org_role;
   end if;
 
   return new;
@@ -346,7 +346,7 @@ as $$
       and m.user_id = auth.uid()
       and (
         p_roles is null
-        or coalesce(r.key, m.role)::text = any(p_roles)
+        or coalesce(r.key, m.role::text) = any(p_roles)
       )
   );
 $$;
@@ -364,7 +364,7 @@ as $$
     left join public.roles r on r.id = m.role_id
     where m.org_id = p_org_id
       and m.user_id = auth.uid()
-      and coalesce(r.key, m.role)::text in ('owner', 'admin')
+      and coalesce(r.key, m.role::text) in ('owner', 'admin')
   );
 $$;
 
@@ -377,7 +377,9 @@ grant execute on function public.is_org_member(uuid, text[]) to authenticated;
 grant execute on function public.is_org_admin(uuid) to authenticated;
 grant execute on function public.ensure_org_rbac_seed(uuid) to authenticated;
 
-create or replace function public.list_org_members(p_org_id uuid)
+drop function if exists public.list_org_members(uuid);
+
+create function public.list_org_members(p_org_id uuid)
 returns table (
   org_id uuid,
   user_id uuid,
@@ -398,9 +400,9 @@ as $$
   select
     m.org_id,
     m.user_id,
-    coalesce(r.key, m.role) as role,
+    coalesce(r.key, m.role::text) as role,
     m.role_id,
-    coalesce(r.key, m.role) as role_key,
+    coalesce(r.key, m.role::text) as role_key,
     r.name as role_name,
     m.status,
     m.created_at,

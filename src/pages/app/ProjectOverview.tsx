@@ -1,348 +1,270 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Wallet, 
-  TrendingUp, 
-  TrendingDown,
-  AlertTriangle,
-  Package,
-  FileText,
-  Calendar,
-  MapPin,
-  User,
-  ArrowRight,
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
   BarChart3,
-  PieChart,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { KPICard } from '@/components/ui/kpi-card';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Progress } from '@/components/ui/progress';
-import { useCompany } from '@/app/context/CompanyContext';
-import { 
-  alerts, 
-  formatCurrency, 
-  projectStatusLabels, 
-  projectStageLabels,
-} from '@/data/mockData';
-import { createSupabaseRepo } from '@/data/supabaseRepo';
-import type { Project } from '@/data/repo';
-import { cn } from '@/lib/utils';
-import { getAppBasePath } from '@/lib/appMode';
-import { useProjectIdParam } from '@/lib/projectRoutes';
-import UploadWidget from '@/components/projects/UploadWidget';
+  Calendar,
+  FileText,
+  FolderKanban,
+  MapPin,
+  Package,
+  TrendingUp,
+  User,
+  Wallet,
+} from "lucide-react";
+import { useCompany } from "@/app/context/CompanyContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { StatusBadge } from "@/components/ui/status-badge";
+import UploadWidget from "@/components/projects/UploadWidget";
+import { listActivityLogs } from "@/lib/api/activity";
+import { getProjectModuleSummary } from "@/lib/api/projectModuleRecords";
+import { getProjectById } from "@/lib/api/projects";
+import { getAppBasePath } from "@/lib/appMode";
+import { formatCurrencyFull, formatDate, formatDateTime } from "@/lib/numberFormat";
+import { projectStageLabels, projectStatusLabels } from "@/lib/projectMeta";
+import { useProjectIdParam } from "@/lib/projectRoutes";
+
+const MODULE_LABELS: Record<string, string> = {
+  wbs: "Cấu trúc công việc",
+  boq: "Dự toán",
+  materials: "Vật tư",
+  norms: "Định mức",
+  costs: "Chi phí",
+  contracts: "Hợp đồng",
+  payments: "Thanh toán",
+  approvals: "Phê duyệt",
+  progress: "Tiến độ",
+  reports: "Báo cáo",
+};
+
+const QUICK_LINKS = [
+  { key: "wbs", label: "Cấu trúc công việc", icon: FolderKanban },
+  { key: "boq", label: "Dự toán", icon: FileText },
+  { key: "materials", label: "Vật tư", icon: Package },
+  { key: "costs", label: "Chi phí", icon: Wallet },
+  { key: "progress", label: "Tiến độ", icon: TrendingUp },
+  { key: "reports", label: "Báo cáo", icon: BarChart3 },
+];
 
 const ProjectOverview: React.FC = () => {
-  const id = useProjectIdParam();
+  const projectId = useProjectIdParam();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
   const { companyId } = useCompany();
-  const [project, setProject] = useState<Project | null>(null);
+
+  const [project, setProject] = useState<Awaited<ReturnType<typeof getProjectById>>>(null);
+  const [moduleSummary, setModuleSummary] = useState<Awaited<ReturnType<typeof getProjectModuleSummary>>>([]);
+  const [activity, setActivity] = useState<Awaited<ReturnType<typeof listActivityLogs>>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
-    if (!companyId || !id) {
-      setProject(null);
-      setLoading(false);
-      return;
-    }
-    const repo = createSupabaseRepo(companyId);
-    repo.listProjects()
-      .then((data) => {
-        if (isActive) {
-          setProject(data.find((p) => p.id === id) ?? null);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
+
+    const load = async () => {
+      if (!companyId || !projectId) {
         if (isActive) {
           setProject(null);
+          setModuleSummary([]);
+          setActivity([]);
+          setLoading(false);
+          setError("Chưa xác định dự án hoặc tổ chức.");
+        }
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [projectRow, summaryRows, activityRows] = await Promise.all([
+          getProjectById(companyId, projectId),
+          getProjectModuleSummary(companyId, projectId),
+          listActivityLogs({ orgId: companyId, limit: 8 }),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setProject(projectRow);
+        setModuleSummary(summaryRows);
+        setActivity(activityRows);
+      } catch (loadError) {
+        if (!isActive) {
+          return;
+        }
+
+        setProject(null);
+        setModuleSummary([]);
+        setActivity([]);
+        setError(loadError instanceof Error ? loadError.message : "Không thể tải tổng quan dự án.");
+      } finally {
+        if (isActive) {
           setLoading(false);
         }
-      });
+      }
+    };
+
+    void load();
+
     return () => {
       isActive = false;
     };
-  }, [companyId, id]);
+  }, [companyId, projectId]);
 
-  const projectAlerts = useMemo(() => alerts.filter(a => a.projectId === id), [id]);
+  const summaryTotals = useMemo(
+    () => ({
+      totalRecords: moduleSummary.reduce((sum, row) => sum + row.count, 0),
+      totalAmount: moduleSummary.reduce((sum, row) => sum + row.totalAmount, 0),
+    }),
+    [moduleSummary],
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Đang tải dự án...</p>
+      <div className="p-6">
+        <p className="text-muted-foreground">Đang tải tổng quan dự án...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Không tìm thấy dự án</p>
+      <div className="p-6">
+        <p className="text-muted-foreground">Không tìm thấy dự án.</p>
       </div>
     );
   }
 
-  const variance = project.actual - project.budget;
-  const variancePercent = Math.round((variance / project.budget) * 100);
-  const forecastVariance = project.forecast - project.budget;
-
-  // Mock data for charts
-  const topOverBudget = [
-    { name: 'Thép phi 16', value: 12.5 },
-    { name: 'Bê tông C30', value: 8.2 },
-    { name: 'Ván khuôn', value: 6.8 },
-    { name: 'Xi măng PCB40', value: 5.4 },
-    { name: 'Thép phi 12', value: 4.1 },
-  ];
-
-  const topOverNorm = [
-    { name: 'Sàn tầng 8 - Thép', value: 15.2 },
-    { name: 'Cột C1-C5 - BT', value: 11.8 },
-    { name: 'Móng M1 - Coffa', value: 9.5 },
-    { name: 'Dầm D1 - Thép', value: 7.3 },
-    { name: 'Sàn tầng 5 - BT', value: 6.1 },
-  ];
-
   return (
-    <div className="animate-fade-in">
-      {/* Project Header */}
-      <div className="page-header">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <StatusBadge status={project.status === 'active' ? 'active' : project.status === 'paused' ? 'warning' : 'neutral'}>
-                {projectStatusLabels[project.status]}
-              </StatusBadge>
-              <StatusBadge status={project.stage === 'finishing' ? 'success' : project.stage === 'structure' ? 'warning' : 'info'} dot={false}>
-                {projectStageLabels[project.stage]}
-              </StatusBadge>
-            </div>
-            <h1 className="page-title">{project.name}</h1>
-            <p className="page-subtitle">{project.code}</p>
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <StatusBadge status={project.status === "active" ? "success" : project.status === "paused" ? "warning" : "neutral"}>
+              {projectStatusLabels[project.status] ?? project.status}
+            </StatusBadge>
+            <StatusBadge status="neutral" dot={false}>
+              {projectStageLabels[project.stage] ?? project.stage}
+            </StatusBadge>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline">Xuất báo cáo</Button>
-            <Button>Cập nhật tiến độ</Button>
-          </div>
-        </div>
-
-        {/* Project Info Bar */}
-        <div className="flex items-center gap-6 mt-4 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>{project.address}</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>{project.manager}</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>{project.startDate} → {project.endDate}</span>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+          <p className="mt-1 text-muted-foreground">{project.code}</p>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* Main KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
-          <KPICard
-            title="Tổng dự toán"
-            value={formatCurrency(project.budget)}
-            subtitle="Baseline"
-            icon={Wallet}
-            variant="primary"
-          />
-          <KPICard
-            title="Thực chi"
-            value={formatCurrency(project.actual)}
-            change={variancePercent}
-            changeLabel="so với dự toán"
-            icon={variance > 0 ? TrendingUp : TrendingDown}
-            variant={variance > 0 ? 'destructive' : 'success'}
-          />
-          <KPICard
-            title="Cam kết"
-            value={formatCurrency(project.committed)}
-            subtitle="Giá trị hợp đồng"
-            icon={FileText}
-          />
-          <KPICard
-            title="Dự báo kết thúc"
-            value={formatCurrency(project.forecast)}
-            change={Math.round((forecastVariance / project.budget) * 100)}
-            changeLabel={forecastVariance > 0 ? 'vượt dự toán' : 'tiết kiệm'}
-            icon={BarChart3}
-          />
-        </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Du toan</p>
+            <p className="text-2xl font-bold">{formatCurrencyFull(project.budget)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Thuc chi</p>
+            <p className="text-2xl font-bold">{formatCurrencyFull(project.actual)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Tong ban ghi module</p>
+            <p className="text-2xl font-bold">{summaryTotals.totalRecords}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Tiến độ</p>
+            <p className="text-2xl font-bold">{project.progress}%</p>
+            <Progress value={project.progress} className="mt-2 h-2" />
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Secondary KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="kpi-card">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">Tiến độ tổng thể</span>
-              <span className="text-2xl font-bold font-display">{project.progress}%</span>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Thông tin dự án</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center gap-3 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span>{project.address || "-"}</span>
             </div>
-            <Progress value={project.progress} className="h-2" />
-            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-              <span>Kế hoạch: 52%</span>
-              <span className={project.progress >= 52 ? "text-success" : "text-destructive"}>
-                {project.progress >= 52 ? '+' : ''}{project.progress - 52}%
-              </span>
+            <div className="flex items-center gap-3 text-sm">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span>{project.manager || "-"}</span>
             </div>
-          </div>
-          
-          <div className="kpi-card">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">Hao hụt vật tư</span>
-              <span className="text-2xl font-bold font-display text-warning">3.2%</span>
+            <div className="flex items-center gap-3 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>{formatDate(project.startDate)}</span>
             </div>
-            <Progress value={32} className="h-2 [&>div]:bg-warning" />
-            <p className="text-xs text-muted-foreground mt-2">Cho phép: 5%</p>
-          </div>
+            <div className="flex items-center gap-3 text-sm">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <span>{formatCurrencyFull(summaryTotals.totalAmount)} tong gia tri module</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="kpi-card">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">Thanh toán</span>
-              <span className="text-2xl font-bold font-display">{formatCurrency(project.actual * 0.85)}</span>
-            </div>
-            <Progress value={85} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">85% thực chi đã thanh toán</p>
-          </div>
-        </div>
-
-        {/* Charts & Alerts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Top Over Budget */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-semibold">Top 5 vượt ngân sách</h3>
-              <Link to={`${basePath}/projects/${id}/costs`}>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  Chi tiết <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </div>
-            <div className="p-4 space-y-3">
-              {topOverBudget.map((item, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground w-4">{index + 1}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium truncate">{item.name}</span>
-                      <span className="text-sm font-medium text-destructive">+{item.value}%</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-destructive rounded-full"
-                        style={{ width: `${Math.min(item.value * 5, 100)}%` }}
-                      />
-                    </div>
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Hoat dong gan day</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {activity.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Chua co hoat dong nao.</p>
+            ) : (
+              activity.slice(0, 5).map((item) => (
+                <div key={item.id} className="rounded-lg border border-border p-3">
+                  <p className="text-sm font-medium">{item.module}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{item.description ?? item.action}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.created_at)}</p>
                 </div>
-              ))}
-            </div>
-          </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Top Over Norm */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-semibold">Top 5 vượt định mức</h3>
-              <Link to={`${basePath}/projects/${id}/norms`}>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  Chi tiết <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </div>
-            <div className="p-4 space-y-3">
-              {topOverNorm.map((item, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground w-4">{index + 1}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium truncate">{item.name}</span>
-                      <span className="text-sm font-medium text-warning">+{item.value}%</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-warning rounded-full"
-                        style={{ width: `${Math.min(item.value * 5, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {moduleSummary.map((item) => (
+          <Link key={item.moduleKey} to={`${basePath}/projects/${projectId}/${item.moduleKey}`} className="block">
+            <Card className="h-full transition-colors hover:border-primary/50">
+              <CardContent className="space-y-3 p-4">
+                <p className="text-sm font-medium">{MODULE_LABELS[item.moduleKey] ?? item.moduleKey}</p>
+                <p className="text-2xl font-bold">{item.count}</p>
+                <p className="text-xs text-muted-foreground">{formatCurrencyFull(item.totalAmount)}</p>
+                <Progress value={item.averageProgress} className="h-2" />
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
 
-          {/* Alerts */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-semibold">Cảnh báo ({projectAlerts.length})</h3>
-              <Button variant="ghost" size="sm">Xem tất cả</Button>
-            </div>
-            <div className="divide-y divide-border">
-              {projectAlerts.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Không có cảnh báo</p>
-                </div>
-              ) : (
-                projectAlerts.slice(0, 4).map((alert) => (
-                  <div key={alert.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                        alert.type === 'error' && "bg-destructive/10",
-                        alert.type === 'warning' && "bg-warning/10",
-                        alert.type === 'info' && "bg-info/10",
-                      )}>
-                        <AlertTriangle className={cn(
-                          "h-4 w-4",
-                          alert.type === 'error' && "text-destructive",
-                          alert.type === 'warning' && "text-warning",
-                          alert.type === 'info' && "text-info",
-                        )} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{alert.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {alert.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+      <UploadWidget projectId={projectId} />
 
-        {/* Project files */}
-        <UploadWidget projectId={id} />
-
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {[
-            { label: 'Cấu trúc công việc', path: 'wbs', icon: BarChart3 },
-            { label: 'Dự toán', path: 'boq', icon: FileText },
-            { label: 'Vật tư', path: 'materials', icon: Package },
-            { label: 'Chi phí', path: 'costs', icon: Wallet },
-            { label: 'Hợp đồng', path: 'contracts', icon: FileText },
-            { label: 'Tiến độ', path: 'progress', icon: TrendingUp },
-          ].map((item) => (
-            <Link
-              key={item.path}
-              to={`${basePath}/projects/${id}/${item.path}`}
-              className="kpi-card flex flex-col items-center justify-center py-6 hover:border-primary/50 transition-colors"
-            >
-              <item.icon className="h-6 w-6 text-primary mb-2" />
-              <span className="text-sm font-medium text-center">{item.label}</span>
-            </Link>
-          ))}
-        </div>
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {QUICK_LINKS.map((item) => (
+          <Link
+            key={item.key}
+            to={`${basePath}/projects/${projectId}/${item.key}`}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50"
+          >
+            <item.icon className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{item.label}</span>
+          </Link>
+        ))}
       </div>
     </div>
   );

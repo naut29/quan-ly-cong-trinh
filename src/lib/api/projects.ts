@@ -88,6 +88,37 @@ export const listProjectsByOrg = async (orgId: string) => {
   return (byCompany.data ?? []).map((row) => normalizeProject(row as ProjectRow, orgId));
 };
 
+export const getProjectById = async (orgId: string, projectId: string) => {
+  if (!orgId || !projectId) {
+    return null;
+  }
+
+  const client = assertClient();
+  const byOrg = await client
+    .from("projects")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (!byOrg.error && byOrg.data) {
+    return normalizeProject(byOrg.data as ProjectRow, orgId);
+  }
+
+  const byCompany = await client
+    .from("projects")
+    .select("*")
+    .eq("company_id", orgId)
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (byCompany.error) {
+    throw byCompany.error;
+  }
+
+  return byCompany.data ? normalizeProject(byCompany.data as ProjectRow, orgId) : null;
+};
+
 export interface CreateProjectInput {
   name: string;
   code?: string | null;
@@ -141,6 +172,70 @@ export const createProject = async (orgId: string, input: CreateProjectInput) =>
     throw byCompany.error;
   }
   return normalizeProject(byCompany.data as ProjectRow, orgId);
+};
+
+export const updateProject = async (orgId: string, projectId: string, input: CreateProjectInput) => {
+  const client = assertClient();
+  const payload = buildPayload(orgId, input);
+
+  const byOrg = await client
+    .from("projects")
+    .update(payload)
+    .eq("org_id", orgId)
+    .eq("id", projectId)
+    .select("*")
+    .maybeSingle();
+
+  if (!byOrg.error && byOrg.data) {
+    return normalizeProject(byOrg.data as ProjectRow, orgId);
+  }
+
+  const legacyPayload = {
+    ...payload,
+    company_id: orgId,
+  };
+  delete (legacyPayload as { org_id?: string }).org_id;
+
+  const byCompany = await client
+    .from("projects")
+    .update(legacyPayload)
+    .eq("company_id", orgId)
+    .eq("id", projectId)
+    .select("*")
+    .maybeSingle();
+
+  if (byCompany.error) {
+    throw byCompany.error;
+  }
+
+  if (!byCompany.data) {
+    throw new Error("Project not found");
+  }
+
+  return normalizeProject(byCompany.data as ProjectRow, orgId);
+};
+
+export const deleteProject = async (orgId: string, projectId: string) => {
+  const client = assertClient();
+  const byOrg = await client
+    .from("projects")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("id", projectId);
+
+  if (!byOrg.error) {
+    return;
+  }
+
+  const byCompany = await client
+    .from("projects")
+    .delete()
+    .eq("company_id", orgId)
+    .eq("id", projectId);
+
+  if (byCompany.error) {
+    throw byCompany.error;
+  }
 };
 
 export const getProjectDashboardStats = async (orgId: string) => {

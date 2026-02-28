@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import { listProjectFiles } from "@/lib/api/files";
 import { completeUpload, createUpload, getDownloadUrl, type ProjectFileRecord } from "@/lib/api/uploads";
 import { appFetch } from "@/lib/runtime/appFetch";
-import { supabase } from "@/lib/supabaseClient";
 
 interface UploadWidgetProps {
   projectId: string;
@@ -29,7 +29,7 @@ const UploadWidget: React.FC<UploadWidgetProps> = ({ projectId }) => {
   const [error, setError] = useState<string | null>(null);
 
   const loadFiles = useCallback(async () => {
-    if (!supabase || !projectId) {
+    if (!projectId) {
       setFiles([]);
       setLoading(false);
       return;
@@ -37,17 +37,12 @@ const UploadWidget: React.FC<UploadWidgetProps> = ({ projectId }) => {
 
     setLoading(true);
     setError(null);
-    const { data, error: queryError } = await supabase
-      .from("project_files")
-      .select("id, org_id, project_id, object_key, filename, size, content_type, created_by, created_at")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false });
-
-    if (queryError) {
-      setError(queryError.message);
+    try {
+      const rows = await listProjectFiles(projectId);
+      setFiles(rows);
+    } catch (queryError) {
+      setError(queryError instanceof Error ? queryError.message : "Khong the tai danh sach tep.");
       setFiles([]);
-    } else {
-      setFiles((data ?? []) as ProjectFileRecord[]);
     }
     setLoading(false);
   }, [projectId]);

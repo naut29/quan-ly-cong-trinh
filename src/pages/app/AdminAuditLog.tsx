@@ -33,9 +33,9 @@ import {
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useCompany } from '@/app/context/CompanyContext';
 import { listActivityLogs, type ActivityLogRow } from '@/lib/api/activity';
+import { listProfilesByIds } from '@/lib/api/users';
 import { activityActionLabels } from '@/lib/projectMeta';
 import { formatDateTime } from '@/lib/numberFormat';
-import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 
 const actionIcons: Record<string, React.ElementType> = {
@@ -81,14 +81,10 @@ const AdminAuditLog: React.FC = () => {
         setLogs(rows);
 
         const actorIds = Array.from(new Set(rows.map((item) => item.actor_user_id).filter(Boolean))) as string[];
-        if (actorIds.length > 0 && supabase) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, email')
-            .in('id', actorIds);
-
+        if (actorIds.length > 0) {
+          const profiles = await listProfilesByIds(actorIds);
           const labels: Record<string, string> = {};
-          (profiles ?? []).forEach((profile: any) => {
+          profiles.forEach((profile) => {
             labels[profile.id] = profile.full_name || profile.email || profile.id;
           });
           if (isMounted) {
