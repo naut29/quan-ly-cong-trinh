@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase, hasSupabaseEnv } from "@/lib/supabaseClient";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { useSession } from "@/app/session/useSession";
 import { usePlanContext } from "@/hooks/usePlanContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ensureSubscription,
+  getSubscription,
+  type SubscriptionRow,
+} from "@/lib/api/billing";
+import { formatPriceVnd, getPlan } from "@/lib/plans/planCatalog";
 
 const formatLimit = (value: number | null, unit = "") => {
   if (value === null) return "Không giới hạn";
@@ -15,31 +21,86 @@ const Billing: React.FC = () => {
   const { orgId, orgRole, loading: sessionLoading } = useSession();
   const { context, loading: planLoading } = usePlanContext(orgId);
   const [activeStatus, setActiveStatus] = useState<boolean | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const isAdmin = orgRole === "owner" || orgRole === "admin";
 
   useEffect(() => {
+    let active = true;
+
     const client = supabase;
     if (!client || !orgId) {
       setActiveStatus(null);
-      return;
+      return () => {
+        active = false;
+      };
     }
 
     client
       .rpc("is_org_active", { org_id: orgId })
       .then(({ data }) => {
-        setActiveStatus(Boolean(data));
+        if (active) {
+          setActiveStatus(Boolean(data));
+        }
       })
       .catch(() => {
-        setActiveStatus(null);
+        if (active) {
+          setActiveStatus(null);
+        }
       });
+
+    return () => {
+      active = false;
+    };
   }, [orgId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!orgId) {
+      setSubscription(null);
+      setSubscriptionLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setSubscriptionLoading(true);
+
+    void getSubscription(orgId)
+      .then(async (row) => row ?? ensureSubscription(orgId))
+      .then((row) => {
+        if (active) {
+          setSubscription(row);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSubscription(null);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setSubscriptionLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [orgId]);
+
+  const currentPlan = useMemo(
+    () => getPlan(subscription?.plan_id ?? context.planCode),
+    [context.planCode, subscription?.plan_id],
+  );
 
   if (!hasSupabaseEnv) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="max-w-md text-center space-y-2">
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="max-w-md space-y-2 text-center">
           <h2 className="text-lg font-semibold text-foreground">Missing Supabase env</h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to continue.
           </p>
         </div>
@@ -47,9 +108,9 @@ const Billing: React.FC = () => {
     );
   }
 
-  if (sessionLoading || planLoading) {
+  if (sessionLoading || planLoading || subscriptionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Đang tải...</p>
       </div>
     );
@@ -73,16 +134,26 @@ const Billing: React.FC = () => {
             <CardTitle>Gói hiện tại</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>Plan: {context.planName ?? "-"}</p>
-            <p>Mã gói: {context.planCode ?? "-"}</p>
-            <p>Trạng thái: {activeStatus === null ? "-" : activeStatus ? "Đang hoạt động" : "Đã hết hạn"}</p>
+            <p>Tên gói: {currentPlan.name}</p>
+            <p>Mã gói: {currentPlan.id}</p>
+            <p>Giá: {formatPriceVnd(currentPlan.priceVnd)}</p>
+            <p>
+              Trạng thái:{" "}
+              {activeStatus === null ? "-" : activeStatus ? "Đang hoạt động" : "Đã hết hạn"}
+            </p>
 
             <p>Thành viên tối đa: {formatLimit(context.limits.max_members)}</p>
-            <p>Dự án đang hoạt động tối đa: {formatLimit(context.limits.max_active_projects)}</p>
+            <p>
+              Dự án đang hoạt động tối đa:{" "}
+              {formatLimit(context.limits.max_active_projects)}
+            </p>
             <p>Lưu trữ tối đa: {formatLimit(context.limits.max_storage_mb, " MB")}</p>
             <p>Upload mỗi ngày: {formatLimit(context.limits.max_upload_mb_per_day, " MB")}</p>
             <p>Kích thước tệp tối đa: {formatLimit(context.limits.max_file_mb, " MB")}</p>
-            <p>Băng thông tải xuống/tháng: {formatLimit(context.limits.max_download_gb_per_month, " GB")}</p>
+            <p>
+              Băng thông tải xuống/tháng:{" "}
+              {formatLimit(context.limits.max_download_gb_per_month, " GB")}
+            </p>
             <p>Xuất dữ liệu/ngày: {formatLimit(context.limits.export_per_day)}</p>
             <p>Phê duyệt: {context.limits.approval_enabled}</p>
             <p>Hỗ trợ: {context.limits.support}</p>
@@ -92,11 +163,11 @@ const Billing: React.FC = () => {
                 <p>Tài khoản đã hết hạn. Vui lòng liên hệ để gia hạn.</p>
                 {isAdmin ? (
                   <div className="mt-2 text-destructive">
-                    <p>Email : contact@quanlycongtrinh.com</p>
-                    <p>Điện thoại : 0988097621</p>
+                    <p>Email: contact@quanlycongtrinh.com</p>
+                    <p>Điện thoại: 0988097621</p>
                   </div>
                 ) : (
-                  <p className="mt-2">Liên hệ quản trị viên công ty</p>
+                  <p className="mt-2">Liên hệ quản trị viên công ty.</p>
                 )}
               </div>
             )}

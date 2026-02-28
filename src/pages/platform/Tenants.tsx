@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatCurrency } from '@/data/mockData';
+import { getPlan } from '@/lib/plans/planCatalog';
 
 // Mock tenants data
 const mockTenants = [
@@ -40,43 +41,43 @@ const mockTenants = [
     id: 'tenant-001',
     name: 'Công ty Xây dựng ABC',
     code: 'ABC',
-    plan: 'Enterprise',
+    plan: getPlan('enterprise').name,
     status: 'active',
     users: 24,
     projects: 12,
     createdAt: '15/01/2023',
     lastActive: '2 phút trước',
-    mrr: 4990000,
+    mrr: getPlan('enterprise').priceVnd,
   },
   {
     id: 'tenant-002',
     name: 'Công ty TNHH Đầu tư XYZ',
     code: 'XYZ',
-    plan: 'Professional',
+    plan: getPlan('pro').name,
     status: 'active',
     users: 15,
     projects: 8,
     createdAt: '20/03/2023',
     lastActive: '1 giờ trước',
-    mrr: 2990000,
+    mrr: getPlan('pro').priceVnd,
   },
   {
     id: 'tenant-003',
     name: 'Tập đoàn Xây dựng Miền Nam',
     code: 'XDMN',
-    plan: 'Enterprise',
+    plan: getPlan('enterprise').name,
     status: 'active',
     users: 45,
     projects: 25,
     createdAt: '05/06/2023',
     lastActive: '30 phút trước',
-    mrr: 4990000,
+    mrr: getPlan('enterprise').priceVnd,
   },
   {
     id: 'tenant-004',
     name: 'Công ty CP Kiến trúc Hiện đại',
     code: 'KTHD',
-    plan: 'Starter',
+    plan: getPlan('starter').name,
     status: 'trial',
     users: 3,
     projects: 1,
@@ -88,7 +89,7 @@ const mockTenants = [
     id: 'tenant-005',
     name: 'Công ty Xây lắp Điện nước',
     code: 'XLDN',
-    plan: 'Professional',
+    plan: getPlan('pro').name,
     status: 'suspended',
     users: 10,
     projects: 5,

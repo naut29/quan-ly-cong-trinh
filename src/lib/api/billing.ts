@@ -1,9 +1,21 @@
+import { type PlanId, getPlan } from "@/lib/plans/planCatalog";
 import { supabase } from "@/lib/supabaseClient";
+
+interface RawSubscriptionRow {
+  id: string;
+  org_id: string;
+  plan: string;
+  status: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
 export interface SubscriptionRow {
   id: string;
   org_id: string;
-  plan: string;
+  plan_id: PlanId;
   status: string;
   current_period_start: string | null;
   current_period_end: string | null;
@@ -40,6 +52,46 @@ const assertClient = () => {
   return supabase;
 };
 
+const addOneMonth = (value: string) => {
+  const next = new Date(value);
+  next.setMonth(next.getMonth() + 1);
+  return next.toISOString();
+};
+
+const mapSubscriptionRow = (row: RawSubscriptionRow | null): SubscriptionRow | null => {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    org_id: row.org_id,
+    plan_id: getPlan(row.plan).id,
+    status: row.status,
+    current_period_start: row.current_period_start,
+    current_period_end: row.current_period_end,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+};
+
+const syncOrganizationPlan = async (orgId: string, planId: PlanId) => {
+  const client = assertClient();
+  const plan = getPlan(planId);
+
+  const { error } = await client
+    .from("organizations")
+    .update({
+      plan: plan.id,
+      plan_id: plan.dbPlanId,
+    })
+    .eq("id", orgId);
+
+  if (error) {
+    console.warn("Failed to sync organization plan metadata", error);
+  }
+};
+
 export const getSubscription = async (orgId: string) => {
   const client = assertClient();
   const { data, error } = await client
@@ -50,22 +102,35 @@ export const getSubscription = async (orgId: string) => {
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return (data ?? null) as SubscriptionRow | null;
+  return mapSubscriptionRow((data ?? null) as RawSubscriptionRow | null);
+};
+
+export const ensureSubscription = async (orgId: string) => {
+  const client = assertClient();
+  const { data, error } = await client.rpc("ensure_org_subscription", {
+    p_org_id: orgId,
+  });
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? (data[0] ?? null) : data;
+  return mapSubscriptionRow((row ?? null) as RawSubscriptionRow | null);
 };
 
 export const upsertSubscription = async (
   orgId: string,
-  payload: Partial<Pick<SubscriptionRow, "plan" | "status" | "current_period_start" | "current_period_end">>,
+  payload: Partial<Pick<SubscriptionRow, "plan_id" | "status" | "current_period_start" | "current_period_end">>,
 ) => {
   const client = assertClient();
 
   const now = new Date().toISOString();
+  const currentPeriodStart = payload.current_period_start ?? now;
+  const nextPlanId = payload.plan_id ?? "starter";
   const row = {
     org_id: orgId,
-    plan: payload.plan ?? "starter",
+    plan: nextPlanId,
     status: payload.status ?? "active",
-    current_period_start: payload.current_period_start ?? now,
-    current_period_end: payload.current_period_end ?? null,
+    current_period_start: currentPeriodStart,
+    current_period_end: payload.current_period_end ?? addOneMonth(currentPeriodStart),
     updated_at: now,
   };
 
@@ -75,7 +140,10 @@ export const upsertSubscription = async (
     .select("id, org_id, plan, status, current_period_start, current_period_end, created_at, updated_at")
     .single();
   if (error) throw error;
-  return data as SubscriptionRow;
+
+  await syncOrganizationPlan(orgId, nextPlanId);
+
+  return mapSubscriptionRow(data as RawSubscriptionRow)!;
 };
 
 export const listInvoices = async (orgId: string) => {

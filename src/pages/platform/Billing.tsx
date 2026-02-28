@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatCurrency } from '@/data/mockData';
+import { getPlan } from '@/lib/plans/planCatalog';
 import {
   AreaChart,
   Area,
@@ -44,58 +45,58 @@ import {
 
 // Mock revenue data
 const revenueData = [
-  { month: 'T1', revenue: 25000000, newMrr: 4990000, churn: 990000 },
-  { month: 'T2', revenue: 28000000, newMrr: 5980000, churn: 990000 },
-  { month: 'T3', revenue: 32000000, newMrr: 6970000, churn: 1980000 },
-  { month: 'T4', revenue: 35000000, newMrr: 4990000, churn: 0 },
-  { month: 'T5', revenue: 38000000, newMrr: 5980000, churn: 990000 },
-  { month: 'T6', revenue: 42000000, newMrr: 7960000, churn: 1980000 },
+  { month: 'T1', revenue: 25000000, newMrr: getPlan('enterprise').priceVnd, churn: getPlan('starter').priceVnd },
+  { month: 'T2', revenue: 28000000, newMrr: getPlan('enterprise').priceVnd + getPlan('starter').priceVnd, churn: getPlan('starter').priceVnd },
+  { month: 'T3', revenue: 32000000, newMrr: getPlan('enterprise').priceVnd + (getPlan('starter').priceVnd * 2), churn: getPlan('starter').priceVnd * 2 },
+  { month: 'T4', revenue: 35000000, newMrr: getPlan('enterprise').priceVnd, churn: 0 },
+  { month: 'T5', revenue: 38000000, newMrr: getPlan('enterprise').priceVnd + getPlan('starter').priceVnd, churn: getPlan('starter').priceVnd },
+  { month: 'T6', revenue: 42000000, newMrr: getPlan('enterprise').priceVnd + getPlan('starter').priceVnd + getPlan('pro').priceVnd, churn: getPlan('starter').priceVnd * 2 },
 ];
 
 const planDistribution = [
-  { name: 'Starter', count: 15, revenue: 14850000 },
-  { name: 'Professional', count: 25, revenue: 74750000 },
-  { name: 'Enterprise', count: 10, revenue: 49900000 },
+  { name: getPlan('starter').name, count: 15, revenue: getPlan('starter').priceVnd * 15 },
+  { name: getPlan('pro').name, count: 25, revenue: getPlan('pro').priceVnd * 25 },
+  { name: getPlan('enterprise').name, count: 10, revenue: getPlan('enterprise').priceVnd * 10 },
 ];
 
 const recentTransactions = [
   {
     id: 'TXN-001',
     tenant: 'Công ty Xây dựng ABC',
-    plan: 'Enterprise',
-    amount: 4990000,
+    plan: getPlan('enterprise').name,
+    amount: getPlan('enterprise').priceVnd,
     status: 'completed',
     date: '15/03/2024',
   },
   {
     id: 'TXN-002',
     tenant: 'Công ty TNHH Đầu tư XYZ',
-    plan: 'Professional',
-    amount: 2990000,
+    plan: getPlan('pro').name,
+    amount: getPlan('pro').priceVnd,
     status: 'completed',
     date: '14/03/2024',
   },
   {
     id: 'TXN-003',
     tenant: 'Tập đoàn Xây dựng Miền Nam',
-    plan: 'Enterprise',
-    amount: 4990000,
+    plan: getPlan('enterprise').name,
+    amount: getPlan('enterprise').priceVnd,
     status: 'pending',
     date: '13/03/2024',
   },
   {
     id: 'TXN-004',
     tenant: 'Công ty CP Xây dựng Đông Á',
-    plan: 'Starter',
-    amount: 990000,
+    plan: getPlan('starter').name,
+    amount: getPlan('starter').priceVnd,
     status: 'completed',
     date: '12/03/2024',
   },
   {
     id: 'TXN-005',
     tenant: 'Công ty TNHH Kiến trúc Xanh',
-    plan: 'Professional',
-    amount: 2990000,
+    plan: getPlan('pro').name,
+    amount: getPlan('pro').priceVnd,
     status: 'failed',
     date: '11/03/2024',
   },
@@ -104,7 +105,7 @@ const recentTransactions = [
 const PlatformBilling: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState('month');
 
-  const totalMRR = 139500000;
+  const totalMRR = planDistribution.reduce((sum, plan) => sum + plan.revenue, 0);
   const totalTenants = 50;
   const avgRevenuePerTenant = totalMRR / totalTenants;
   const churnRate = 2.5;
