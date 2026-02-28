@@ -4,6 +4,9 @@ export interface OrgMemberRow {
   org_id: string;
   user_id: string;
   role: string;
+  role_id: string | null;
+  role_key: string | null;
+  role_name: string | null;
   status: string;
   created_at: string;
   member_key: string;
@@ -27,6 +30,17 @@ export interface ProjectAssignmentRow {
   created_at: string;
 }
 
+interface OrgMemberRecord {
+  org_id: string;
+  user_id: string;
+  role?: string | null;
+  role_id?: string | null;
+  role_key?: string | null;
+  role_name?: string | null;
+  status: string;
+  created_at: string;
+}
+
 const assertClient = () => {
   if (!supabase) {
     throw new Error("Missing Supabase env");
@@ -36,49 +50,34 @@ const assertClient = () => {
 
 const buildOrgMemberKey = (orgId: string, userId: string) => `${orgId}:${userId}`;
 
-const normalizeOrgMemberRow = (
-  row: Omit<OrgMemberRow, "member_key">,
-): OrgMemberRow => ({
-  ...row,
-  member_key: buildOrgMemberKey(row.org_id, row.user_id),
-});
+const normalizeOrgMemberRow = (row: OrgMemberRecord): OrgMemberRow => {
+  const roleKey = row.role_key ?? row.role ?? null;
 
-const getProfilesByUserIds = async (userIds: string[]) => {
-  if (userIds.length === 0) return new Map<string, UserProfileRow>();
-  const client = assertClient();
-  const { data, error } = await client
-    .from("profiles")
-    .select("id, email, full_name")
-    .in("id", userIds);
-
-  if (error) {
-    return new Map<string, UserProfileRow>();
-  }
-
-  return new Map((data ?? []).map((row) => [row.id as string, row as UserProfileRow]));
+  return {
+    org_id: row.org_id,
+    user_id: row.user_id,
+    role: roleKey ?? "",
+    role_id: row.role_id ?? null,
+    role_key: roleKey,
+    role_name: row.role_name ?? null,
+    status: row.status,
+    created_at: row.created_at,
+    member_key: buildOrgMemberKey(row.org_id, row.user_id),
+  };
 };
 
 export const listOrgMembers = async (orgId: string) => {
   const client = assertClient();
   const { data, error } = await client
-    .from("org_members")
-    .select("org_id, user_id, role, status, created_at")
-    .eq("org_id", orgId)
-    .order("created_at", { ascending: true });
+    .rpc("list_org_members", { p_org_id: orgId });
 
   if (error) throw error;
 
-  const members = ((data ?? []) as Array<Omit<OrgMemberRow, "member_key">>).map(normalizeOrgMemberRow);
-  const profileMap = await getProfilesByUserIds(members.map((item) => item.user_id));
-
-  return members.map((member) => {
-    const profile = profileMap.get(member.user_id);
-    return {
-      ...member,
-      email: profile?.email ?? null,
-      full_name: profile?.full_name ?? null,
-    } satisfies OrgMemberView;
-  });
+  return ((data ?? []) as OrgMemberRecord[]).map((row) => ({
+    ...normalizeOrgMemberRow(row),
+    email: (row as { email?: string | null }).email ?? null,
+    full_name: (row as { full_name?: string | null }).full_name ?? null,
+  }));
 };
 
 export const listProjectAssignmentsForOrg = async (orgId: string) => {
@@ -169,7 +168,7 @@ export type AddOrgMemberResult =
 export const addOrgMemberByEmail = async (
   orgId: string,
   email: string,
-  role: string,
+  roleId: string,
   status = "active",
 ): Promise<AddOrgMemberResult> => {
   const profile = await findUserProfileByEmail(email);
@@ -177,7 +176,7 @@ export const addOrgMemberByEmail = async (
     return { ok: false, reason: "not_found" };
   }
 
-  const result = await addOrgMemberByUserId(orgId, profile.id, role, status);
+  const result = await addOrgMemberByUserId(orgId, profile.id, roleId, status);
   if (!result.ok) {
     return result;
   }
@@ -187,7 +186,7 @@ export const addOrgMemberByEmail = async (
 export const addOrgMemberByUserId = async (
   orgId: string,
   userId: string,
-  role: string,
+  roleId: string,
   status = "active",
 ): Promise<AddOrgMemberResult> => {
   const client = assertClient();
@@ -196,10 +195,10 @@ export const addOrgMemberByUserId = async (
     .insert({
       org_id: orgId,
       user_id: userId,
-      role,
+      role_id: roleId,
       status,
     })
-    .select("org_id, user_id, role, status, created_at")
+    .select("org_id, user_id, role, role_id, status, created_at")
     .single();
 
   if (error) {
@@ -211,25 +210,40 @@ export const addOrgMemberByUserId = async (
 
   return {
     ok: true,
-    member: normalizeOrgMemberRow(data as Omit<OrgMemberRow, "member_key">),
+    member: normalizeOrgMemberRow(data as OrgMemberRecord),
   };
 };
+
+export interface UpdateOrgMemberInput {
+  roleId?: string;
+  status?: string;
+}
 
 export const updateOrgMember = async (
   orgId: string,
   userId: string,
-  updates: Partial<Pick<OrgMemberRow, "role" | "status">>,
+  updates: UpdateOrgMemberInput,
 ) => {
   const client = assertClient();
+  const nextUpdate: Record<string, string> = {};
+
+  if (updates.roleId) {
+    nextUpdate.role_id = updates.roleId;
+  }
+
+  if (updates.status) {
+    nextUpdate.status = updates.status;
+  }
+
   const { data, error } = await client
     .from("org_members")
-    .update(updates)
+    .update(nextUpdate)
     .eq("org_id", orgId)
     .eq("user_id", userId)
-    .select("org_id, user_id, role, status, created_at")
+    .select("org_id, user_id, role, role_id, status, created_at")
     .single();
   if (error) throw error;
-  return normalizeOrgMemberRow(data as Omit<OrgMemberRow, "member_key">);
+  return normalizeOrgMemberRow(data as OrgMemberRecord);
 };
 
 export const removeOrgMember = async (orgId: string, userId: string) => {

@@ -25,6 +25,7 @@ interface RolesMatrixProps {
   onSave: (nextMatrix: PermissionMatrix) => Promise<void>;
   title?: string;
   description?: string;
+  focusedRoleId?: string | null;
 }
 
 const cloneCell = (cell: RolesMatrixPermissionCell): RolesMatrixPermissionCell => ({
@@ -70,6 +71,7 @@ const RolesMatrix: React.FC<RolesMatrixProps> = ({
   onSave,
   title = "Vai tro & Quyen han",
   description,
+  focusedRoleId = null,
 }) => {
   const [draft, setDraft] = useState<PermissionMatrix>(() => cloneMatrix(matrix));
   const [hasChanges, setHasChanges] = useState(false);
@@ -80,6 +82,19 @@ const RolesMatrix: React.FC<RolesMatrixProps> = ({
     setHasChanges(false);
     setIsSaving(false);
   }, [matrix]);
+
+  useEffect(() => {
+    if (!focusedRoleId) {
+      return;
+    }
+
+    const highlightedRole = document.getElementById(`rbac-role-${focusedRoleId}`);
+    highlightedRole?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [focusedRoleId, matrix, roles]);
 
   const resolvedDescription =
     description ??
@@ -172,8 +187,12 @@ const RolesMatrix: React.FC<RolesMatrixProps> = ({
                   {roles.map((role) => (
                     <th
                       key={role.id}
+                      id={`rbac-role-${role.id}`}
                       colSpan={3}
-                      className="min-w-[180px] bg-muted/50 p-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                      className={cn(
+                        "min-w-[180px] bg-muted/50 p-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground",
+                        focusedRoleId === role.id && "bg-info/15 text-info",
+                      )}
                     >
                       {role.label}
                     </th>
@@ -183,13 +202,28 @@ const RolesMatrix: React.FC<RolesMatrixProps> = ({
                   <th className="sticky left-0 z-10 bg-muted/30"></th>
                   {roles.map((role) => (
                     <React.Fragment key={role.id}>
-                      <th className="bg-muted/30 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      <th
+                        className={cn(
+                          "bg-muted/30 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground",
+                          focusedRoleId === role.id && "bg-info/10 text-info",
+                        )}
+                      >
                         Xem
                       </th>
-                      <th className="bg-muted/30 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      <th
+                        className={cn(
+                          "bg-muted/30 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground",
+                          focusedRoleId === role.id && "bg-info/10 text-info",
+                        )}
+                      >
                         Sua
                       </th>
-                      <th className="border-r border-border bg-muted/30 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground last:border-r-0">
+                      <th
+                        className={cn(
+                          "border-r border-border bg-muted/30 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground last:border-r-0",
+                          focusedRoleId === role.id && "bg-info/10 text-info",
+                        )}
+                      >
                         Duyet
                       </th>
                     </React.Fragment>
@@ -208,14 +242,24 @@ const RolesMatrix: React.FC<RolesMatrixProps> = ({
 
                       return (
                         <React.Fragment key={role.id}>
-                          <td className="px-2 py-2 text-center">
+                          <td
+                            className={cn(
+                              "px-2 py-2 text-center",
+                              focusedRoleId === role.id && "bg-info/5",
+                            )}
+                          >
                             <Checkbox
                               checked={cell.view}
                               onCheckedChange={() => togglePermission(role.id, row.module, "view")}
                               className="data-[state=checked]:border-success data-[state=checked]:bg-success"
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td
+                            className={cn(
+                              "px-2 py-2 text-center",
+                              focusedRoleId === role.id && "bg-info/5",
+                            )}
+                          >
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="inline-block">
@@ -237,7 +281,12 @@ const RolesMatrix: React.FC<RolesMatrixProps> = ({
                               )}
                             </Tooltip>
                           </td>
-                          <td className="border-r border-border px-2 py-2 text-center last:border-r-0">
+                          <td
+                            className={cn(
+                              "border-r border-border px-2 py-2 text-center last:border-r-0",
+                              focusedRoleId === role.id && "bg-info/5",
+                            )}
+                          >
                             {row.supportsApprove ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
