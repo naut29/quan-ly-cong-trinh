@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useProjectIdParam } from '@/lib/projectRoutes';
-import { 
-  FileText, 
-  Search, 
+import {
+  FileText,
+  Search,
   Plus,
   Download,
   Upload,
-  Filter,
   ChevronRight,
   Check,
   X,
@@ -22,50 +21,132 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { formatCurrency, formatCurrencyFull } from '@/data/mockData';
+import { useCompany } from '@/app/context/CompanyContext';
+import { budgetApi } from '@/lib/api/budget';
+import type { ProjectModuleRecordRow } from '@/lib/api/projectModuleRecords';
+import { formatCurrencyFull } from '@/lib/numberFormat';
 
-// Mock BOQ data
-const mockBOQKPIs = {
-  totalItems: 485,
-  totalValue: 285000000000,
-  approved: 412,
-  pending: 58,
-  rejected: 15,
+interface BOQItem {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  status: 'approved' | 'pending' | 'rejected';
+}
+
+const toNumber = (value: unknown, fallback = 0) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const mockBOQItems = [
-  { id: '1', code: 'MONG-01', name: 'Đào đất móng', unit: 'm³', quantity: 2500, unitPrice: 125000, total: 312500000, status: 'approved' },
-  { id: '2', code: 'MONG-02', name: 'Bê tông lót móng C10', unit: 'm³', quantity: 180, unitPrice: 1150000, total: 207000000, status: 'approved' },
-  { id: '3', code: 'MONG-03', name: 'Bê tông móng C30', unit: 'm³', quantity: 850, unitPrice: 1450000, total: 1232500000, status: 'approved' },
-  { id: '4', code: 'MONG-04', name: 'Thép móng SD390', unit: 'kg', quantity: 45000, unitPrice: 18500, total: 832500000, status: 'pending' },
-  { id: '5', code: 'COT-01', name: 'Bê tông cột C30', unit: 'm³', quantity: 520, unitPrice: 1450000, total: 754000000, status: 'approved' },
-  { id: '6', code: 'COT-02', name: 'Thép cột SD390', unit: 'kg', quantity: 38000, unitPrice: 18500, total: 703000000, status: 'approved' },
-  { id: '7', code: 'DAM-01', name: 'Bê tông dầm C30', unit: 'm³', quantity: 680, unitPrice: 1450000, total: 986000000, status: 'pending' },
-  { id: '8', code: 'SAN-01', name: 'Bê tông sàn C25', unit: 'm³', quantity: 1200, unitPrice: 1250000, total: 1500000000, status: 'approved' },
-  { id: '9', code: 'SAN-02', name: 'Thép sàn SD390', unit: 'kg', quantity: 85000, unitPrice: 18500, total: 1572500000, status: 'rejected' },
-  { id: '10', code: 'TUONG-01', name: 'Xây tường gạch 100', unit: 'm²', quantity: 3500, unitPrice: 185000, total: 647500000, status: 'approved' },
-];
+const toStatus = (value: string): BOQItem['status'] => {
+  if (value === 'approved' || value === 'rejected') {
+    return value;
+  }
+
+  return 'pending';
+};
+
+const mapRecordToBoqItem = (row: ProjectModuleRecordRow): BOQItem => {
+  const metadata = row.metadata ?? {};
+  const quantity = Math.max(1, toNumber(metadata.quantity, 1));
+  const total = toNumber(metadata.total, row.amount);
+  const unitPrice = toNumber(metadata.unitPrice, quantity > 0 ? total / quantity : total);
+
+  return {
+    id: row.id,
+    code: String(metadata.code ?? row.code ?? row.id.slice(0, 8).toUpperCase()),
+    name: row.name,
+    unit: String(metadata.unit ?? 'muc'),
+    quantity,
+    unitPrice,
+    total,
+    status: toStatus(row.status),
+  };
+};
+
+const createBoqKpis = (items: BOQItem[]) => ({
+  totalItems: items.length,
+  totalValue: items.reduce((sum, item) => sum + item.total, 0),
+  approved: items.filter((item) => item.status === 'approved').length,
+  pending: items.filter((item) => item.status === 'pending').length,
+  rejected: items.filter((item) => item.status === 'rejected').length,
+});
 
 const BOQ: React.FC = () => {
   const projectId = useProjectIdParam();
+  const { companyId } = useCompany();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [items, setItems] = useState<BOQItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredItems = mockBOQItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.code.toLowerCase().includes(searchQuery.toLowerCase());
+  useEffect(() => {
+    let active = true;
+
+    if (!companyId || !projectId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    budgetApi
+      .list(companyId, projectId)
+      .then((rows) => {
+        if (active) {
+          setItems(rows.map(mapRecordToBoqItem));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setItems([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [companyId, projectId]);
+
+  const filteredItems = items.filter((item) => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.code.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
+  const boqKpis = useMemo(() => createBoqKpis(items), [items]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <StatusBadge status="success"><Check className="h-3 w-3" /> Đã duyệt</StatusBadge>;
+        return (
+          <StatusBadge status="success">
+            <Check className="h-3 w-3" /> Đã duyệt
+          </StatusBadge>
+        );
       case 'pending':
         return <StatusBadge status="warning">Chờ duyệt</StatusBadge>;
       case 'rejected':
-        return <StatusBadge status="danger"><X className="h-3 w-3" /> Từ chối</StatusBadge>;
+        return (
+          <StatusBadge status="danger">
+            <X className="h-3 w-3" /> Từ chối
+          </StatusBadge>
+        );
       default:
         return <StatusBadge status="neutral">{status}</StatusBadge>;
     }
@@ -73,7 +154,6 @@ const BOQ: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
       <div className="page-header">
         <div className="flex items-start justify-between">
           <div>
@@ -98,44 +178,30 @@ const BOQ: React.FC = () => {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
-          <KPICard
-            title="Tổng hạng mục"
-            value={mockBOQKPIs.totalItems}
-            icon={FileText}
-          />
+          <KPICard title="Tổng hạng mục" value={boqKpis.totalItems} icon={FileText} />
           <KPICard
             title="Tổng giá trị"
-            value={formatCurrency(mockBOQKPIs.totalValue)}
+            value={formatCurrencyFull(boqKpis.totalValue)}
             variant="primary"
           />
           <KPICard
             title="Đã duyệt"
-            value={mockBOQKPIs.approved}
-            subtitle={`${Math.round(mockBOQKPIs.approved / mockBOQKPIs.totalItems * 100)}%`}
+            value={boqKpis.approved}
+            subtitle={boqKpis.totalItems > 0 ? `${Math.round((boqKpis.approved / boqKpis.totalItems) * 100)}%` : '0%'}
             variant="success"
           />
-          <KPICard
-            title="Chờ duyệt"
-            value={mockBOQKPIs.pending}
-            subtitle="Cần xử lý"
-          />
-          <KPICard
-            title="Từ chối"
-            value={mockBOQKPIs.rejected}
-            variant="destructive"
-          />
+          <KPICard title="Chờ duyệt" value={boqKpis.pending} subtitle="Cần xử lý" />
+          <KPICard title="Từ chối" value={boqKpis.rejected} variant="destructive" />
         </div>
 
-        {/* Filter Bar */}
         <div className="filter-bar rounded-xl bg-card">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Tìm hạng mục..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="pl-9"
             />
           </div>
@@ -163,7 +229,6 @@ const BOQ: React.FC = () => {
           </Select>
         </div>
 
-        {/* BOQ Table */}
         <div className="bg-card rounded-xl border border-border overflow-hidden">
           <table className="data-table">
             <thead>
@@ -179,27 +244,43 @@ const BOQ: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="cursor-pointer">
-                  <td className="font-medium font-mono">{item.code}</td>
-                  <td>{item.name}</td>
-                  <td className="text-muted-foreground">{item.unit}</td>
-                  <td className="text-right font-medium">{item.quantity.toLocaleString()}</td>
-                  <td className="text-right">{item.unitPrice.toLocaleString()}</td>
-                  <td className="text-right font-medium">{formatCurrency(item.total)}</td>
-                  <td>{getStatusBadge(item.status)}</td>
-                  <td>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    Đang tải BOQ...
                   </td>
                 </tr>
-              ))}
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    Chưa có dữ liệu BOQ.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map((item) => (
+                  <tr key={item.id} className="cursor-pointer">
+                    <td className="font-medium font-mono">{item.code}</td>
+                    <td>{item.name}</td>
+                    <td className="text-muted-foreground">{item.unit}</td>
+                    <td className="text-right font-medium">{item.quantity.toLocaleString('vi-VN')}</td>
+                    <td className="text-right">{Math.round(item.unitPrice).toLocaleString('vi-VN')}</td>
+                    <td className="text-right font-medium">{formatCurrencyFull(item.total)}</td>
+                    <td>{getStatusBadge(item.status)}</td>
+                    <td>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
             <tfoot>
               <tr className="bg-muted/50">
                 <td colSpan={5} className="font-semibold">Tổng cộng</td>
-                <td className="text-right font-bold">{formatCurrency(filteredItems.reduce((sum, item) => sum + item.total, 0))}</td>
+                <td className="text-right font-bold">
+                  {formatCurrencyFull(filteredItems.reduce((sum, item) => sum + item.total, 0))}
+                </td>
                 <td colSpan={2}></td>
               </tr>
             </tfoot>

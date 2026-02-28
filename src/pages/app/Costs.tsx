@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useProjectIdParam } from '@/lib/projectRoutes';
-import { 
-  Search, 
-  Plus, 
-  Download, 
-  Upload, 
+import {
+  Search,
+  Plus,
+  Download,
+  Upload,
   Filter,
   TrendingUp,
   TrendingDown,
   Wallet,
   ChevronRight,
-  Calendar,
   Building2,
   User,
   FileText,
   MoreHorizontal,
   Edit,
   Trash2,
-  Eye
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,374 +26,278 @@ import CostExportDialog from '@/components/costs/CostExportDialog';
 import { toast } from '@/hooks/use-toast';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatusBadge } from '@/components/ui/status-badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/data/mockData';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  LineChart,
-  Line,
-} from 'recharts';
+import { useCompany } from '@/app/context/CompanyContext';
+import { costsApi } from '@/lib/api/costs';
+import type { ProjectModuleRecordRow } from '@/lib/api/projectModuleRecords';
+import { formatCurrencyFull } from '@/lib/numberFormat';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 
-// Cost categories
-const costCategories = [
+type CostCategory = CostEntry['category'];
+type CostStatus = CostEntry['status'];
+
+const formatCurrency = (value: number) => formatCurrencyFull(value);
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+const categories = [
   { id: 'all', name: 'Tất cả', icon: Wallet },
   { id: 'labor', name: 'Nhân công', icon: User },
   { id: 'material', name: 'Vật tư', icon: Building2 },
   { id: 'equipment', name: 'Máy móc', icon: Building2 },
   { id: 'subcontractor', name: 'Thầu phụ', icon: FileText },
   { id: 'other', name: 'Chi phí khác', icon: Wallet },
-];
+] as const;
 
-// Mock KPI data
-const mockCostKPIs = {
-  totalBudget: 156000000000,
-  totalActual: 128000000000,
-  totalCommitted: 148000000000,
-  totalForecast: 158000000000,
-  burnRate: 8500000000,
-  costVariance: -2000000000,
+const LABELS: Record<CostCategory, string> = {
+  labor: 'Nhân công',
+  material: 'Vật tư',
+  equipment: 'Máy móc',
+  subcontractor: 'Thầu phụ',
+  other: 'Khác',
 };
 
-// Mock cost entries
-const mockCostEntries = [
-  {
-    id: 'cost-001',
-    date: '2024-03-15',
-    code: 'NC-001',
-    description: 'Tiền lương công nhân tháng 3/2024',
-    category: 'labor',
-    vendor: 'Nội bộ',
-    boqItem: 'WBS-01.02',
-    budget: 250000000,
-    actual: 265000000,
-    committed: 265000000,
-    status: 'paid',
-    createdBy: 'Lê Thị Hương',
-  },
-  {
-    id: 'cost-002',
-    date: '2024-03-14',
-    code: 'VT-015',
-    description: 'Thép phi 16 - Block A',
-    category: 'material',
-    vendor: 'NCC Thép Việt',
-    boqItem: 'WBS-02.03',
-    budget: 1200000000,
-    actual: 1350000000,
-    committed: 1350000000,
-    status: 'paid',
-    createdBy: 'Phạm Văn Đức',
-  },
-  {
-    id: 'cost-003',
-    date: '2024-03-13',
-    code: 'MM-005',
-    description: 'Thuê cẩu tháp tháng 3/2024',
-    category: 'equipment',
-    vendor: 'Công ty Cẩu Sài Gòn',
-    boqItem: 'WBS-01.01',
-    budget: 180000000,
-    actual: 175000000,
-    committed: 180000000,
-    status: 'pending',
-    createdBy: 'Nguyễn Thị Mai',
-  },
-  {
-    id: 'cost-004',
-    date: '2024-03-12',
-    code: 'TP-008',
-    description: 'Công tác hoàn thiện Block B',
-    category: 'subcontractor',
-    vendor: 'Thầu phụ Minh Anh',
-    boqItem: 'WBS-03.01',
-    budget: 850000000,
-    actual: 0,
-    committed: 850000000,
-    status: 'committed',
-    createdBy: 'Trần Minh Quân',
-  },
-  {
-    id: 'cost-005',
-    date: '2024-03-11',
-    code: 'VT-016',
-    description: 'Xi măng PCB40 - Tầng 5',
-    category: 'material',
-    vendor: 'Xi măng Hà Tiên',
-    boqItem: 'WBS-02.04',
-    budget: 450000000,
-    actual: 438000000,
-    committed: 450000000,
-    status: 'paid',
-    createdBy: 'Phạm Văn Đức',
-  },
-  {
-    id: 'cost-006',
-    date: '2024-03-10',
-    code: 'NC-002',
-    description: 'Phụ cấp làm thêm giờ',
-    category: 'labor',
-    vendor: 'Nội bộ',
-    boqItem: 'WBS-01.02',
-    budget: 50000000,
-    actual: 62000000,
-    committed: 62000000,
-    status: 'paid',
-    createdBy: 'Lê Thị Hương',
-  },
-  {
-    id: 'cost-007',
-    date: '2024-03-09',
-    code: 'KH-003',
-    description: 'Phí bảo hiểm công trình',
-    category: 'other',
-    vendor: 'Bảo Việt',
-    boqItem: 'WBS-00.01',
-    budget: 120000000,
-    actual: 120000000,
-    committed: 120000000,
-    status: 'paid',
-    createdBy: 'Võ Văn Tài',
-  },
-  {
-    id: 'cost-008',
-    date: '2024-03-08',
-    code: 'TP-009',
-    description: 'Lắp đặt hệ thống điện',
-    category: 'subcontractor',
-    vendor: 'Điện lực Miền Nam',
-    boqItem: 'WBS-04.02',
-    budget: 680000000,
-    actual: 340000000,
-    committed: 680000000,
-    status: 'in_progress',
-    createdBy: 'Trần Minh Quân',
-  },
-];
+const toNumber = (value: unknown, fallback = 0) => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
-// Budget vs Actual by category
-const budgetVsActualData = [
-  { name: 'Nhân công', budget: 5000, actual: 5250, variance: 250 },
-  { name: 'Vật tư', budget: 15000, actual: 16200, variance: 1200 },
-  { name: 'Máy móc', budget: 3000, actual: 2850, variance: -150 },
-  { name: 'Thầu phụ', budget: 8000, actual: 8400, variance: 400 },
-  { name: 'Khác', budget: 2000, actual: 2100, variance: 100 },
-];
+const isCategory = (value: unknown): value is CostCategory =>
+  value === 'labor' || value === 'material' || value === 'equipment' || value === 'subcontractor' || value === 'other';
 
-// Cost trend data (monthly)
-const costTrendData = [
-  { month: 'T1', planned: 12000, actual: 11500 },
-  { month: 'T2', planned: 14000, actual: 14800 },
-  { month: 'T3', planned: 16000, actual: 17200 },
-  { month: 'T4', planned: 15000, actual: 15500 },
-  { month: 'T5', planned: 18000, actual: 19200 },
-  { month: 'T6', planned: 20000, actual: 21500 },
-  { month: 'T7', planned: 22000, actual: 0 },
-  { month: 'T8', planned: 24000, actual: 0 },
-];
+const isStatus = (value: unknown): value is CostStatus =>
+  value === 'pending' || value === 'committed' || value === 'in_progress' || value === 'paid';
 
-// Category distribution
-const categoryDistribution = [
-  { name: 'Vật tư', value: 45, color: 'hsl(var(--chart-1))' },
-  { name: 'Nhân công', value: 25, color: 'hsl(var(--chart-2))' },
-  { name: 'Thầu phụ', value: 20, color: 'hsl(var(--chart-3))' },
-  { name: 'Máy móc', value: 7, color: 'hsl(var(--chart-4))' },
-  { name: 'Khác', value: 3, color: 'hsl(var(--chart-5))' },
-];
+const mapRecord = (row: ProjectModuleRecordRow): CostEntry => {
+  const meta = row.metadata ?? {};
+  return {
+    id: row.id,
+    date: String(meta.date ?? row.updated_at),
+    code: String(meta.code ?? row.code ?? row.id.slice(0, 8).toUpperCase()),
+    description: row.name,
+    category: isCategory(meta.category) ? meta.category : 'other',
+    vendor: String(meta.vendor ?? 'Chưa cập nhật'),
+    boqItem: String(meta.boqItem ?? ''),
+    budget: toNumber(meta.budget, row.amount),
+    actual: toNumber(meta.actual, row.amount),
+    committed: toNumber(meta.committed, row.amount),
+    status: isStatus(row.status) ? row.status : 'pending',
+    createdBy: String(meta.createdBy ?? 'System'),
+    invoiceNumber: typeof meta.invoiceNumber === 'string' ? meta.invoiceNumber : undefined,
+    paymentMethod:
+      meta.paymentMethod === 'cash' || meta.paymentMethod === 'transfer' || meta.paymentMethod === 'credit' || meta.paymentMethod === 'other'
+        ? meta.paymentMethod
+        : undefined,
+    notes: typeof meta.notes === 'string' ? meta.notes : undefined,
+    attachments: Array.isArray(meta.attachments) ? meta.attachments.map((item) => String(item)) : undefined,
+  };
+};
 
-// Top cost overruns
-const topOverruns = [
-  { item: 'Thép phi 16', category: 'Vật tư', variance: 150000000, percent: 12.5 },
-  { item: 'Nhân công Block A', category: 'Nhân công', variance: 65000000, percent: 8.2 },
-  { item: 'Xi măng PCB40', category: 'Vật tư', variance: 42000000, percent: 6.8 },
-  { item: 'Thầu phụ điện', category: 'Thầu phụ', variance: 35000000, percent: 5.1 },
-  { item: 'Phụ cấp làm thêm', category: 'Nhân công', variance: 12000000, percent: 24.0 },
-];
+const toPayload = (entry: CostEntry) => ({
+  name: entry.description,
+  code: entry.code,
+  status: entry.status,
+  amount: entry.actual || entry.committed || entry.budget,
+  notes: entry.notes ?? '',
+  metadata: {
+    date: entry.date,
+    code: entry.code,
+    category: entry.category,
+    vendor: entry.vendor,
+    boqItem: entry.boqItem,
+    budget: entry.budget,
+    actual: entry.actual,
+    committed: entry.committed,
+    createdBy: entry.createdBy,
+    invoiceNumber: entry.invoiceNumber ?? '',
+    paymentMethod: entry.paymentMethod ?? '',
+    notes: entry.notes ?? '',
+    attachments: entry.attachments ?? [],
+  },
+});
+
+const importToEntry = (entry: ImportedCostEntry): CostEntry => ({
+  id: '',
+  date: entry.date,
+  code: entry.code,
+  description: entry.description,
+  category: isCategory(entry.category) ? entry.category : 'other',
+  vendor: entry.vendor,
+  boqItem: entry.boqItem ?? '',
+  budget: entry.budget,
+  actual: entry.actual,
+  committed: entry.committed,
+  status: isStatus(entry.status) ? entry.status : 'pending',
+  createdBy: 'Import',
+  invoiceNumber: entry.invoiceNumber,
+  notes: entry.notes,
+  attachments: [],
+});
 
 const Costs: React.FC = () => {
-  const id = useProjectIdParam();
+  const projectId = useProjectIdParam();
+  const { companyId } = useCompany();
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeTab, setActiveTab] = useState('entries');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [entries, setEntries] = useState<CostEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [costDialogOpen, setCostDialogOpen] = useState(false);
   const [costDialogMode, setCostDialogMode] = useState<'create' | 'edit'>('create');
   const [selectedCost, setSelectedCost] = useState<CostEntry | undefined>(undefined);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
-  const handleAddCost = () => {
-    setCostDialogMode('create');
-    setSelectedCost(undefined);
-    setCostDialogOpen(true);
-  };
-
-  const handleEditCost = (entry: typeof mockCostEntries[0]) => {
-    setCostDialogMode('edit');
-    setSelectedCost({
-      ...entry,
-      category: entry.category as CostEntry['category'],
-      status: entry.status as CostEntry['status'],
-    });
-    setCostDialogOpen(true);
-  };
-
-  const handleCostSubmit = (data: any) => {
-    if (costDialogMode === 'create') {
-      toast({
-        title: 'Thêm chi phí thành công',
-        description: `Chi phí ${data.code} đã được thêm vào hệ thống.`,
-      });
-    } else {
-      toast({
-        title: 'Cập nhật thành công',
-        description: `Chi phí ${data.code} đã được cập nhật.`,
-      });
+  useEffect(() => {
+    let active = true;
+    if (!companyId || !projectId) {
+      setEntries([]);
+      setLoading(false);
+      return;
     }
-  };
+    setLoading(true);
+    costsApi.list(companyId, projectId)
+      .then((rows) => active && setEntries(rows.map(mapRecord)))
+      .catch(() => active && setEntries([]))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [companyId, projectId]);
 
-  const handleImport = (data: ImportedCostEntry[]) => {
-    toast({
-      title: 'Import thành công',
-      description: `Đã import ${data.length} chi phí vào hệ thống.`,
-    });
-  };
-
-  // Filter cost entries
-  const filteredEntries = mockCostEntries.filter((entry) => {
-    const matchesSearch =
-      entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.vendor.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredEntries = entries.filter((entry) => {
+    const matchesSearch = entry.description.toLowerCase().includes(searchQuery.toLowerCase()) || entry.code.toLowerCase().includes(searchQuery.toLowerCase()) || entry.vendor.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'all' || entry.category === activeCategory;
     const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <StatusBadge status="success">Đã thanh toán</StatusBadge>;
-      case 'pending':
-        return <StatusBadge status="warning">Chờ duyệt</StatusBadge>;
-      case 'committed':
-        return <StatusBadge status="info">Cam kết</StatusBadge>;
-      case 'in_progress':
-        return <StatusBadge status="active">Đang thực hiện</StatusBadge>;
-      default:
-        return <StatusBadge status="neutral">{status}</StatusBadge>;
-    }
+  const metrics = useMemo(() => {
+    const totalBudget = entries.reduce((sum, entry) => sum + entry.budget, 0);
+    const totalActual = entries.reduce((sum, entry) => sum + entry.actual, 0);
+    const totalCommitted = entries.reduce((sum, entry) => sum + entry.committed, 0);
+    const totalForecast = Math.max(totalActual, totalCommitted);
+    const grouped = categories.filter((item) => item.id !== 'all').map((item) => {
+      const costEntries = entries.filter((entry) => entry.category === item.id);
+      const budget = costEntries.reduce((sum, entry) => sum + entry.budget, 0);
+      const actual = costEntries.reduce((sum, entry) => sum + entry.actual, 0);
+      return { name: item.name, budget: budget / 1_000_000, actual: actual / 1_000_000 };
+    });
+    const monthly = new Map<string, { month: string; planned: number; actual: number }>();
+    entries.forEach((entry) => {
+      const date = new Date(entry.date);
+      if (Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      const current = monthly.get(key) ?? { month: `T${date.getMonth() + 1}`, planned: 0, actual: 0 };
+      current.planned += entry.budget / 1_000_000;
+      current.actual += entry.actual / 1_000_000;
+      monthly.set(key, current);
+    });
+    const totalForShare = entries.reduce((sum, entry) => sum + Math.max(entry.actual, entry.committed, entry.budget), 0);
+    const shares = categories.filter((item) => item.id !== 'all').map((item, index) => {
+      const total = entries.filter((entry) => entry.category === item.id).reduce((sum, entry) => sum + Math.max(entry.actual, entry.committed, entry.budget), 0);
+      return { name: item.name, value: totalForShare > 0 ? Math.round((total / totalForShare) * 100) : 0, color: COLORS[index] };
+    }).filter((item) => item.value > 0);
+    const overruns = [...entries]
+      .map((entry) => ({ item: entry.description, category: LABELS[entry.category], variance: entry.actual - entry.budget, percent: entry.budget > 0 ? ((entry.actual - entry.budget) / entry.budget) * 100 : 0 }))
+      .filter((entry) => entry.variance > 0)
+      .sort((left, right) => right.variance - left.variance)
+      .slice(0, 5);
+    const burnRate = monthly.size > 0 ? Math.round([...monthly.values()].reduce((sum, item) => sum + item.actual * 1_000_000, 0) / monthly.size) : 0;
+    return {
+      totalBudget,
+      totalActual,
+      totalCommitted,
+      totalForecast,
+      burnRate,
+      grouped,
+      monthly: [...monthly.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value),
+      shares,
+      overruns,
+    };
+  }, [entries]);
+
+  const budgetVariance = metrics.totalBudget - metrics.totalForecast;
+  const variancePercent = metrics.totalBudget > 0 ? ((budgetVariance / metrics.totalBudget) * 100).toFixed(1) : '0.0';
+
+  const handleEdit = (entry: CostEntry) => {
+    setCostDialogMode('edit');
+    setSelectedCost(entry);
+    setCostDialogOpen(true);
   };
 
-  // Calculate variance
-  const budgetVariance = mockCostKPIs.totalBudget - mockCostKPIs.totalForecast;
-  const variancePercent = ((budgetVariance / mockCostKPIs.totalBudget) * 100).toFixed(1);
+  const handleSubmit = async (data: CostEntry) => {
+    if (!companyId || !projectId) return;
+    const nextEntry: CostEntry = { ...data, id: selectedCost?.id ?? '', createdBy: selectedCost?.createdBy ?? 'Bạn' };
+    if (costDialogMode === 'create') {
+      const created = await costsApi.create(companyId, projectId, toPayload(nextEntry));
+      const mapped = mapRecord(created);
+      setEntries((current) => [mapped, ...current]);
+      toast({ title: 'Thêm chi phí thành công', description: `Chi phí ${mapped.code} đã được thêm vào hệ thống.` });
+      return;
+    }
+    if (!selectedCost) return;
+    const updated = await costsApi.update(selectedCost.id, toPayload(nextEntry));
+    const mapped = mapRecord(updated);
+    setEntries((current) => current.map((entry) => (entry.id === mapped.id ? mapped : entry)));
+    toast({ title: 'Cập nhật thành công', description: `Chi phí ${mapped.code} đã được cập nhật.` });
+  };
+
+  const handleDelete = async (entry: CostEntry) => {
+    await costsApi.remove(entry.id);
+    setEntries((current) => current.filter((item) => item.id !== entry.id));
+    toast({ title: 'Đã xóa chi phí', description: `Chi phí ${entry.code} đã được xóa.` });
+  };
+
+  const handleImport = async (data: ImportedCostEntry[]) => {
+    if (!companyId || !projectId || data.length === 0) return;
+    const created = await Promise.all(data.map((entry) => costsApi.create(companyId, projectId, toPayload(importToEntry(entry)))));
+    setEntries((current) => [...created.map(mapRecord), ...current]);
+    toast({ title: 'Import thành công', description: `Đã import ${data.length} chi phí vào hệ thống.` });
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'paid') return <StatusBadge status="success">Đã thanh toán</StatusBadge>;
+    if (status === 'pending') return <StatusBadge status="warning">Chờ duyệt</StatusBadge>;
+    if (status === 'committed') return <StatusBadge status="info">Cam kết</StatusBadge>;
+    if (status === 'in_progress') return <StatusBadge status="active">Đang thực hiện</StatusBadge>;
+    return <StatusBadge status="neutral">{status}</StatusBadge>;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Chi phí</h1>
           <p className="text-muted-foreground">Quản lý và theo dõi chi phí dự án</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button size="sm" onClick={handleAddCost}>
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm chi phí
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}><Upload className="h-4 w-4 mr-2" />Import</Button>
+          <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)}><Download className="h-4 w-4 mr-2" />Export</Button>
+          <Button size="sm" onClick={() => { setCostDialogMode('create'); setSelectedCost(undefined); setCostDialogOpen(true); }}><Plus className="h-4 w-4 mr-2" />Thêm chi phí</Button>
         </div>
       </div>
 
-      {/* Category filters */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {costCategories.map((cat) => (
-          <Button
-            key={cat.id}
-            variant={activeCategory === cat.id ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveCategory(cat.id)}
-            className="whitespace-nowrap"
-          >
-            <cat.icon className="h-4 w-4 mr-2" />
-            {cat.name}
+        {categories.map((item) => (
+          <Button key={item.id} variant={activeCategory === item.id ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory(item.id)} className="whitespace-nowrap">
+            <item.icon className="h-4 w-4 mr-2" />
+            {item.name}
           </Button>
         ))}
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Ngân sách"
-          value={formatCurrency(mockCostKPIs.totalBudget)}
-          icon={Wallet}
-          variant="default"
-        />
-        <KPICard
-          title="Thực tế"
-          value={formatCurrency(mockCostKPIs.totalActual)}
-          subtitle={`${((mockCostKPIs.totalActual / mockCostKPIs.totalBudget) * 100).toFixed(0)}% ngân sách`}
-          icon={TrendingUp}
-          variant="default"
-        />
-        <KPICard
-          title="Cam kết"
-          value={formatCurrency(mockCostKPIs.totalCommitted)}
-          subtitle={`${((mockCostKPIs.totalCommitted / mockCostKPIs.totalBudget) * 100).toFixed(0)}% ngân sách`}
-          icon={FileText}
-          variant="warning"
-        />
-        <KPICard
-          title="Dự báo"
-          value={formatCurrency(mockCostKPIs.totalForecast)}
-          change={parseFloat(variancePercent)}
-          changeLabel={budgetVariance < 0 ? 'vượt ngân sách' : 'dưới ngân sách'}
-          icon={budgetVariance < 0 ? TrendingDown : TrendingUp}
-          variant={budgetVariance < 0 ? 'destructive' : 'success'}
-        />
+        <KPICard title="Ngân sách" value={formatCurrency(metrics.totalBudget)} icon={Wallet} />
+        <KPICard title="Thực tế" value={formatCurrency(metrics.totalActual)} subtitle={metrics.totalBudget > 0 ? `${((metrics.totalActual / metrics.totalBudget) * 100).toFixed(0)}% ngân sách` : '0% ngân sách'} icon={TrendingUp} />
+        <KPICard title="Cam kết" value={formatCurrency(metrics.totalCommitted)} subtitle={metrics.totalBudget > 0 ? `${((metrics.totalCommitted / metrics.totalBudget) * 100).toFixed(0)}% ngân sách` : '0% ngân sách'} icon={FileText} variant="warning" />
+        <KPICard title="Dự báo" value={formatCurrency(metrics.totalForecast)} change={parseFloat(variancePercent)} changeLabel={budgetVariance < 0 ? 'vượt ngân sách' : 'dưới ngân sách'} icon={budgetVariance < 0 ? TrendingDown : TrendingUp} variant={budgetVariance < 0 ? 'destructive' : 'success'} />
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="entries">Chi tiết chi phí</TabsTrigger>
@@ -403,23 +306,14 @@ const Costs: React.FC = () => {
           <TabsTrigger value="overruns">Vượt chi</TabsTrigger>
         </TabsList>
 
-        {/* Cost Entries Tab */}
         <TabsContent value="entries" className="space-y-4">
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm theo mã, mô tả, nhà cung cấp..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="Tìm theo mã, mô tả, nhà cung cấp..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-9" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Trạng thái" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
                 <SelectItem value="paid">Đã thanh toán</SelectItem>
@@ -428,12 +322,9 @@ const Costs: React.FC = () => {
                 <SelectItem value="in_progress">Đang thực hiện</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon"><Filter className="h-4 w-4" /></Button>
           </div>
 
-          {/* Table */}
           <div className="rounded-md border bg-card">
             <Table>
               <TableHeader>
@@ -451,48 +342,31 @@ const Costs: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEntries.map((entry) => {
+                {loading ? (
+                  <TableRow><TableCell colSpan={10} className="h-24 text-center text-muted-foreground">Đang tải chi phí...</TableCell></TableRow>
+                ) : filteredEntries.length === 0 ? (
+                  <TableRow><TableCell colSpan={10} className="h-24 text-center text-muted-foreground">Chưa có dữ liệu chi phí.</TableCell></TableRow>
+                ) : filteredEntries.map((entry) => {
                   const variance = entry.actual - entry.budget;
-                  const variancePercent = entry.budget > 0 ? ((variance / entry.budget) * 100).toFixed(1) : 0;
+                  const percent = entry.budget > 0 ? ((variance / entry.budget) * 100).toFixed(1) : '0';
                   return (
                     <TableRow key={entry.id}>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(entry.date).toLocaleDateString('vi-VN')}
-                      </TableCell>
+                      <TableCell className="text-muted-foreground">{new Date(entry.date).toLocaleDateString('vi-VN')}</TableCell>
                       <TableCell className="font-medium">{entry.code}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{entry.description}</TableCell>
                       <TableCell>{entry.vendor}</TableCell>
                       <TableCell className="text-muted-foreground">{entry.boqItem}</TableCell>
                       <TableCell className="text-right">{formatCurrency(entry.budget)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(entry.actual)}</TableCell>
-                      <TableCell className="text-right">
-                        {entry.actual > 0 && (
-                          <span className={variance > 0 ? 'text-destructive' : 'text-green-600'}>
-                            {variance > 0 ? '+' : ''}{formatCurrency(variance)} ({variancePercent}%)
-                          </span>
-                        )}
-                      </TableCell>
+                      <TableCell className="text-right">{entry.actual > 0 && <span className={variance > 0 ? 'text-destructive' : 'text-green-600'}>{variance > 0 ? '+' : ''}{formatCurrency(variance)} ({percent}%)</span>}</TableCell>
                       <TableCell>{getStatusBadge(entry.status)}</TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Xem chi tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditCost(entry)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Chỉnh sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Xóa
-                            </DropdownMenuItem>
+                            <DropdownMenuItem><Eye className="h-4 w-4 mr-2" />Xem chi tiết</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(entry)}><Edit className="h-4 w-4 mr-2" />Chỉnh sửa</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => void handleDelete(entry)}><Trash2 className="h-4 w-4 mr-2" />Xóa</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -502,56 +376,20 @@ const Costs: React.FC = () => {
               </TableBody>
             </Table>
           </div>
-
-          {/* Summary Footer */}
-          <div className="flex justify-end">
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between gap-8 text-sm">
-                <span className="text-muted-foreground">Tổng ngân sách:</span>
-                <span className="font-medium">{formatCurrency(filteredEntries.reduce((sum, e) => sum + e.budget, 0))}</span>
-              </div>
-              <div className="flex justify-between gap-8 text-sm">
-                <span className="text-muted-foreground">Tổng thực tế:</span>
-                <span className="font-medium">{formatCurrency(filteredEntries.reduce((sum, e) => sum + e.actual, 0))}</span>
-              </div>
-              <div className="flex justify-between gap-8 text-sm border-t pt-2">
-                <span className="text-muted-foreground">Tổng chênh lệch:</span>
-                <span className={`font-medium ${
-                  filteredEntries.reduce((sum, e) => sum + (e.actual - e.budget), 0) > 0 
-                    ? 'text-destructive' 
-                    : 'text-green-600'
-                }`}>
-                  {formatCurrency(filteredEntries.reduce((sum, e) => sum + (e.actual - e.budget), 0))}
-                </span>
-              </div>
-            </div>
-          </div>
         </TabsContent>
 
-        {/* Analysis Tab */}
         <TabsContent value="analysis" className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Budget vs Actual Chart */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ngân sách vs Thực tế theo loại</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-lg">Ngân sách vs Thực tế theo loại</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={budgetVsActualData} layout="vertical">
+                    <BarChart data={metrics.grouped} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                       <XAxis type="number" tickFormatter={(value) => `${value / 1000}tỷ`} />
                       <YAxis dataKey="name" type="category" width={80} />
-                      <Tooltip 
-                        formatter={(value: number) => [`${formatCurrency(value * 1000000)}`, '']}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }}
-                      />
+                      <Tooltip formatter={(value: number) => [`${formatCurrency(value * 1_000_000)}`, '']} />
                       <Bar dataKey="budget" name="Ngân sách" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
                       <Bar dataKey="actual" name="Thực tế" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
                     </BarChart>
@@ -560,36 +398,16 @@ const Costs: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Category Distribution */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Phân bổ chi phí theo loại</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-lg">Phân bổ chi phí theo loại</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie
-                        data={categoryDistribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}%`}
-                      >
-                        {categoryDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                      <Pie data={metrics.shares} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}%`}>
+                        {metrics.shares.map((item, index) => <Cell key={`${item.name}-${index}`} fill={item.color} />)}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => [`${value}%`, 'Tỷ lệ']}
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }}
-                      />
+                      <Tooltip formatter={(value: number) => [`${value}%`, 'Tỷ lệ']} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -598,205 +416,65 @@ const Costs: React.FC = () => {
             </Card>
           </div>
 
-          {/* Burn Rate Card */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Tốc độ tiêu thụ ngân sách</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Tốc độ tiêu thụ ngân sách</CardTitle></CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-3">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Burn rate tháng hiện tại</p>
-                  <p className="text-2xl font-bold">{formatCurrency(mockCostKPIs.burnRate)}/tháng</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Ngân sách còn lại</p>
-                  <p className="text-2xl font-bold">{formatCurrency(mockCostKPIs.totalBudget - mockCostKPIs.totalActual)}</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Dự kiến hết ngân sách</p>
-                  <p className="text-2xl font-bold">
-                    {Math.ceil((mockCostKPIs.totalBudget - mockCostKPIs.totalActual) / mockCostKPIs.burnRate)} tháng
-                  </p>
-                </div>
+                <div><p className="text-sm text-muted-foreground">Burn rate tháng hiện tại</p><p className="text-2xl font-bold">{formatCurrency(metrics.burnRate)}/tháng</p></div>
+                <div><p className="text-sm text-muted-foreground">Ngân sách còn lại</p><p className="text-2xl font-bold">{formatCurrency(Math.max(0, metrics.totalBudget - metrics.totalActual))}</p></div>
+                <div><p className="text-sm text-muted-foreground">Dự kiến hết ngân sách</p><p className="text-2xl font-bold">{metrics.burnRate > 0 ? `${Math.ceil(Math.max(0, metrics.totalBudget - metrics.totalActual) / metrics.burnRate)} tháng` : 'Chưa đủ dữ liệu'}</p></div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Trends Tab */}
         <TabsContent value="trends" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Xu hướng chi phí theo tháng</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Xu hướng chi phí theo tháng</CardTitle></CardHeader>
             <CardContent>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={costTrendData}>
+                  <LineChart data={metrics.monthly}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis tickFormatter={(value) => `${value / 1000}tỷ`} />
-                    <Tooltip 
-                      formatter={(value: number) => [`${formatCurrency(value * 1000000)}`, '']}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
+                    <Tooltip formatter={(value: number) => [`${formatCurrency(value * 1_000_000)}`, '']} />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="planned" 
-                      name="Kế hoạch" 
-                      stroke="hsl(var(--chart-1))" 
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--chart-1))' }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="actual" 
-                      name="Thực tế" 
-                      stroke="hsl(var(--chart-2))" 
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--chart-2))' }}
-                    />
+                    <Line type="monotone" dataKey="planned" name="Kế hoạch" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={{ fill: 'hsl(var(--chart-1))' }} />
+                    <Line type="monotone" dataKey="actual" name="Thực tế" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={{ fill: 'hsl(var(--chart-2))' }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
-
-          {/* Monthly comparison table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">So sánh chi phí theo tháng</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tháng</TableHead>
-                    <TableHead className="text-right">Kế hoạch</TableHead>
-                    <TableHead className="text-right">Thực tế</TableHead>
-                    <TableHead className="text-right">Chênh lệch</TableHead>
-                    <TableHead className="text-right">Tỷ lệ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {costTrendData.filter(d => d.actual > 0).map((data) => {
-                    const variance = data.actual - data.planned;
-                    const percent = ((variance / data.planned) * 100).toFixed(1);
-                    return (
-                      <TableRow key={data.month}>
-                        <TableCell className="font-medium">Tháng {data.month.replace('T', '')}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(data.planned * 1000000)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(data.actual * 1000000)}</TableCell>
-                        <TableCell className={`text-right ${variance > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                          {variance > 0 ? '+' : ''}{formatCurrency(variance * 1000000)}
-                        </TableCell>
-                        <TableCell className={`text-right ${variance > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                          {variance > 0 ? '+' : ''}{percent}%
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        {/* Overruns Tab */}
         <TabsContent value="overruns" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Top hạng mục vượt chi</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Top hạng mục vượt chi</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topOverruns.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                {metrics.overruns.length === 0 ? (
+                  <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Chưa có hạng mục vượt chi.</div>
+                ) : metrics.overruns.map((item, index) => (
+                  <div key={`${item.item}-${index}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 text-destructive font-semibold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="font-medium">{item.item}</p>
-                        <p className="text-sm text-muted-foreground">{item.category}</p>
-                      </div>
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 text-destructive font-semibold">{index + 1}</div>
+                      <div><p className="font-medium">{item.item}</p><p className="text-sm text-muted-foreground">{item.category}</p></div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-destructive">+{formatCurrency(item.variance)}</p>
-                      <p className="text-sm text-muted-foreground">+{item.percent}%</p>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <div className="text-right"><p className="font-medium text-destructive">+{formatCurrency(item.variance)}</p><p className="text-sm text-muted-foreground">+{item.percent.toFixed(1)}%</p></div>
+                    <Button variant="ghost" size="icon"><ChevronRight className="h-4 w-4" /></Button>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-
-          {/* Variance Summary */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Tổng vượt chi</p>
-                  <p className="text-3xl font-bold text-destructive">
-                    +{formatCurrency(topOverruns.reduce((sum, item) => sum + item.variance, 0))}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Số hạng mục vượt chi</p>
-                  <p className="text-3xl font-bold text-destructive">{topOverruns.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Tỷ lệ vượt chi trung bình</p>
-                  <p className="text-3xl font-bold text-destructive">
-                    +{(topOverruns.reduce((sum, item) => sum + item.percent, 0) / topOverruns.length).toFixed(1)}%
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
 
-      {/* Cost Form Dialog */}
-      <CostFormDialog
-        open={costDialogOpen}
-        onOpenChange={setCostDialogOpen}
-        mode={costDialogMode}
-        initialData={selectedCost}
-        onSubmit={handleCostSubmit}
-      />
-
-      {/* Cost Import Dialog */}
-      <CostImportDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        onImport={handleImport}
-      />
-
-      {/* Cost Export Dialog */}
-      <CostExportDialog
-        open={exportDialogOpen}
-        onOpenChange={setExportDialogOpen}
-        data={mockCostEntries}
-      />
+      <CostFormDialog open={costDialogOpen} onOpenChange={setCostDialogOpen} mode={costDialogMode} initialData={selectedCost} onSubmit={(data) => void handleSubmit(data as CostEntry)} />
+      <CostImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onImport={(data) => void handleImport(data)} />
+      <CostExportDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen} data={entries} />
     </div>
   );
 };
