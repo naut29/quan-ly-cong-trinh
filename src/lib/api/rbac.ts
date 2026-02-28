@@ -19,6 +19,10 @@ interface RolePermissionRow {
   action: "view" | "edit" | "approve";
 }
 
+interface RolePermissionRowWithOrg extends RolePermissionRow {
+  roles?: { org_id: string } | Array<{ org_id: string }> | null;
+}
+
 interface RolesMatrixPayload {
   roles: OrgRoleRow[];
   matrix: PermissionMatrix;
@@ -46,22 +50,31 @@ const sortRoles = (roles: OrgRoleRow[]) =>
     return left.created_at.localeCompare(right.created_at);
   });
 
-const listRolePermissionRows = async (roleIds: string[]) => {
+const listRolePermissionRows = async (orgId: string, roleIds: string[]) => {
   if (roleIds.length === 0) {
     return [] as RolePermissionRow[];
   }
 
   const client = assertClient();
+  const uniqueRoleIds = Array.from(new Set(roleIds));
+  const roleIdSet = new Set(uniqueRoleIds);
   const { data, error } = await client
     .from("role_permissions")
-    .select("role_id, module_key, action")
-    .in("role_id", roleIds);
+    .select("role_id, module_key, action, roles!inner(org_id)")
+    .eq("roles.org_id", orgId)
+    .in("role_id", uniqueRoleIds);
 
   if (error) {
     throw error;
   }
 
-  return ((data ?? []) as RolePermissionRow[]).filter((row) => MANAGED_MODULE_KEYS.has(row.module_key));
+  return ((data ?? []) as RolePermissionRowWithOrg[])
+    .filter((row) => roleIdSet.has(row.role_id) && MANAGED_MODULE_KEYS.has(row.module_key))
+    .map(({ role_id, module_key, action }) => ({
+      role_id,
+      module_key,
+      action,
+    }));
 };
 
 const buildMatrix = (roles: OrgRoleRow[], permissionRows: RolePermissionRow[]): PermissionMatrix => {
@@ -90,11 +103,15 @@ const buildMatrix = (roles: OrgRoleRow[], permissionRows: RolePermissionRow[]): 
   }));
 };
 
-const flattenMatrix = (matrix: PermissionMatrix): RolePermissionRow[] => {
+const flattenMatrix = (matrix: PermissionMatrix, allowedRoleIds?: Set<string>): RolePermissionRow[] => {
   const nextRows: RolePermissionRow[] = [];
 
   matrix.forEach((row) => {
     Object.entries(row.permissions).forEach(([roleId, cell]) => {
+      if (allowedRoleIds && !allowedRoleIds.has(roleId)) {
+        return;
+      }
+
       if (cell.view) {
         nextRows.push({ role_id: roleId, module_key: row.module, action: "view" });
       }
@@ -156,7 +173,7 @@ export const listOrgRoles = async (orgId: string) => {
 
 export const getOrgRolesMatrix = async (orgId: string): Promise<RolesMatrixPayload> => {
   const roles = await listOrgRoles(orgId);
-  const permissionRows = await listRolePermissionRows(roles.map((role) => role.id));
+  const permissionRows = await listRolePermissionRows(orgId, roles.map((role) => role.id));
 
   return {
     roles,
@@ -170,8 +187,9 @@ export const saveOrgRolesMatrix = async (
 ): Promise<RolesMatrixPayload> => {
   const client = assertClient();
   const roles = await listOrgRoles(orgId);
-  const currentRows = await listRolePermissionRows(roles.map((role) => role.id));
-  const nextRows = flattenMatrix(nextMatrix);
+  const validRoleIds = new Set(roles.map((role) => role.id));
+  const currentRows = await listRolePermissionRows(orgId, roles.map((role) => role.id));
+  const nextRows = flattenMatrix(nextMatrix, validRoleIds);
 
   const currentKeys = new Set(currentRows.map(buildPermissionKey));
   const nextKeys = new Set(nextRows.map(buildPermissionKey));
@@ -208,7 +226,7 @@ export const saveOrgRolesMatrix = async (
     );
   }
 
-  const persistedRows = await listRolePermissionRows(roles.map((role) => role.id));
+  const persistedRows = await listRolePermissionRows(orgId, roles.map((role) => role.id));
 
   if (!comparePermissionSets(nextRows, persistedRows)) {
     throw new Error("Permission matrix save verification failed after refetch.");

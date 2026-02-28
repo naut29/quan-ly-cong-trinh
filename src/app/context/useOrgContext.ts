@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ORG_STORAGE_KEY = "app.current_org_id";
+const LEGACY_ORG_STORAGE_KEYS = ["selectedOrg", "orgId", "activeOrg"] as const;
 
 export interface OrgMembershipOption {
   orgId: string;
@@ -11,18 +12,92 @@ export interface OrgMembershipOption {
   createdAt: string | null;
 }
 
-const readStoredOrgId = () => {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(ORG_STORAGE_KEY);
+const readOrgIdCandidate = (value: unknown): string | null => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  for (const key of ["orgId", "org_id", "id", "value"]) {
+    const nextValue = readOrgIdCandidate(record[key]);
+    if (nextValue) {
+      return nextValue;
+    }
+  }
+
+  for (const key of ["selectedOrg", "activeOrg", "organization", "org"]) {
+    const nextValue = readOrgIdCandidate(record[key]);
+    if (nextValue) {
+      return nextValue;
+    }
+  }
+
+  return null;
+};
+
+const extractStoredOrgId = (rawValue: string | null) => {
+  if (!rawValue) return null;
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) return null;
+
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return trimmed;
+  }
+
+  try {
+    return readOrgIdCandidate(JSON.parse(trimmed));
+  } catch {
+    return null;
+  }
+};
+
+const clearStoredOrgKeys = () => {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.removeItem(ORG_STORAGE_KEY);
+  LEGACY_ORG_STORAGE_KEYS.forEach((key) => {
+    window.localStorage.removeItem(key);
+  });
+};
+
+const readStoredOrgIds = () => {
+  if (typeof window === "undefined") return [];
+
+  const candidates: string[] = [];
+  const pushCandidate = (value: string | null) => {
+    if (!value || candidates.includes(value)) {
+      return;
+    }
+    candidates.push(value);
+  };
+
+  pushCandidate(extractStoredOrgId(window.localStorage.getItem(ORG_STORAGE_KEY)));
+
+  for (const key of LEGACY_ORG_STORAGE_KEYS) {
+    pushCandidate(extractStoredOrgId(window.localStorage.getItem(key)));
+  }
+
+  return candidates;
 };
 
 const persistOrgId = (orgId: string | null) => {
   if (typeof window === "undefined") return;
   if (!orgId) {
-    window.localStorage.removeItem(ORG_STORAGE_KEY);
+    clearStoredOrgKeys();
     return;
   }
+
   window.localStorage.setItem(ORG_STORAGE_KEY, orgId);
+  LEGACY_ORG_STORAGE_KEYS.forEach((key) => {
+    window.localStorage.removeItem(key);
+  });
 };
 
 export const useOrgContext = () => {
@@ -40,7 +115,21 @@ export const useOrgContext = () => {
       }
 
       const selected = orgs.find((item) => item.orgId === orgId);
-      if (!selected) return;
+      if (!selected) {
+        const fallbackOrg = orgs[0] ?? null;
+        if (!fallbackOrg) {
+          setOrgMembership({ orgId: null, role: null });
+          persistOrgId(null);
+          return;
+        }
+
+        persistOrgId(fallbackOrg.orgId);
+        setOrgMembership({
+          orgId: fallbackOrg.orgId,
+          role: fallbackOrg.role ?? null,
+        });
+        return;
+      }
 
       persistOrgId(orgId);
       setOrgMembership({
@@ -108,10 +197,18 @@ export const useOrgContext = () => {
       return;
     }
 
-    const storedOrgId = readStoredOrgId();
+    const storedOrgIds = readStoredOrgIds();
+    const matchingStoredOrgId =
+      storedOrgIds.find((candidateOrgId) => orgs.some((item) => item.orgId === candidateOrgId)) ?? null;
+    const currentOrgExists = currentOrgId ? orgs.some((item) => item.orgId === currentOrgId) : false;
+
+    if (storedOrgIds.length > 0 && !matchingStoredOrgId) {
+      persistOrgId(null);
+    }
+
     const nextOrgId =
-      (storedOrgId && orgs.some((item) => item.orgId === storedOrgId) && storedOrgId) ||
-      (currentOrgId && orgs.some((item) => item.orgId === currentOrgId) && currentOrgId) ||
+      matchingStoredOrgId ||
+      (currentOrgExists ? currentOrgId : null) ||
       orgs[0].orgId;
 
     selectOrg(nextOrgId, orgs);
@@ -136,9 +233,12 @@ export const useOrgContext = () => {
 
   return {
     organizations,
+    org: activeOrganization,
+    orgId: currentOrgId ?? null,
     currentOrgId,
     currentRole,
     currentOrgName: activeOrganization?.orgName ?? null,
+    currentOrganization: activeOrganization,
     loading,
     error,
     switchOrganization,

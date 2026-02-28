@@ -3,12 +3,19 @@ import { useLocation } from "react-router-dom";
 import { isDemoPath } from "@/lib/appMode";
 import { useOrgContext } from "@/app/context/useOrgContext";
 
+interface CompanyOrgSummary {
+  orgId: string;
+  orgName: string | null;
+  role: string | null;
+}
+
 interface CompanyContextValue {
   companyId: string | null;
   companyName: string | null;
+  organization: CompanyOrgSummary | null;
   role: string | null;
   loading: boolean;
-  organizations: Array<{ orgId: string; orgName: string | null; role: string | null }>;
+  organizations: CompanyOrgSummary[];
   switchCompany: (orgId: string) => void;
   refreshCompanyContext: () => Promise<void>;
   error: string | null;
@@ -21,6 +28,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     currentOrgId,
     currentRole,
     currentOrgName,
+    currentOrganization,
     organizations,
     loading,
     error,
@@ -32,6 +40,13 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     () => ({
       companyId: currentOrgId ?? null,
       companyName: currentOrgName,
+      organization: currentOrganization
+        ? {
+            orgId: currentOrganization.orgId,
+            orgName: currentOrganization.orgName,
+            role: currentOrganization.role,
+          }
+        : null,
       role: currentRole ?? null,
       loading,
       organizations,
@@ -41,7 +56,17 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       },
       error,
     }),
-    [currentOrgId, currentOrgName, currentRole, error, loading, organizations, reload, switchOrganization],
+    [
+      currentOrgId,
+      currentOrgName,
+      currentOrganization,
+      currentRole,
+      error,
+      loading,
+      organizations,
+      reload,
+      switchOrganization,
+    ],
   );
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
@@ -56,6 +81,7 @@ export const useCompany = () => {
       return {
         companyId: null,
         companyName: "Demo",
+        organization: null,
         role: null,
         loading: false,
         organizations: [],

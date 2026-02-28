@@ -32,7 +32,6 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import type { IntegrationItem, IntegrationStatus } from "@/features/integrations/types";
-import { demoAdminIntegrations } from "@/lib/data/demo/fixtures/adminIntegrations";
 
 const APP_INTEGRATIONS: IntegrationItem[] = [
   {
@@ -143,6 +142,7 @@ type PageMode = "app" | "demo";
 
 export interface AppIntegrationsPageProps {
   mode?: PageMode;
+  initialItems?: IntegrationItem[];
 }
 
 const cloneItems = (items: IntegrationItem[]) => items.map((item) => ({ ...item }));
@@ -158,9 +158,12 @@ const getConnectedStatusBadge = (status: IntegrationStatus) => {
   return <StatusBadge status="danger">Loi ket noi</StatusBadge>;
 };
 
-export const AppIntegrationsPage: React.FC<AppIntegrationsPageProps> = ({ mode = "app" }) => {
+export const AppIntegrationsPage: React.FC<AppIntegrationsPageProps> = ({
+  mode = "app",
+  initialItems,
+}) => {
   const [items, setItems] = useState<IntegrationItem[]>(() =>
-    cloneItems(mode === "demo" ? demoAdminIntegrations : APP_INTEGRATIONS),
+    cloneItems(initialItems ?? APP_INTEGRATIONS),
   );
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);

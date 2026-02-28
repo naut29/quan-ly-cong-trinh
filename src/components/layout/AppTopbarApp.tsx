@@ -1,17 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   Building2,
+  Check,
   ChevronDown,
   LogOut,
   Search,
   Settings,
   User,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,39 +20,39 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { getAppBasePath } from '@/lib/appMode';
-import { useSession } from '@/app/session/useSession';
-import { useCompany } from '@/app/context/CompanyContext';
-import { listProjectsByOrg } from '@/lib/api/projects';
-import { logActivity } from '@/lib/api/activity';
-import { signOut } from '@/auth/supabaseAuth';
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { getAppBasePath } from "@/lib/appMode";
+import { useSession } from "@/app/session/useSession";
+import { useCompany } from "@/app/context/CompanyContext";
+import { listProjectsByOrg } from "@/lib/api/projects";
+import { logActivity } from "@/lib/api/activity";
+import { signOut } from "@/auth/supabaseAuth";
 
 type ProjectSummary = Awaited<ReturnType<typeof listProjectsByOrg>>[number];
 
 const ORG_ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  manager: 'Manager',
-  editor: 'Editor',
-  viewer: 'Member',
+  owner: "Owner",
+  admin: "Admin",
+  manager: "Manager",
+  editor: "Editor",
+  viewer: "Member",
 };
 
 const getOrgRoleLabel = (role: string | null) => {
-  if (!role) return '';
+  if (!role) return "";
   return ORG_ROLE_LABELS[role] ?? role;
 };
 
 const AppTopbarApp: React.FC = () => {
   const { user, isSuperAdmin } = useSession();
-  const { companyName, role, companyId } = useCompany();
+  const { companyName, role, companyId, organizations, switchCompany, loading: companyLoading } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
@@ -88,10 +89,10 @@ const AppTopbarApp: React.FC = () => {
         await logActivity({
           orgId: companyId,
           actorUserId: user.id,
-          module: 'auth',
-          action: 'logout',
+          module: "auth",
+          action: "logout",
           description: `User ${user.email ?? user.id} đăng xuất`,
-          status: 'success',
+          status: "success",
         });
       } catch {
         // Ignore logging errors on logout.
@@ -102,12 +103,13 @@ const AppTopbarApp: React.FC = () => {
     navigate(`${basePath}/login`);
   };
 
-  const getInitials = (value: string) => value
-    .split(' ')
-    .map((item) => item[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const getInitials = (value: string) =>
+    value
+      .split(" ")
+      .map((item) => item[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 shrink-0">
@@ -122,12 +124,53 @@ const AppTopbarApp: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium truncate max-w-[150px]">
-            {companyName || 'Công ty'}
-          </span>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-9 gap-2 rounded-lg bg-muted/50 px-3 hover:bg-muted">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="max-w-[180px] truncate text-sm font-medium">
+                {companyName || "Công ty"}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-72">
+            <DropdownMenuLabel>Tổ chức hiện tại</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {companyLoading ? (
+              <DropdownMenuItem disabled>Đang tải danh sách tổ chức...</DropdownMenuItem>
+            ) : organizations.length === 0 ? (
+              <DropdownMenuItem disabled>Không có tổ chức khả dụng</DropdownMenuItem>
+            ) : (
+              organizations.map((organization) => (
+                <DropdownMenuItem
+                  key={organization.orgId}
+                  onClick={() => {
+                    if (organization.orgId !== companyId) {
+                      switchCompany(organization.orgId);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <Check
+                    className={cn(
+                      "h-4 w-4",
+                      organization.orgId === companyId ? "text-primary opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {organization.orgName || "Tổ chức chưa đặt tên"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {getOrgRoleLabel(organization.role) || "Thành viên"}
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Popover>
           <PopoverTrigger asChild>
@@ -157,10 +200,10 @@ const AppTopbarApp: React.FC = () => {
                   >
                     <div
                       className={cn(
-                        'w-2 h-2 rounded-full mt-2 shrink-0',
-                        project.status === 'active' && 'bg-success',
-                        project.status === 'paused' && 'bg-warning',
-                        project.status === 'completed' && 'bg-muted-foreground',
+                        "w-2 h-2 rounded-full mt-2 shrink-0",
+                        project.status === "active" && "bg-success",
+                        project.status === "paused" && "bg-warning",
+                        project.status === "completed" && "bg-muted-foreground",
                       )}
                     />
                     <div className="flex-1 min-w-0">
@@ -184,7 +227,7 @@ const AppTopbarApp: React.FC = () => {
             <Button variant="ghost" className="gap-2 h-9 px-2">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                  {user?.email ? getInitials(user.email) : '?'}
+                  {user?.email ? getInitials(user.email) : "?"}
                 </AvatarFallback>
               </Avatar>
               <div className="text-left hidden sm:block">

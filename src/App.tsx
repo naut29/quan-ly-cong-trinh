@@ -69,6 +69,7 @@ import DemoAdminRoles from "./pages/demo/AdminRoles";
 import DemoAdminCompany from "./pages/demo/AdminCompany";
 import DemoAdminAuditLog from "./pages/demo/AdminAuditLog";
 import DemoAdminBilling from "./pages/demo/AdminBilling";
+import DemoAdminIntegrations from "./pages/demo/AdminIntegrations";
 
 import PlatformTenants from "./pages/platform/Tenants";
 import PlatformUsers from "./pages/platform/Users";
@@ -205,7 +206,7 @@ const App = () => {
               <Route path="admin/users" element={<DemoAdminUsers />} />
               <Route path="admin/roles" element={<DemoAdminRoles />} />
               <Route path="admin/audit-log" element={<DemoAdminAuditLog />} />
-              <Route path="admin/integrations" element={<AppIntegrationsPage mode="demo" />} />
+              <Route path="admin/integrations" element={<DemoAdminIntegrations />} />
               <Route path="admin/billing" element={<DemoAdminBilling />} />
               <Route path="*" element={<Navigate to="/demo/dashboard" replace />} />
             </Route>

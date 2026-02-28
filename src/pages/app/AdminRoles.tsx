@@ -25,7 +25,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const AdminRoles: React.FC = () => {
-  const { companyId, companyName } = useCompany();
+  const { companyId, organization } = useCompany();
   const [searchParams] = useSearchParams();
 
   const [roles, setRoles] = useState<OrgRoleRow[]>([]);
@@ -116,7 +116,7 @@ const AdminRoles: React.FC = () => {
         matrix={matrix}
         mode="app"
         focusedRoleId={focusedRoleId}
-        description={`Cấu hình quyền truy cập cho từng vai trò trong ${companyName ?? "tổ chức này"}.`}
+        description={`Cấu hình quyền truy cập cho từng vai trò trong ${organization?.orgName ?? "tổ chức này"}.`}
         onSave={handleSave}
       />
     </div>
