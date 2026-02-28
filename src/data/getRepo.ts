@@ -1,6 +1,18 @@
 import { isDemoPath } from '@/lib/appMode';
 import { demoRepo } from './demoRepo';
-import { supabaseRepo } from './supabaseRepo';
+import { createSupabaseRepo, supabaseRepo } from './supabaseRepo';
 
-export const getRepo = (pathname: string = window.location.pathname) =>
-  isDemoPath(pathname) ? demoRepo : supabaseRepo;
+export const getRepo = (
+  pathname: string = window.location.pathname,
+  companyId?: string | null,
+) => {
+  if (isDemoPath(pathname)) {
+    return demoRepo;
+  }
+
+  if (companyId) {
+    return createSupabaseRepo(companyId);
+  }
+
+  return supabaseRepo;
+};

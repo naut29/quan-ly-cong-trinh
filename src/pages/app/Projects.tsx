@@ -1,488 +1,801 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { FolderKanban, Plus } from "lucide-react";
-import { useCompany } from "@/app/context/CompanyContext";
-import { useSession } from "@/app/session/useSession";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  FolderKanban, 
+  Search, 
+  Grid3X3, 
+  List, 
+  Plus,
+  MapPin,
+  Calendar,
+  AlertTriangle,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Eye,
+  User,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
+  Download,
+  FileSpreadsheet,
+  FileText,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { StatusBadge } from "@/components/ui/status-badge";
+} from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
-import { logActivity } from "@/lib/api/activity";
-import { hasOrgPermission } from "@/lib/api/rolePermissions";
-import {
-  createProject,
-  deleteProject,
-  listProjectsByOrg,
-  updateProject,
-  type CreateProjectInput,
-} from "@/lib/api/projects";
-import { getAppBasePath } from "@/lib/appMode";
-import { formatCurrencyFull, formatDate } from "@/lib/numberFormat";
-import { projectStageLabels, projectStatusLabels } from "@/lib/projectMeta";
-
-type ProjectSummary = Awaited<ReturnType<typeof listProjectsByOrg>>[number];
-
-interface FormState {
-  id: string | null;
-  name: string;
-  code: string;
-  address: string;
-  status: string;
-  stage: string;
-  manager: string;
-  startDate: string;
-  endDate: string;
-  budget: string;
-}
-
-const DEFAULT_FORM: FormState = {
-  id: null,
-  name: "",
-  code: "",
-  address: "",
-  status: "active",
-  stage: "foundation",
-  manager: "",
-  startDate: "",
-  endDate: "",
-  budget: "0",
-};
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useCompany } from '@/app/context/CompanyContext';
+import { 
+  formatCurrency, 
+  projectStatusLabels, 
+  projectStageLabels,
+} from '@/data/mockData';
+import { getRepo } from '@/data/getRepo';
+import { Project } from '@/data/repo';
+import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFormDialog';
+import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
+import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
+import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
+import { getAppBasePath } from '@/lib/appMode';
+import UpgradeModal from '@/components/plans/UpgradeModal';
+import { usePlanContext } from '@/hooks/usePlanContext';
+import { canCreateProject, canDownload, canExport } from '@/lib/planLimits';
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = getAppBasePath(location.pathname);
-  const { companyId, companyName } = useCompany();
-  const { user } = useSession();
+  const { companyId, role } = useCompany();
+  const { limits, usage, recordUsageEvent } = usePlanContext(companyId);
+  const repo = useMemo(() => (companyId ? getRepo(location.pathname, companyId) : null), [companyId, location.pathname]);
 
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [canEdit, setCanEdit] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [stageFilter, setStageFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showCharts, setShowCharts] = useState(true);
+  
+  // Dialog states
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [projectDialogMode, setProjectDialogMode] = useState<'create' | 'edit'>('create');
+  const [selectedProject, setSelectedProject] = useState<ProjectEntry | undefined>(undefined);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null);
+  const [upgradeFeature, setUpgradeFeature] = useState<string | undefined>(undefined);
 
-  const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const canEdit = role === 'owner' || role === 'admin';
 
-  const loadProjects = useCallback(async () => {
-    if (!companyId) {
+  const openUpgrade = (feature: string, reason: string) => {
+    setUpgradeFeature(feature);
+    setUpgradeReason(reason);
+    setUpgradeOpen(true);
+  };
+
+  const ensureCreateAllowed = () => {
+    const gate = canCreateProject(limits, usage, 1);
+    if (!gate.allowed) {
+      openUpgrade('tạo dự án', gate.reason ?? 'Đã đạt giới hạn dự án của gói hiện tại.');
+      return false;
+    }
+    return true;
+  };
+
+  const ensureExportAllowed = (feature: string, estimatedDownloadGb: number) => {
+    const exportGate = canExport(limits, usage);
+    if (!exportGate.allowed) {
+      openUpgrade(feature, exportGate.reason ?? 'Đã đạt giới hạn xuất dữ liệu/ngày.');
+      return false;
+    }
+
+    const downloadGate = canDownload(limits, usage, estimatedDownloadGb);
+    if (!downloadGate.allowed) {
+      openUpgrade(feature, downloadGate.reason ?? 'Đã đạt giới hạn băng thông tải xuống/tháng.');
+      return false;
+    }
+
+    return true;
+  };
+
+  useEffect(() => {
+    let isActive = true;
+    if (!repo) {
       setProjects([]);
-      setLoading(false);
-      setError("Chưa có tổ chức.");
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    repo.listProjects()
+      .then((data) => {
+        if (isActive) setProjects(data);
+      })
+      .catch(() => {
+        if (isActive) setProjects([]);
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [repo]);
+
+  const handleCreateProject = () => {
+    if (!ensureCreateAllowed()) {
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [rows, permitted] = await Promise.all([
-        listProjectsByOrg(companyId),
-        hasOrgPermission(companyId, "projects", "edit"),
-      ]);
-      setProjects(rows);
-      setCanEdit(permitted);
-    } catch (loadError) {
-      setProjects([]);
-      setCanEdit(false);
-      setError(loadError instanceof Error ? loadError.message : "Không thể tải dự án.");
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId]);
-
-  useEffect(() => {
-    void loadProjects();
-  }, [loadProjects]);
-
-  const filteredProjects = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return projects;
-    }
-
-    return projects.filter((project) => {
-      const haystack = `${project.name} ${project.code} ${project.address}`.toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [projects, search]);
-
-  const summary = useMemo(
-    () => ({
-      totalBudget: projects.reduce((sum, project) => sum + project.budget, 0),
-      activeCount: projects.filter((project) => project.status === "active").length,
-      averageProgress:
-        projects.length > 0
-          ? Math.round(projects.reduce((sum, project) => sum + project.progress, 0) / projects.length)
-          : 0,
-    }),
-    [projects],
-  );
-
-  const resetForm = () => setForm(DEFAULT_FORM);
-
-  const openCreateDialog = () => {
-    resetForm();
-    setDialogOpen(true);
+    setProjectDialogMode('create');
+    setSelectedProject(undefined);
+    setProjectDialogOpen(true);
   };
 
-  const openEditDialog = (project: ProjectSummary) => {
-    setForm({
+  const handleEditProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProjectDialogMode('edit');
+    setSelectedProject({
       id: project.id,
-      name: project.name,
       code: project.code,
+      name: project.name,
       address: project.address,
       status: project.status,
       stage: project.stage,
       manager: project.manager,
-      startDate: project.startDate ? String(project.startDate).slice(0, 10) : "",
-      endDate: project.endDate ? String(project.endDate).slice(0, 10) : "",
-      budget: String(project.budget),
+      startDate: project.startDate,
+      endDate: project.endDate,
+      budget: project.budget,
     });
-    setDialogOpen(true);
+    setProjectDialogOpen(true);
   };
 
-  const toPayload = (): CreateProjectInput => {
-    const existingProject = form.id ? projects.find((project) => project.id === form.id) : null;
-
-    return {
-      name: form.name,
-      code: form.code || null,
-      address: form.address || null,
-      status: form.status,
-      stage: form.stage,
-      manager: form.manager || null,
-      startDate: form.startDate || null,
-      endDate: form.endDate || null,
-      budget: Number(form.budget),
-      actual: existingProject?.actual ?? 0,
-      committed: existingProject?.committed ?? 0,
-      forecast: existingProject?.forecast ?? Number(form.budget),
-      progress: existingProject?.progress ?? 0,
-    };
+  const handleDeleteProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!companyId) {
+  const handleProjectSubmit = async (data: any) => {
+    if (!repo) return;
+
+    if (projectDialogMode === 'create') {
+      if (!ensureCreateAllowed()) {
+        return;
+      }
+
+      const created = await repo.createProject({
+        code: data.code,
+        name: data.name,
+        address: data.address,
+        status: data.status,
+        stage: data.stage,
+        manager: data.manager,
+        startDate: data.startDate.toISOString().split('T')[0],
+        endDate: data.endDate.toISOString().split('T')[0],
+        budget: data.budget,
+      });
+      setProjects((prev) => [created, ...prev]);
+      toast({
+        title: 'Tạo dự án thành công',
+        description: `Dự án "${data.name}" đã được tạo.`,
+      });
+    } else {
+      if (!selectedProject?.id) return;
+      const updated = await repo.updateProject(selectedProject.id, {
+        code: data.code,
+        name: data.name,
+        address: data.address,
+        status: data.status,
+        stage: data.stage,
+        manager: data.manager,
+        startDate: data.startDate.toISOString().split('T')[0],
+        endDate: data.endDate.toISOString().split('T')[0],
+        budget: data.budget,
+      });
+      setProjects((prev) => prev.map((project) => (project.id === updated.id ? updated : project)));
+      toast({
+        title: 'Cập nhật thành công',
+        description: `Dự án "${data.name}" đã được cập nhật.`,
+      });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (projectToDelete && repo) {
+      await repo.deleteProject(projectToDelete.id);
+      setProjects((prev) => prev.filter((project) => project.id !== projectToDelete.id));
+      toast({
+        title: 'Đã xóa dự án',
+        description: `Dự án "${projectToDelete.name}" đã được xóa.`,
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  // Filter and sort projects
+  const filteredProjects = projects
+    .filter(project => {
+      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           project.code.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+      const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
+      return matchesSearch && matchesStatus && matchesStage;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'budget':
+          comparison = a.budget - b.budget;
+          break;
+        case 'progress':
+          comparison = a.progress - b.progress;
+          break;
+        case 'startDate':
+          comparison = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+          break;
+        case 'actual':
+          comparison = a.actual - b.actual;
+          break;
+        case 'name':
+        default:
+          comparison = a.name.localeCompare(b.name, 'vi');
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  // Export functions
+  const handleExportExcel = () => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed('xuất dữ liệu', estimatedDownloadGb)) {
       return;
     }
 
-    if (!form.name.trim()) {
-      toast({ title: "Thiếu tên dự án", variant: "destructive" });
+    const exportData = filteredProjects.map(p => ({
+      code: p.code,
+      name: p.name,
+      address: p.address,
+      status: projectStatusLabels[p.status],
+      stage: projectStageLabels[p.stage],
+      manager: p.manager,
+      startDate: new Date(p.startDate).toLocaleDateString('vi-VN'),
+      endDate: new Date(p.endDate).toLocaleDateString('vi-VN'),
+      budget: formatCurrencyForExport(p.budget),
+      actual: formatCurrencyForExport(p.actual),
+      committed: formatCurrencyForExport(p.committed),
+      progress: `${p.progress}%`,
+      alertCount: p.alertCount,
+    }));
+
+    exportToExcel({
+      title: 'Danh sách dự án',
+      fileName: `du-an-${new Date().toISOString().split('T')[0]}`,
+      columns: [
+        { header: 'Mã dự án', key: 'code', width: 15 },
+        { header: 'Tên dự án', key: 'name', width: 35 },
+        { header: 'Địa chỉ', key: 'address', width: 30 },
+        { header: 'Trạng thái', key: 'status', width: 15 },
+        { header: 'Giai đoạn', key: 'stage', width: 15 },
+        { header: 'Quản lý', key: 'manager', width: 20 },
+        { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
+        { header: 'Ngày kết thúc', key: 'endDate', width: 15 },
+        { header: 'Dự toán', key: 'budget', width: 20 },
+        { header: 'Thực chi', key: 'actual', width: 20 },
+        { header: 'Cam kết', key: 'committed', width: 20 },
+        { header: 'Tiến độ', key: 'progress', width: 10 },
+        { header: 'Cảnh báo', key: 'alertCount', width: 10 },
+      ],
+      data: exportData,
+    });
+
+    void recordUsageEvent('export', estimatedDownloadGb);
+
+    toast({
+      title: 'Xuất Excel thành công',
+      description: `Đã xuất ${filteredProjects.length} dự án ra file Excel.`,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const estimatedDownloadGb = 0.05;
+    if (!ensureExportAllowed('xuất dữ liệu', estimatedDownloadGb)) {
       return;
     }
 
-    setSaving(true);
-    try {
-      const nextProject = form.id
-        ? await updateProject(companyId, form.id, toPayload())
-        : await createProject(companyId, toPayload());
+    const exportData = filteredProjects.map(p => ({
+      code: p.code,
+      name: p.name,
+      status: projectStatusLabels[p.status],
+      stage: projectStageLabels[p.stage],
+      manager: p.manager,
+      budget: formatCurrencyForExport(p.budget),
+      actual: formatCurrencyForExport(p.actual),
+      progress: `${p.progress}%`,
+    }));
 
-      await logActivity({
-        orgId: companyId,
-        actorUserId: user?.id ?? null,
-        module: "projects",
-        action: form.id ? "update" : "create",
-        description: `${form.id ? "Cập nhật" : "Tạo"} dự án ${nextProject.name}`,
-        status: "success",
-      });
+    exportToPDF({
+      title: 'Danh sách dự án',
+      subtitle: `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} - Tổng ${filteredProjects.length} dự án`,
+      fileName: `du-an-${new Date().toISOString().split('T')[0]}`,
+      columns: [
+        { header: 'Mã DA', key: 'code', width: 12 },
+        { header: 'Tên dự án', key: 'name', width: 30 },
+        { header: 'Trạng thái', key: 'status', width: 15 },
+        { header: 'Giai đoạn', key: 'stage', width: 12 },
+        { header: 'Quản lý', key: 'manager', width: 18 },
+        { header: 'Dự toán', key: 'budget', width: 18 },
+        { header: 'Thực chi', key: 'actual', width: 18 },
+        { header: 'Tiến độ', key: 'progress', width: 10 },
+      ],
+      data: exportData,
+    });
 
-      toast({
-        title: form.id ? "Đã cập nhật dự án" : "Đã tạo dự án",
-        description: "Du lieu da duoc ghi that vao Supabase.",
-      });
+    void recordUsageEvent('export', estimatedDownloadGb);
 
-      setDialogOpen(false);
-      resetForm();
-      await loadProjects();
-    } catch (saveError) {
-      toast({
-        title: "Không thể lưu dự án",
-        description: saveError instanceof Error ? saveError.message : "Yeu cau luu that bai.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+    toast({
+      title: 'Xuất PDF thành công',
+      description: `Đã xuất ${filteredProjects.length} dự án ra file PDF.`,
+    });
+  };
+
+  const getStatusBadgeType = (status: Project['status']) => {
+    switch (status) {
+      case 'active': return 'active';
+      case 'paused': return 'warning';
+      case 'completed': return 'neutral';
+      default: return 'neutral';
     }
   };
 
-  const handleDelete = async (project: ProjectSummary) => {
-    if (!companyId) {
-      return;
-    }
-
-    try {
-      await deleteProject(companyId, project.id);
-      await logActivity({
-        orgId: companyId,
-        actorUserId: user?.id ?? null,
-        module: "projects",
-        action: "delete",
-        description: `Xóa dự án ${project.name}`,
-        status: "success",
-      });
-      toast({ title: "Đã xóa dự án" });
-      await loadProjects();
-    } catch (deleteError) {
-      toast({
-        title: "Không thể xóa dự án",
-        description: deleteError instanceof Error ? deleteError.message : "Xóa dự án thất bại.",
-        variant: "destructive",
-      });
+  const getStageBadgeType = (stage: Project['stage']) => {
+    switch (stage) {
+      case 'foundation': return 'info';
+      case 'structure': return 'warning';
+      case 'finishing': return 'success';
+      default: return 'neutral';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 animate-fade-in">
+        <p className="text-muted-foreground">Đang tải dự án...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6 animate-fade-in">
+    <div className="p-6 space-y-6 animate-fade-in">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dự án</h1>
-          <p className="mt-1 text-muted-foreground">
-            {companyName ?? "Tổ chức hiện tại"} • {projects.length} dự án
+          <h1 className="text-2xl font-display font-bold text-foreground">Dự án</h1>
+          <p className="text-muted-foreground mt-1">
+            Quản lý {projects.length} dự án của bạn
           </p>
         </div>
-        {canEdit && (
-          <Button className="gap-2" onClick={openCreateDialog}>
-            <Plus className="h-4 w-4" />
-            Tạo dự án
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Xuất file
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Xuất Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                <FileText className="h-4 w-4 mr-2" />
+                Xuất PDF (.pdf)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button 
+            variant="outline" 
+            className="gap-2" 
+            onClick={() => setShowCharts(!showCharts)}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Thống kê
+            {showCharts ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
-        )}
+          {canEdit && (
+            <Button className="gap-2" onClick={handleCreateProject}>
+              <Plus className="h-4 w-4" />
+              Tạo dự án mới
+            </Button>
+          )}
+        </div>
       </div>
 
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
+      {/* Overview Charts */}
+      {showCharts && projects.length > 0 && (
+        <ProjectsOverviewCharts projects={projects} />
+      )}
+
+      {/* Filter Bar */}
+      <div className="filter-bar rounded-xl bg-card">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm kiếm dự án..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="active">Đang thi công</SelectItem>
+            <SelectItem value="paused">Tạm dừng</SelectItem>
+            <SelectItem value="completed">Hoàn thành</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={stageFilter} onValueChange={setStageFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Giai đoạn" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả giai đoạn</SelectItem>
+            <SelectItem value="foundation">Móng</SelectItem>
+            <SelectItem value="structure">Thân</SelectItem>
+            <SelectItem value="finishing">Hoàn thiện</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Sort Controls */}
+        <div className="flex items-center gap-1">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Theo tên</SelectItem>
+              <SelectItem value="budget">Theo ngân sách</SelectItem>
+              <SelectItem value="actual">Theo thực chi</SelectItem>
+              <SelectItem value="progress">Theo tiến độ</SelectItem>
+              <SelectItem value="startDate">Theo ngày tạo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={toggleSortOrder}
+            title={sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+          >
+            <ArrowUpDown className={cn(
+              "h-4 w-4 transition-transform",
+              sortOrder === 'desc' && "rotate-180"
+            )} />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-1 ml-auto border border-border rounded-lg p-1">
+          <Button
+            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Projects Grid/List */}
+      {filteredProjects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <FolderKanban className="h-12 w-12 text-muted-foreground/50 mb-4" />
+          <h3 className="text-lg font-semibold text-foreground">Không tìm thấy dự án</h3>
+          <p className="text-muted-foreground mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+        </div>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+          {filteredProjects.map((project) => (
+            <div
+              key={project.id}
+              className="kpi-card cursor-pointer group"
+              onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <StatusBadge status={getStatusBadgeType(project.status)}>
+                      {projectStatusLabels[project.status]}
+                    </StatusBadge>
+                    <StatusBadge status={getStageBadgeType(project.stage)} dot={false}>
+                      {projectStageLabels[project.stage]}
+                    </StatusBadge>
+                  </div>
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                    {project.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{project.code}</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`${basePath}/projects/${project.id}/overview`);
+                    }}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Xem chi tiết
+                    </DropdownMenuItem>
+                    {canEdit && (
+                      <>
+                        <DropdownMenuItem onClick={(e) => handleEditProject(project, e)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Chỉnh sửa
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={(e) => handleDeleteProject(project, e)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Xóa dự án
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Location & Date */}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span className="truncate">{project.address}</span>
+                </div>
+              </div>
+
+              {/* Manager & Timeline */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  <span className="truncate">{project.manager}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>{new Date(project.startDate).toLocaleDateString('vi-VN')}</span>
+                </div>
+              </div>
+
+              {/* Budget Info */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Dự toán</span>
+                  <span className="font-medium">{formatCurrency(project.budget)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Thực chi</span>
+                  <span className={cn(
+                    "font-medium",
+                    project.actual > project.budget && "text-destructive"
+                  )}>
+                    {formatCurrency(project.actual)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Chênh lệch</span>
+                  <span className={cn(
+                    "font-medium",
+                    project.actual > project.budget ? "text-destructive" : "text-success"
+                  )}>
+                    {project.actual > project.budget ? '+' : ''}{formatCurrency(project.actual - project.budget)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Tiến độ</span>
+                  <span className="font-medium">{project.progress}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary rounded-full transition-all"
+                    style={{ width: `${project.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              {project.alertCount > 0 && (
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm text-destructive font-medium">
+                    {project.alertCount} cảnh báo
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Dự án</th>
+                <th>Trạng thái</th>
+                <th>Giai đoạn</th>
+                <th className="text-right">Dự toán</th>
+                <th className="text-right">Thực chi</th>
+                <th>Tiến độ</th>
+                <th>Cảnh báo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProjects.map((project) => (
+                <tr 
+                  key={project.id} 
+                  className="cursor-pointer"
+                  onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
+                >
+                  <td>
+                    <div>
+                      <p className="font-medium">{project.name}</p>
+                      <p className="text-xs text-muted-foreground">{project.code}</p>
+                    </div>
+                  </td>
+                  <td>
+                    <StatusBadge status={getStatusBadgeType(project.status)}>
+                      {projectStatusLabels[project.status]}
+                    </StatusBadge>
+                  </td>
+                  <td>
+                    <StatusBadge status={getStageBadgeType(project.stage)} dot={false}>
+                      {projectStageLabels[project.stage]}
+                    </StatusBadge>
+                  </td>
+                  <td className="text-right font-medium">{formatCurrency(project.budget)}</td>
+                  <td className={cn(
+                    "text-right font-medium",
+                    project.actual > project.budget && "text-destructive"
+                  )}>
+                    {formatCurrency(project.actual)}
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${project.progress}%` }}
+                        />
+                      </div>
+                      <span className="text-sm">{project.progress}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    {project.alertCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-destructive">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {project.alertCount}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem chi tiết
+                        </DropdownMenuItem>
+                        {canEdit && (
+                          <>
+                            <DropdownMenuItem onClick={(e) => handleEditProject(project, e as unknown as React.MouseEvent)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Chỉnh sửa
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={(e) => handleDeleteProject(project, e as unknown as React.MouseEvent)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Xóa dự án
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Tổng dự toán</p>
-            <p className="text-2xl font-bold">{formatCurrencyFull(summary.totalBudget)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Dang thi cong</p>
-            <p className="text-2xl font-bold">{summary.activeCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Tiến độ trung bình</p>
-            <p className="text-2xl font-bold">{summary.averageProgress}%</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Project Form Dialog */}
+      <ProjectFormDialog
+        open={projectDialogOpen}
+        onOpenChange={setProjectDialogOpen}
+        mode={projectDialogMode}
+        initialData={selectedProject}
+        onSubmit={handleProjectSubmit}
+      />
 
-      <div className="rounded-xl border border-border bg-card p-4">
-        <Input
-          placeholder="Tìm tên, mã hoặc địa chỉ dự án..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+      {/* Delete Confirmation Dialog */}
+      {projectToDelete && (
+        <DeleteProjectDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          projectName={projectToDelete.name}
+          projectCode={projectToDelete.code}
+          onConfirm={handleConfirmDelete}
         />
-      </div>
+      )}
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Dự án</TableHead>
-                <TableHead>Trang thai</TableHead>
-                <TableHead>Giai doan</TableHead>
-                <TableHead className="text-right">Du toan</TableHead>
-                <TableHead className="text-right">Tiến độ</TableHead>
-                <TableHead>Khoi tao</TableHead>
-                {canEdit && <TableHead className="w-[160px] text-right">Tac vu</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={canEdit ? 7 : 6} className="py-8 text-center text-muted-foreground">
-                    Đang tải dự án...
-                  </TableCell>
-                </TableRow>
-              ) : filteredProjects.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={canEdit ? 7 : 6} className="py-8 text-center text-muted-foreground">
-                    Không có dự án phù hợp.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredProjects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell>
-                      <button
-                        type="button"
-                        className="text-left"
-                        onClick={() => navigate(`${basePath}/projects/${project.id}/overview`)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                            <FolderKanban className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{project.name}</p>
-                            <p className="text-xs text-muted-foreground">{project.code}</p>
-                          </div>
-                        </div>
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={project.status === "active" ? "success" : project.status === "paused" ? "warning" : "neutral"}>
-                        {projectStatusLabels[project.status] ?? project.status}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell>{projectStageLabels[project.stage] ?? project.stage}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrencyFull(project.budget)}
-                    </TableCell>
-                    <TableCell className="text-right">{project.progress}%</TableCell>
-                    <TableCell>{formatDate(project.startDate)}</TableCell>
-                    {canEdit && (
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditDialog(project)}>
-                            Sua
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => void handleDelete(project)}
-                          >
-                            Xoa
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(nextOpen) => {
-          setDialogOpen(nextOpen);
-          if (!nextOpen) {
-            resetForm();
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{form.id ? "Cập nhật dự án" : "Tạo dự án mới"}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tên dự án</Label>
-              <Input value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Mã dự án</Label>
-                <Input value={form.code} onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Quan ly</Label>
-                <Input value={form.manager} onChange={(event) => setForm((prev) => ({ ...prev, manager: event.target.value }))} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Dia chi</Label>
-              <Input value={form.address} onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Trang thai</Label>
-                <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">active</SelectItem>
-                    <SelectItem value="paused">paused</SelectItem>
-                    <SelectItem value="completed">completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Giai doan</Label>
-                <Select value={form.stage} onValueChange={(value) => setForm((prev) => ({ ...prev, stage: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="foundation">foundation</SelectItem>
-                    <SelectItem value="structure">structure</SelectItem>
-                    <SelectItem value="finishing">finishing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label>Bat dau</Label>
-                <Input type="date" value={form.startDate} onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Ket thuc</Label>
-                <Input type="date" value={form.endDate} onChange={(event) => setForm((prev) => ({ ...prev, endDate: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Du toan</Label>
-                <Input type="number" value={form.budget} onChange={(event) => setForm((prev) => ({ ...prev, budget: event.target.value }))} />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
-              Huy
-            </Button>
-            <Button onClick={() => void handleSave()} disabled={saving}>
-              {saving ? "Dang luu..." : "Luu"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UpgradeModal
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        featureName={upgradeFeature}
+        reason={upgradeReason ?? undefined}
+      />
     </div>
   );
 };

@@ -35,4 +35,6 @@ export interface ProjectInput {
 export interface Repo {
   listProjects: () => Promise<Project[]>;
   createProject: (input: ProjectInput) => Promise<Project>;
+  updateProject: (projectId: string, input: ProjectInput) => Promise<Project>;
+  deleteProject: (projectId: string) => Promise<void>;
 }

@@ -37,4 +37,34 @@ export const demoRepo: Repo = {
       alertCount: 0,
     } satisfies Project;
   },
+  updateProject: async (projectId: string, input: ProjectInput) => {
+    const existing =
+      seedProjects.find((project) => project.id === projectId) ??
+      ({
+        id: projectId,
+        tenantId: tenants[0]?.id || "tenant-demo",
+        actual: 0,
+        committed: 0,
+        forecast: input.budget,
+        progress: 0,
+        alertCount: 0,
+      } as Pick<Project, "id" | "tenantId" | "actual" | "committed" | "forecast" | "progress" | "alertCount">);
+
+    return {
+      ...existing,
+      code: input.code,
+      name: input.name,
+      address: input.address,
+      status: input.status,
+      stage: input.stage,
+      manager: input.manager,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      budget: input.budget,
+      forecast: existing.forecast || input.budget,
+    } satisfies Project;
+  },
+  deleteProject: async () => {
+    return;
+  },
 };

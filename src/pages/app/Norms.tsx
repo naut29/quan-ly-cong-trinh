@@ -1,14 +1,27 @@
-import React from "react";
-import ProjectModuleRecordsPage from "@/components/projects/ProjectModuleRecordsPage";
-import { normsApi } from "@/lib/api/norms";
+import React from 'react';
+import { useProjectIdParam } from '@/lib/projectRoutes';
+import { MaterialNormsTab } from '@/components/materials/MaterialNormsTab';
 
-const Norms: React.FC = () => (
-  <ProjectModuleRecordsPage
-    moduleKey="norms"
-    title="Định mức"
-    description="Định mức dự án trong /app chỉ sử dụng dữ liệu Supabase."
-    client={normsApi}
-  />
-);
+const Norms: React.FC = () => {
+  const projectId = useProjectIdParam();
+
+  return (
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div className="page-header">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="page-title">Định mức Vật tư</h1>
+            <p className="page-subtitle">Quản lý định mức tiêu hao vật tư theo công việc</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <MaterialNormsTab />
+      </div>
+    </div>
+  );
+};
 
 export default Norms;
