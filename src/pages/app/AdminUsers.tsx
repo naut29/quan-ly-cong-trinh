@@ -74,6 +74,35 @@ const getStatusBadgeStatus = (status: string) => {
   return 'neutral';
 };
 
+const normalizeSearchValue = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error && 'message' in error) {
+    return String((error as { message?: unknown }).message ?? '');
+  }
+  if (typeof error === 'string') return error;
+  return '';
+};
+
+const toUserFacingError = (error: unknown, fallback: string) => {
+  const rawMessage = getErrorMessage(error).toLowerCase();
+  if (rawMessage.includes('does not exist')) {
+    return 'Cấu hình dữ liệu chưa đồng bộ. Vui lòng liên hệ quản trị hoặc thử tải lại.';
+  }
+  return fallback;
+};
+
+const logUsersError = (scope: string, error: unknown) => {
+  console.error(`[AdminUsers] ${scope}`, error);
+};
+
 const AdminUsers: React.FC = () => {
   const { companyId, companyName } = useCompany();
 
@@ -127,13 +156,13 @@ const AdminUsers: React.FC = () => {
       setProjects(projectRows);
       setAssignmentMap(nextMap);
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' && err && 'message' in err
-            ? String((err as { message?: unknown }).message ?? 'Failed to load users')
-            : 'Failed to load users';
-      setError(message);
+      logUsersError('loadData', err);
+      setError(
+        toUserFacingError(
+          err,
+          'Không thể tải danh sách người dùng. Vui lòng thử tải lại.',
+        ),
+      );
       setUsers([]);
       setProjects([]);
       setAssignmentMap({});
@@ -147,15 +176,19 @@ const AdminUsers: React.FC = () => {
   }, [companyId]);
 
   const filteredUsers = useMemo(
-    () =>
-      users.filter((member) => {
+    () => {
+      const normalizedQuery = normalizeSearchValue(searchQuery);
+      return users.filter((member) => {
         const displayName = member.full_name ?? member.email ?? member.user_id;
+        const normalizedDisplayName = normalizeSearchValue(displayName);
+        const normalizedEmail = normalizeSearchValue(member.email ?? '');
         const matchesSearch =
-          displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (member.email ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+          normalizedDisplayName.includes(normalizedQuery) ||
+          normalizedEmail.includes(normalizedQuery);
         const matchesRole = roleFilter === 'all' || member.role === roleFilter;
         return matchesSearch && matchesRole;
-      }),
+      });
+    },
     [roleFilter, searchQuery, users],
   );
 
@@ -174,7 +207,7 @@ const AdminUsers: React.FC = () => {
   const handleAddUser = async () => {
     if (!companyId) return;
     if (!addEmail.trim()) {
-      toast({ title: 'Thieu email', description: 'Vui long nhap email.', variant: 'destructive' });
+      toast({ title: 'Thiếu email', description: 'Vui lòng nhập email.', variant: 'destructive' });
       return;
     }
 
@@ -221,13 +254,15 @@ const AdminUsers: React.FC = () => {
       setIsAddDialogOpen(false);
       await loadData();
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' && err && 'message' in err
-            ? String((err as { message?: unknown }).message ?? 'Failed to add member')
-            : 'Failed to add member';
-      toast({ title: 'Thêm người dùng thất bại', description: message, variant: 'destructive' });
+      logUsersError('handleAddUser', err);
+      toast({
+        title: 'Thêm người dùng thất bại',
+        description: toUserFacingError(
+          err,
+          'Không thể thêm người dùng. Vui lòng thử lại.',
+        ),
+        variant: 'destructive',
+      });
     } finally {
       setAdding(false);
     }
@@ -236,7 +271,7 @@ const AdminUsers: React.FC = () => {
   const handleRoleChange = async (member: OrgMemberView, role: string) => {
     if (!companyId || role === member.role) return;
     try {
-      await updateOrgMember(member.id, { role });
+      await updateOrgMember(member.org_id, member.user_id, { role });
       await logActivity({
         orgId: companyId,
         module: 'users',
@@ -246,15 +281,22 @@ const AdminUsers: React.FC = () => {
       });
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không cập nhật được vai trò';
-      toast({ title: 'Cập nhật vai trò thất bại', description: message, variant: 'destructive' });
+      logUsersError('handleRoleChange', err);
+      toast({
+        title: 'Cập nhật vai trò thất bại',
+        description: toUserFacingError(
+          err,
+          'Không thể cập nhật vai trò. Vui lòng thử lại.',
+        ),
+        variant: 'destructive',
+      });
     }
   };
 
   const handleStatusChange = async (member: OrgMemberView, status: string) => {
     if (!companyId || status === member.status) return;
     try {
-      await updateOrgMember(member.id, { status });
+      await updateOrgMember(member.org_id, member.user_id, { status });
       await logActivity({
         orgId: companyId,
         module: 'users',
@@ -264,8 +306,15 @@ const AdminUsers: React.FC = () => {
       });
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không cập nhật được trạng thái';
-      toast({ title: 'Cập nhật trạng thái thất bại', description: message, variant: 'destructive' });
+      logUsersError('handleStatusChange', err);
+      toast({
+        title: 'Cập nhật trạng thái thất bại',
+        description: toUserFacingError(
+          err,
+          'Không thể cập nhật trạng thái. Vui lòng thử lại.',
+        ),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -295,8 +344,15 @@ const AdminUsers: React.FC = () => {
       setEditingAssignments([]);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không lưu được phân công';
-      toast({ title: 'Lưu phân công thất bại', description: message, variant: 'destructive' });
+      logUsersError('saveAssignments', err);
+      toast({
+        title: 'Lưu phân công thất bại',
+        description: toUserFacingError(
+          err,
+          'Không thể lưu phân công. Vui lòng thử lại.',
+        ),
+        variant: 'destructive',
+      });
     } finally {
       setSavingAssignments(false);
     }
@@ -317,7 +373,7 @@ const AdminUsers: React.FC = () => {
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                Them người dùng
+                Thêm người dùng
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
@@ -400,10 +456,10 @@ const AdminUsers: React.FC = () => {
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={adding}>
-                  Huy
+                  Hủy
                 </Button>
                 <Button onClick={handleAddUser} disabled={adding}>
-                  {adding ? 'Đang thêm...' : 'Them người dùng'}
+                  {adding ? 'Đang thêm...' : 'Thêm người dùng'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -422,7 +478,7 @@ const AdminUsers: React.FC = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Tim người dùng..."
+              placeholder="Tìm người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -474,7 +530,7 @@ const AdminUsers: React.FC = () => {
                   const assignedProjects = assignmentMap[member.user_id] ?? new Set<string>();
 
                   return (
-                    <tr key={member.id}>
+                    <tr key={member.member_key}>
                       <td>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
@@ -592,7 +648,7 @@ const AdminUsers: React.FC = () => {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignmentDialogOpen(false)} disabled={savingAssignments}>
-              Huy
+              Hủy
             </Button>
             <Button onClick={saveAssignments} disabled={savingAssignments}>
               {savingAssignments ? 'Đang lưu...' : 'Lưu phân công'}

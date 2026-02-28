@@ -1,12 +1,12 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export interface OrgMemberRow {
-  id: string;
   org_id: string;
   user_id: string;
   role: string;
   status: string;
   created_at: string;
+  member_key: string;
 }
 
 export interface UserProfileRow {
@@ -34,6 +34,15 @@ const assertClient = () => {
   return supabase;
 };
 
+const buildOrgMemberKey = (orgId: string, userId: string) => `${orgId}:${userId}`;
+
+const normalizeOrgMemberRow = (
+  row: Omit<OrgMemberRow, "member_key">,
+): OrgMemberRow => ({
+  ...row,
+  member_key: buildOrgMemberKey(row.org_id, row.user_id),
+});
+
 const getProfilesByUserIds = async (userIds: string[]) => {
   if (userIds.length === 0) return new Map<string, UserProfileRow>();
   const client = assertClient();
@@ -53,13 +62,13 @@ export const listOrgMembers = async (orgId: string) => {
   const client = assertClient();
   const { data, error } = await client
     .from("org_members")
-    .select("id, org_id, user_id, role, status, created_at")
+    .select("org_id, user_id, role, status, created_at")
     .eq("org_id", orgId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
 
-  const members = (data ?? []) as OrgMemberRow[];
+  const members = ((data ?? []) as Array<Omit<OrgMemberRow, "member_key">>).map(normalizeOrgMemberRow);
   const profileMap = await getProfilesByUserIds(members.map((item) => item.user_id));
 
   return members.map((member) => {
@@ -190,7 +199,7 @@ export const addOrgMemberByUserId = async (
       role,
       status,
     })
-    .select("id, org_id, user_id, role, status, created_at")
+    .select("org_id, user_id, role, status, created_at")
     .single();
 
   if (error) {
@@ -200,26 +209,35 @@ export const addOrgMemberByUserId = async (
     throw error;
   }
 
-  return { ok: true, member: data as OrgMemberRow };
+  return {
+    ok: true,
+    member: normalizeOrgMemberRow(data as Omit<OrgMemberRow, "member_key">),
+  };
 };
 
 export const updateOrgMember = async (
-  memberId: string,
+  orgId: string,
+  userId: string,
   updates: Partial<Pick<OrgMemberRow, "role" | "status">>,
 ) => {
   const client = assertClient();
   const { data, error } = await client
     .from("org_members")
     .update(updates)
-    .eq("id", memberId)
-    .select("id, org_id, user_id, role, status, created_at")
+    .eq("org_id", orgId)
+    .eq("user_id", userId)
+    .select("org_id, user_id, role, status, created_at")
     .single();
   if (error) throw error;
-  return data as OrgMemberRow;
+  return normalizeOrgMemberRow(data as Omit<OrgMemberRow, "member_key">);
 };
 
-export const removeOrgMember = async (memberId: string) => {
+export const removeOrgMember = async (orgId: string, userId: string) => {
   const client = assertClient();
-  const { error } = await client.from("org_members").delete().eq("id", memberId);
+  const { error } = await client
+    .from("org_members")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("user_id", userId);
   if (error) throw error;
 };
