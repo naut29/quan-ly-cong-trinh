@@ -76,7 +76,6 @@ import PlatformBilling from "./pages/platform/Billing";
 
 import ProjectGuard from "./components/guards/ProjectGuard";
 import PermissionGuard from "./components/guards/PermissionGuard";
-import { isDemoModeEnabled } from "@/lib/appMode";
 
 import NotFound from "./pages/NotFound";
 
@@ -91,8 +90,6 @@ const AppProtectedLayout = () => (
 );
 
 const App = () => {
-  const demoModeEnabled = isDemoModeEnabled();
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -171,49 +168,45 @@ const App = () => {
                 </RequireOrg>
               }
             />
+            <Route path="/demo" element={<DemoLayout />}>
+              <Route path="login" element={<DemoLogin />} />
+              <Route index element={<Navigate to="/demo/dashboard" replace />} />
+              <Route path="dashboard" element={<DemoDashboard />} />
+              <Route path="projects" element={<DemoProjects />} />
+              <Route path="company" element={<PlatformTenants />} />
+              <Route path="users" element={<PlatformUsers />} />
+              <Route path="billing" element={<PlatformBilling />} />
 
-            {demoModeEnabled ? (
-              <Route path="/demo" element={<DemoLayout />}>
-                <Route path="login" element={<DemoLogin />} />
-                <Route index element={<Navigate to="/demo/dashboard" replace />} />
-                <Route path="dashboard" element={<DemoDashboard />} />
-                <Route path="projects" element={<DemoProjects />} />
-                <Route path="company" element={<PlatformTenants />} />
-                <Route path="users" element={<PlatformUsers />} />
-                <Route path="billing" element={<PlatformBilling />} />
-
-                <Route
-                  path="projects/:id"
-                  element={
-                    <ProjectGuard>
-                      <Outlet />
-                    </ProjectGuard>
-                  }
-                >
-                  <Route index element={<DemoProjectOverview />} />
-                  <Route path="overview" element={<Navigate to=".." replace />} />
-                  <Route path="wbs" element={<DemoWBS />} />
-                  <Route path="boq" element={<DemoBOQ />} />
-                  <Route path="materials" element={<DemoMaterials />} />
-                  <Route path="norms" element={<DemoNorms />} />
-                  <Route path="costs" element={<DemoCosts />} />
-                  <Route path="contracts" element={<DemoContracts />} />
-                  <Route path="payments" element={<DemoPayments />} />
-                  <Route path="approvals" element={<DemoApprovals />} />
-                  <Route path="progress" element={<DemoProgress />} />
-                  <Route path="reports" element={<DemoReports />} />
-                </Route>
-
-                <Route path="admin/company" element={<DemoAdminCompany />} />
-                <Route path="admin/users" element={<DemoAdminUsers />} />
-                <Route path="admin/roles" element={<DemoAdminRoles />} />
-                <Route path="admin/audit-log" element={<DemoAdminAuditLog />} />
-                <Route path="admin/integrations" element={<DemoAdminIntegrations />} />
-                <Route path="admin/billing" element={<DemoAdminBilling />} />
+              <Route
+                path="projects/:id"
+                element={
+                  <ProjectGuard>
+                    <Outlet />
+                  </ProjectGuard>
+                }
+              >
+                <Route index element={<DemoProjectOverview />} />
+                <Route path="overview" element={<Navigate to=".." replace />} />
+                <Route path="wbs" element={<DemoWBS />} />
+                <Route path="boq" element={<DemoBOQ />} />
+                <Route path="materials" element={<DemoMaterials />} />
+                <Route path="norms" element={<DemoNorms />} />
+                <Route path="costs" element={<DemoCosts />} />
+                <Route path="contracts" element={<DemoContracts />} />
+                <Route path="payments" element={<DemoPayments />} />
+                <Route path="approvals" element={<DemoApprovals />} />
+                <Route path="progress" element={<DemoProgress />} />
+                <Route path="reports" element={<DemoReports />} />
               </Route>
-            ) : (
-              <Route path="/demo/*" element={<Navigate to="/app/login" replace />} />
-            )}
+
+              <Route path="admin/company" element={<DemoAdminCompany />} />
+              <Route path="admin/users" element={<DemoAdminUsers />} />
+              <Route path="admin/roles" element={<DemoAdminRoles />} />
+              <Route path="admin/audit-log" element={<DemoAdminAuditLog />} />
+              <Route path="admin/integrations" element={<DemoAdminIntegrations />} />
+              <Route path="admin/billing" element={<DemoAdminBilling />} />
+              <Route path="*" element={<Navigate to="/demo/dashboard" replace />} />
+            </Route>
 
             <Route path="/app" element={<AppEntryGuard />}>
               <Route path="login" element={<AppLogin />} />
