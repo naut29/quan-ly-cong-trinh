@@ -9,6 +9,7 @@ import RequireNoOrg from "@/app/auth/RequireNoOrg";
 import RequireOrg from "@/app/auth/RequireOrg";
 import RequireRole from "@/app/auth/RequireRole";
 import RequireSuperAdmin from "@/app/auth/RequireSuperAdmin";
+import { DataProvider } from "@/lib/data/DataProvider";
 
 import PublicLayout from "@/components/layout/PublicLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
@@ -84,7 +85,9 @@ const queryClient = new QueryClient();
 const AppProtectedLayout = () => (
   <RequireOrg>
     <CompanyProvider>
-      <AppLayoutApp />
+      <DataProvider mode="app">
+        <AppLayoutApp />
+      </DataProvider>
     </CompanyProvider>
   </RequireOrg>
 );
@@ -168,23 +171,23 @@ const App = () => {
                 </RequireOrg>
               }
             />
-            <Route path="/demo" element={<DemoLayout />}>
+            <Route
+              path="/demo"
+              element={
+                <DataProvider mode="demo">
+                  <DemoLayout />
+                </DataProvider>
+              }
+            >
               <Route path="login" element={<DemoLogin />} />
               <Route index element={<Navigate to="/demo/login" replace />} />
               <Route path="dashboard" element={<DemoDashboard />} />
               <Route path="projects" element={<DemoProjects />} />
-              <Route path="company" element={<PlatformTenants />} />
-              <Route path="users" element={<PlatformUsers />} />
-              <Route path="billing" element={<PlatformBilling />} />
+              <Route path="company" element={<Navigate to="/demo/admin/company" replace />} />
+              <Route path="users" element={<Navigate to="/demo/admin/users" replace />} />
+              <Route path="billing" element={<Navigate to="/demo/admin/billing" replace />} />
 
-              <Route
-                path="projects/:id"
-                element={
-                  <ProjectGuard>
-                    <Outlet />
-                  </ProjectGuard>
-                }
-              >
+              <Route path="projects/:id" element={<Outlet />}>
                 <Route index element={<DemoProjectOverview />} />
                 <Route path="overview" element={<Navigate to=".." replace />} />
                 <Route path="wbs" element={<DemoWBS />} />

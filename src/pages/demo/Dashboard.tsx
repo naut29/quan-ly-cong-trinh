@@ -1,186 +1,211 @@
-﻿import React from 'react';
-import { 
-  FolderKanban, 
-  Wallet, 
-  TrendingUp, 
+import React, { useEffect, useState } from "react";
+import {
   AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
-  Package,
   FileText,
-  Users,
-} from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { KPICard } from '@/components/ui/kpi-card';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { formatCurrency, alerts, projectStatusLabels, projectStageLabels } from '@/data/mockData';
-import { cn } from '@/lib/utils';
-import { getAppBasePath } from '@/lib/appMode';
-import { getProjectPath } from '@/lib/projectRoutes';
+  FolderKanban,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { KPICard } from "@/components/ui/kpi-card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDataProvider } from "@/lib/data/DataProvider";
+import type { DashboardData } from "@/lib/data/types";
+import { formatCurrency, projectStatusLabels } from "@/data/mockData";
+import { getAppBasePath } from "@/lib/appMode";
+import { getProjectPath } from "@/lib/projectRoutes";
+import { cn } from "@/lib/utils";
 
-const Dashboard: React.FC = () => {
+const emptyDashboard: DashboardData = {
+  companyName: "",
+  summary: {
+    totalBudget: 0,
+    totalActual: 0,
+    totalCommitted: 0,
+    averageProgress: 0,
+    activeProjects: 0,
+    pausedProjects: 0,
+    totalAlerts: 0,
+  },
+  projects: [],
+  alerts: [],
+};
+
+const DemoDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const dataProvider = useDataProvider();
+  const [data, setData] = useState<DashboardData>(emptyDashboard);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    dataProvider
+      .getDashboardData()
+      .then((next) => {
+        if (active) {
+          setData(next);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [dataProvider]);
+
   const basePath = getAppBasePath(location.pathname);
-  const { user, getUserProjects, getCurrentTenant } = useAuth();
-  const projects = getUserProjects();
-  const tenant = getCurrentTenant();
 
-  // Calculate summary KPIs
-  const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0);
-  const totalActual = projects.reduce((sum, p) => sum + p.actual, 0);
-  const totalCommitted = projects.reduce((sum, p) => sum + p.committed, 0);
-  const avgProgress = projects.length > 0 
-    ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)
-    : 0;
-  const totalAlerts = projects.reduce((sum, p) => sum + p.alertCount, 0);
-
-  const activeProjects = projects.filter(p => p.status === 'active').length;
-  const pausedProjects = projects.filter(p => p.status === 'paused').length;
-
-  // Get project alerts
-  const projectAlerts = alerts.filter(a => 
-    projects.some(p => p.id === a.projectId)
-  ).slice(0, 5);
+  if (loading) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-muted-foreground">Dang tai dashboard demo...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
+    <div className="space-y-6 p-6 animate-fade-in">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Xin chào, {user?.name?.split(' ').slice(-1)[0]}!
+            Xin chao, {user?.name?.split(" ").slice(-1)[0] ?? "Demo"}!
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {tenant?.name || 'Nền tảng quản lý công trình'}
-          </p>
+          <p className="mt-1 text-muted-foreground">{data.companyName}</p>
         </div>
         <Button onClick={() => navigate(`${basePath}/projects`)} className="gap-2">
           <FolderKanban className="h-4 w-4" />
-          Xem tất cả dự án
+          Xem du an demo
         </Button>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Tổng dự toán"
-          value={formatCurrency(totalBudget)}
-          subtitle={`${projects.length} dự án`}
+          title="Tong du toan"
+          value={formatCurrency(data.summary.totalBudget)}
+          subtitle={`${data.projects.length} du an mau`}
           icon={Wallet}
           variant="primary"
         />
         <KPICard
-          title="Thực chi"
-          value={formatCurrency(totalActual)}
-          change={Math.round((totalActual / totalBudget) * 100 - 100)}
-          changeLabel="so với dự toán"
+          title="Thuc chi"
+          value={formatCurrency(data.summary.totalActual)}
+          subtitle="So lieu mock co dinh"
           icon={TrendingUp}
         />
         <KPICard
-          title="Cam kết"
-          value={formatCurrency(totalCommitted)}
-          subtitle="Giá trị hợp đồng"
+          title="Cam ket"
+          value={formatCurrency(data.summary.totalCommitted)}
+          subtitle="Gia tri hop dong"
           icon={FileText}
         />
         <KPICard
-          title="Tiến độ trung bình"
-          value={`${avgProgress}%`}
-          change={5}
-          changeLabel="so với tuần trước"
+          title="Tien do trung binh"
+          value={`${data.summary.averageProgress}%`}
+          subtitle="Khong doi trong demo"
           icon={TrendingUp}
-          variant={avgProgress >= 50 ? 'success' : 'default'}
+          variant="success"
         />
       </div>
 
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="kpi-card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
             <FolderKanban className="h-6 w-6 text-success" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-display">{activeProjects}</p>
-            <p className="text-sm text-muted-foreground">Dự án đang thi công</p>
+            <p className="text-2xl font-bold font-display">{data.summary.activeProjects}</p>
+            <p className="text-sm text-muted-foreground">Dang thi cong</p>
           </div>
         </div>
         <div className="kpi-card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
             <AlertTriangle className="h-6 w-6 text-warning" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-display">{pausedProjects}</p>
-            <p className="text-sm text-muted-foreground">Dự án tạm dừng</p>
+            <p className="text-2xl font-bold font-display">{data.summary.pausedProjects}</p>
+            <p className="text-sm text-muted-foreground">Tam dung</p>
           </div>
         </div>
         <div className="kpi-card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10">
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-display">{totalAlerts}</p>
-            <p className="text-sm text-muted-foreground">Cảnh báo cần xử lý</p>
+            <p className="text-2xl font-bold font-display">{data.summary.totalAlerts}</p>
+            <p className="text-sm text-muted-foreground">Canh bao mau</p>
           </div>
         </div>
       </div>
 
-      {/* Projects Grid & Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Projects List */}
-        <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">Dự án của bạn</h2>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="overflow-hidden rounded-xl border border-border bg-card lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-border p-4">
+            <h2 className="font-semibold text-foreground">4 du an demo co dinh</h2>
             <Button variant="ghost" size="sm" onClick={() => navigate(`${basePath}/projects`)}>
-              Xem tất cả
+              Xem tat ca
             </Button>
           </div>
           <div className="divide-y divide-border">
-            {projects.slice(0, 5).map((project) => (
+            {data.projects.map((project) => (
               <button
                 key={project.id}
                 onClick={() => navigate(getProjectPath(location.pathname, project.id))}
-                className="w-full p-4 hover:bg-muted/50 transition-colors text-left flex items-center gap-4"
+                className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-muted/50"
               >
-                <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                  project.status === 'active' && "bg-success/10",
-                  project.status === 'paused' && "bg-warning/10",
-                  project.status === 'completed' && "bg-muted",
-                )}>
-                  <FolderKanban className={cn(
-                    "h-5 w-5",
-                    project.status === 'active' && "text-success",
-                    project.status === 'paused' && "text-warning",
-                    project.status === 'completed' && "text-muted-foreground",
-                  )} />
+                <div
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                    project.status === "active" && "bg-success/10",
+                    project.status === "paused" && "bg-warning/10",
+                    project.status === "completed" && "bg-muted",
+                  )}
+                >
+                  <FolderKanban
+                    className={cn(
+                      "h-5 w-5",
+                      project.status === "active" && "text-success",
+                      project.status === "paused" && "text-warning",
+                      project.status === "completed" && "text-muted-foreground",
+                    )}
+                  />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium truncate">{project.name}</p>
-                    <StatusBadge 
-                      status={project.status === 'active' ? 'active' : project.status === 'paused' ? 'warning' : 'neutral'}
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <p className="truncate font-medium">{project.name}</p>
+                    <StatusBadge
+                      status={
+                        project.status === "active"
+                          ? "active"
+                          : project.status === "paused"
+                            ? "warning"
+                            : "neutral"
+                      }
                     >
                       {projectStatusLabels[project.status]}
                     </StatusBadge>
                   </div>
                   <p className="text-sm text-muted-foreground">{project.code}</p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="shrink-0 text-right">
                   <p className="font-medium">{formatCurrency(project.budget)}</p>
-                  <div className="flex items-center gap-1 justify-end mt-1">
-                    <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${project.progress}%` }}
-                      />
+                  <div className="mt-1 flex items-center justify-end gap-1">
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${project.progress}%` }} />
                     </div>
                     <span className="text-xs text-muted-foreground">{project.progress}%</span>
                   </div>
                 </div>
                 {project.alertCount > 0 && (
-                  <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/10">
                     <span className="text-xs font-medium text-destructive">{project.alertCount}</span>
                   </div>
                 )}
@@ -189,45 +214,41 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Alerts Panel */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-foreground">Cảnh báo gần đây</h2>
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="border-b border-border p-4">
+            <h2 className="font-semibold text-foreground">Canh bao gan day</h2>
           </div>
           <div className="divide-y divide-border">
-            {projectAlerts.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Không có cảnh báo nào</p>
-              </div>
-            ) : (
-              projectAlerts.map((alert) => (
-                <div key={alert.id} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                      alert.type === 'error' && "bg-destructive/10",
-                      alert.type === 'warning' && "bg-warning/10",
-                      alert.type === 'info' && "bg-info/10",
-                    )}>
-                      <AlertTriangle className={cn(
+            {data.alerts.map((alert) => (
+              <div key={alert.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                      alert.type === "error" && "bg-destructive/10",
+                      alert.type === "warning" && "bg-warning/10",
+                      alert.type === "info" && "bg-info/10",
+                    )}
+                  >
+                    <AlertTriangle
+                      className={cn(
                         "h-4 w-4",
-                        alert.type === 'error' && "text-destructive",
-                        alert.type === 'warning' && "text-warning",
-                        alert.type === 'info' && "text-info",
-                      )} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{alert.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                        {alert.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">{alert.createdAt}</p>
-                    </div>
+                        alert.type === "error" && "text-destructive",
+                        alert.type === "warning" && "text-warning",
+                        alert.type === "info" && "text-info",
+                      )}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{alert.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                      {alert.description}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{alert.createdAt}</p>
                   </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -235,4 +256,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default DemoDashboard;

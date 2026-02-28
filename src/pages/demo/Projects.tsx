@@ -1,113 +1,96 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FolderKanban, 
-  Search, 
-  Grid3X3, 
-  List, 
-  Plus,
-  MapPin,
-  Calendar,
+import React, { useEffect, useMemo, useState } from "react";
+import {
   AlertTriangle,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Eye,
-  User,
-  BarChart3,
-  ChevronDown,
-  ChevronUp,
-  ArrowUpDown,
   Download,
+  Eye,
   FileSpreadsheet,
   FileText,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { StatusBadge } from '@/components/ui/status-badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  FolderKanban,
+  Grid3X3,
+  List,
+  MoreVertical,
+  Plus,
+  Search,
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  formatCurrency, 
-  projectStatusLabels, 
-  projectStageLabels,
-} from '@/data/mockData';
-import { demoRepo } from '@/data/demoRepo';
-import { Project } from '@/data/repo';
-import { cn } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
-import { ProjectFormDialog, ProjectEntry } from '@/components/projects/ProjectFormDialog';
-import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
-import { ProjectsOverviewCharts } from '@/components/projects/ProjectsOverviewCharts';
-import { exportToExcel, exportToPDF, formatCurrencyForExport } from '@/lib/export-utils';
-import { getProjectPath } from '@/lib/projectRoutes';
+} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDataProvider } from "@/lib/data/DataProvider";
+import type { DataProject } from "@/lib/data/types";
+import { formatCurrency, projectStageLabels, projectStatusLabels } from "@/data/mockData";
+import { getProjectPath } from "@/lib/projectRoutes";
+import { cn } from "@/lib/utils";
+import { exportToExcel, exportToPDF, formatCurrencyForExport } from "@/lib/export-utils";
+import { ProjectFormDialog, type ProjectEntry } from "@/components/projects/ProjectFormDialog";
+import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
+import { ProjectsOverviewCharts } from "@/components/projects/ProjectsOverviewCharts";
+import { toast } from "@/hooks/use-toast";
+import { showDemoNotSavedToast } from "@/components/demo/DemoPlaceholderPage";
 
-const Projects: React.FC = () => {
+const DemoProjects: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasPermission } = useAuth();
-  const repo = demoRepo;
+  const dataProvider = useDataProvider();
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [stageFilter, setStageFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [showCharts, setShowCharts] = useState(true);
-  
-  // Dialog states
-  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
-  const [projectDialogMode, setProjectDialogMode] = useState<'create' | 'edit'>('create');
+  const [projects, setProjects] = useState<DataProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [selectedProject, setSelectedProject] = useState<ProjectEntry | undefined>(undefined);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-
-  const canEdit = hasPermission('projects', 'edit');
+  const [projectToDelete, setProjectToDelete] = useState<DataProject | null>(null);
 
   useEffect(() => {
-    let isActive = true;
-    setIsLoading(true);
-    repo.listProjects()
-      .then((data) => {
-        if (isActive) setProjects(data);
-      })
-      .catch(() => {
-        if (isActive) setProjects([]);
+    let active = true;
+
+    dataProvider
+      .listProjects()
+      .then((items) => {
+        if (active) {
+          setProjects(items);
+        }
       })
       .finally(() => {
-        if (isActive) setIsLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
-    return () => {
-      isActive = false;
-    };
-  }, [repo]);
 
-  const handleCreateProject = () => {
-    setProjectDialogMode('create');
+    return () => {
+      active = false;
+    };
+  }, [dataProvider]);
+
+  const filteredProjects = useMemo(
+    () =>
+      projects.filter((project) => {
+        const matchesSearch =
+          project.name.toLowerCase().includes(search.toLowerCase()) ||
+          project.code.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      }),
+    [projects, search, statusFilter],
+  );
+
+  const openCreate = () => {
+    setDialogMode("create");
     setSelectedProject(undefined);
-    setProjectDialogOpen(true);
+    setDialogOpen(true);
   };
 
-  const handleEditProject = (project: Project, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setProjectDialogMode('edit');
+  const openEdit = (project: DataProject) => {
+    setDialogMode("edit");
     setSelectedProject({
       id: project.id,
       code: project.code,
@@ -120,491 +103,271 @@ const Projects: React.FC = () => {
       endDate: project.endDate,
       budget: project.budget,
     });
-    setProjectDialogOpen(true);
+    setDialogOpen(true);
   };
 
-  const handleDeleteProject = (project: Project, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setProjectToDelete(project);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleProjectSubmit = async (data: any) => {
-    if (projectDialogMode === 'create') {
-      const created = await repo.createProject({
-        code: data.code,
-        name: data.name,
-        address: data.address,
-        status: data.status,
-        stage: data.stage,
-        manager: data.manager,
-        startDate: data.startDate.toISOString().split('T')[0],
-        endDate: data.endDate.toISOString().split('T')[0],
-        budget: data.budget,
-      });
-      setProjects((prev) => [created, ...prev]);
-      toast({
-        title: 'Tạo dự án thành công',
-        description: `Dự án "${data.name}" đã được tạo.`,
-      });
-    } else {
-      toast({
-        title: 'Cập nhật thành công',
-        description: `Dự án "${data.name}" đã được cập nhật.`,
-      });
-    }
-  };
-
-  const handleConfirmDelete = () => {
-    if (projectToDelete) {
-      toast({
-        title: 'Đã xóa dự án',
-        description: `Dự án "${projectToDelete.name}" đã được xóa.`,
-      });
-      setDeleteDialogOpen(false);
-      setProjectToDelete(null);
-    }
-  };
-
-  // Filter and sort projects
-  const filteredProjects = projects
-    .filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           project.code.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-      const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
-      return matchesSearch && matchesStatus && matchesStage;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'budget':
-          comparison = a.budget - b.budget;
-          break;
-        case 'progress':
-          comparison = a.progress - b.progress;
-          break;
-        case 'startDate':
-          comparison = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-          break;
-        case 'actual':
-          comparison = a.actual - b.actual;
-          break;
-        case 'name':
-        default:
-          comparison = a.name.localeCompare(b.name, 'vi');
-          break;
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-  };
-
-  // Export functions
   const handleExportExcel = () => {
-    const exportData = filteredProjects.map(p => ({
-      code: p.code,
-      name: p.name,
-      address: p.address,
-      status: projectStatusLabels[p.status],
-      stage: projectStageLabels[p.stage],
-      manager: p.manager,
-      startDate: new Date(p.startDate).toLocaleDateString('vi-VN'),
-      endDate: new Date(p.endDate).toLocaleDateString('vi-VN'),
-      budget: formatCurrencyForExport(p.budget),
-      actual: formatCurrencyForExport(p.actual),
-      committed: formatCurrencyForExport(p.committed),
-      progress: `${p.progress}%`,
-      alertCount: p.alertCount,
-    }));
-
     exportToExcel({
-      title: 'Danh sách dự án',
-      fileName: `du-an-${new Date().toISOString().split('T')[0]}`,
+      title: "Danh sach du an demo",
+      fileName: "demo-projects",
       columns: [
-        { header: 'Mã dự án', key: 'code', width: 15 },
-        { header: 'Tên dự án', key: 'name', width: 35 },
-        { header: 'Địa chỉ', key: 'address', width: 30 },
-        { header: 'Trạng thái', key: 'status', width: 15 },
-        { header: 'Giai đoạn', key: 'stage', width: 15 },
-        { header: 'Quản lý', key: 'manager', width: 20 },
-        { header: 'Ngày bắt đầu', key: 'startDate', width: 15 },
-        { header: 'Ngày kết thúc', key: 'endDate', width: 15 },
-        { header: 'Dự toán', key: 'budget', width: 20 },
-        { header: 'Thực chi', key: 'actual', width: 20 },
-        { header: 'Cam kết', key: 'committed', width: 20 },
-        { header: 'Tiến độ', key: 'progress', width: 10 },
-        { header: 'Cảnh báo', key: 'alertCount', width: 10 },
+        { header: "Ma", key: "code", width: 18 },
+        { header: "Ten", key: "name", width: 36 },
+        { header: "Trang thai", key: "status", width: 16 },
+        { header: "Du toan", key: "budget", width: 20 },
+        { header: "Tien do", key: "progress", width: 12 },
       ],
-      data: exportData,
+      data: filteredProjects.map((project) => ({
+        code: project.code,
+        name: project.name,
+        status: projectStatusLabels[project.status],
+        budget: formatCurrencyForExport(project.budget),
+        progress: `${project.progress}%`,
+      })),
     });
 
     toast({
-      title: 'Xuất Excel thành công',
-      description: `Đã xuất ${filteredProjects.length} dự án ra file Excel.`,
+      title: "Xuat file demo",
+      description: "File duoc tao tu mock fixtures va khong lam thay doi du lieu.",
     });
   };
 
-  const handleExportPDF = () => {
-    const exportData = filteredProjects.map(p => ({
-      code: p.code,
-      name: p.name,
-      status: projectStatusLabels[p.status],
-      stage: projectStageLabels[p.stage],
-      manager: p.manager,
-      budget: formatCurrencyForExport(p.budget),
-      actual: formatCurrencyForExport(p.actual),
-      progress: `${p.progress}%`,
-    }));
-
+  const handleExportPdf = () => {
     exportToPDF({
-      title: 'Danh sách dự án',
-      subtitle: `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} - Tổng ${filteredProjects.length} dự án`,
-      fileName: `du-an-${new Date().toISOString().split('T')[0]}`,
+      title: "Danh sach du an demo",
+      subtitle: "Mock fixtures for /demo only",
+      fileName: "demo-projects",
       columns: [
-        { header: 'Mã DA', key: 'code', width: 12 },
-        { header: 'Tên dự án', key: 'name', width: 30 },
-        { header: 'Trạng thái', key: 'status', width: 15 },
-        { header: 'Giai đoạn', key: 'stage', width: 12 },
-        { header: 'Quản lý', key: 'manager', width: 18 },
-        { header: 'Dự toán', key: 'budget', width: 18 },
-        { header: 'Thực chi', key: 'actual', width: 18 },
-        { header: 'Tiến độ', key: 'progress', width: 10 },
+        { header: "Ma", key: "code", width: 16 },
+        { header: "Ten", key: "name", width: 40 },
+        { header: "Trang thai", key: "status", width: 18 },
+        { header: "Du toan", key: "budget", width: 18 },
       ],
-      data: exportData,
+      data: filteredProjects.map((project) => ({
+        code: project.code,
+        name: project.name,
+        status: projectStatusLabels[project.status],
+        budget: formatCurrencyForExport(project.budget),
+      })),
     });
 
     toast({
-      title: 'Xuất PDF thành công',
-      description: `Đã xuất ${filteredProjects.length} dự án ra file PDF.`,
+      title: "Xuat file demo",
+      description: "PDF duoc tao tu mock fixtures va khong lam thay doi du lieu.",
     });
   };
 
-  const getStatusBadgeType = (status: Project['status']) => {
-    switch (status) {
-      case 'active': return 'active';
-      case 'paused': return 'warning';
-      case 'completed': return 'neutral';
-      default: return 'neutral';
-    }
+  const handleSubmitProject = async (data: any) => {
+    showDemoNotSavedToast();
+    toast({
+      title: dialogMode === "create" ? "Demo create only" : "Demo edit only",
+      description: `Du lieu "${data.name}" chi dung de minh hoa va khong duoc luu.`,
+    });
   };
 
-  const getStageBadgeType = (stage: Project['stage']) => {
-    switch (stage) {
-      case 'foundation': return 'info';
-      case 'structure': return 'warning';
-      case 'finishing': return 'success';
-      default: return 'neutral';
-    }
+  const handleDeleteProject = () => {
+    if (!projectToDelete) return;
+
+    showDemoNotSavedToast();
+    toast({
+      title: "Demo delete only",
+      description: `Khong xoa that du an "${projectToDelete.name}".`,
+    });
+    setProjectToDelete(null);
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="p-6 animate-fade-in">
-        <p className="text-muted-foreground">Đang tải dự án...</p>
+      <div className="p-6">
+        <p className="text-sm text-muted-foreground">Dang tai du an demo...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Dự án</h1>
-          <p className="text-muted-foreground mt-1">
-            Quản lý {projects.length} dự án của bạn
-          </p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Du an</h1>
+          <p className="mt-1 text-muted-foreground">{projects.length} du an mock co dinh cho /demo</p>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Download className="h-4 w-4" />
-                Xuất file
-                <ChevronDown className="h-4 w-4" />
+                Xuat file
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleExportExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Xuất Excel (.xlsx)
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Excel
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportPDF}>
-                <FileText className="h-4 w-4 mr-2" />
-                Xuất PDF (.pdf)
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <FileText className="mr-2 h-4 w-4" />
+                PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button 
-            variant="outline" 
-            className="gap-2" 
-            onClick={() => setShowCharts(!showCharts)}
-          >
-            <BarChart3 className="h-4 w-4" />
-            Thống kê
-            {showCharts ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tao demo item
           </Button>
-          {canEdit && (
-            <Button className="gap-2" onClick={handleCreateProject}>
-              <Plus className="h-4 w-4" />
-              Tạo dự án mới
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Overview Charts */}
-      {showCharts && projects.length > 0 && (
-        <ProjectsOverviewCharts projects={projects} />
+      {projects.length > 0 && (
+        <ProjectsOverviewCharts
+          projects={projects.map((project) => ({ ...project, tenantId: "tenant-demo" }))}
+        />
       )}
 
-      {/* Filter Bar */}
       <div className="filter-bar rounded-xl bg-card">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm dự án..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tim theo ten hoac ma du an..."
           />
         </div>
-        
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Trạng thái" />
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Trang thai" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="active">Đang thi công</SelectItem>
-            <SelectItem value="paused">Tạm dừng</SelectItem>
-            <SelectItem value="completed">Hoàn thành</SelectItem>
+            <SelectItem value="all">Tat ca</SelectItem>
+            <SelectItem value="active">Dang thi cong</SelectItem>
+            <SelectItem value="paused">Tam dung</SelectItem>
+            <SelectItem value="completed">Hoan thanh</SelectItem>
           </SelectContent>
         </Select>
-
-        <Select value={stageFilter} onValueChange={setStageFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Giai đoạn" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả giai đoạn</SelectItem>
-            <SelectItem value="foundation">Móng</SelectItem>
-            <SelectItem value="structure">Thân</SelectItem>
-            <SelectItem value="finishing">Hoàn thiện</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Sort Controls */}
-        <div className="flex items-center gap-1">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Sắp xếp" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Theo tên</SelectItem>
-              <SelectItem value="budget">Theo ngân sách</SelectItem>
-              <SelectItem value="actual">Theo thực chi</SelectItem>
-              <SelectItem value="progress">Theo tiến độ</SelectItem>
-              <SelectItem value="startDate">Theo ngày tạo</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="ml-auto flex items-center gap-1 rounded-lg border border-border p-1">
           <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
-            onClick={toggleSortOrder}
-            title={sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'}
-          >
-            <ArrowUpDown className={cn(
-              "h-4 w-4 transition-transform",
-              sortOrder === 'desc' && "rotate-180"
-            )} />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1 ml-auto border border-border rounded-lg p-1">
-          <Button
-            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setViewMode('grid')}
+            onClick={() => setViewMode("grid")}
           >
             <Grid3X3 className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            variant={viewMode === "list" ? "secondary" : "ghost"}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setViewMode('list')}
+            onClick={() => setViewMode("list")}
           >
             <List className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Projects Grid/List */}
       {filteredProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FolderKanban className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-semibold text-foreground">Không tìm thấy dự án</h3>
-          <p className="text-muted-foreground mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
+          <FolderKanban className="mb-4 h-12 w-12 text-muted-foreground/50" />
+          <h3 className="text-lg font-semibold">Khong tim thay du an</h3>
+          <p className="text-muted-foreground">Thu doi bo loc hoac tu khoa tim kiem.</p>
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProjects.map((project) => (
             <div
               key={project.id}
-              className="kpi-card cursor-pointer group"
+              className="kpi-card cursor-pointer"
               onClick={() => navigate(getProjectPath(location.pathname, project.id))}
             >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <StatusBadge status={getStatusBadgeType(project.status)}>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <StatusBadge
+                      status={
+                        project.status === "active"
+                          ? "active"
+                          : project.status === "paused"
+                            ? "warning"
+                            : "neutral"
+                      }
+                    >
                       {projectStatusLabels[project.status]}
                     </StatusBadge>
-                    <StatusBadge status={getStageBadgeType(project.stage)} dot={false}>
+                    <StatusBadge status="neutral" dot={false}>
                       {projectStageLabels[project.stage]}
                     </StatusBadge>
                   </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                    {project.name}
-                  </h3>
+                  <h3 className="font-semibold">{project.name}</h3>
                   <p className="text-sm text-muted-foreground">{project.code}</p>
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(getProjectPath(location.pathname, project.id));
-                    }}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Xem chi tiết
+                    <DropdownMenuItem
+                      onClick={() => navigate(getProjectPath(location.pathname, project.id))}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Xem chi tiet
                     </DropdownMenuItem>
-                    {canEdit && (
-                      <>
-                        <DropdownMenuItem onClick={(e) => handleEditProject(project, e)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Chỉnh sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={(e) => handleDeleteProject(project, e)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Xóa dự án
-                        </DropdownMenuItem>
-                      </>
-                    )}
+                    <DropdownMenuItem onClick={() => openEdit(project)}>Chinh sua demo</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setProjectToDelete(project)}>Xoa demo</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              {/* Location & Date */}
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  <span className="truncate">{project.address}</span>
-                </div>
-              </div>
-
-              {/* Manager & Timeline */}
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                <div className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" />
-                  <span className="truncate">{project.manager}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>{new Date(project.startDate).toLocaleDateString('vi-VN')}</span>
-                </div>
-              </div>
-
-              {/* Budget Info */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Dự toán</span>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Du toan</span>
                   <span className="font-medium">{formatCurrency(project.budget)}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Thực chi</span>
-                  <span className={cn(
-                    "font-medium",
-                    project.actual > project.budget && "text-destructive"
-                  )}>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Thuc chi</span>
+                  <span className={cn("font-medium", project.actual > project.budget && "text-destructive")}>
                     {formatCurrency(project.actual)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Chênh lệch</span>
-                  <span className={cn(
-                    "font-medium",
-                    project.actual > project.budget ? "text-destructive" : "text-success"
-                  )}>
-                    {project.actual > project.budget ? '+' : ''}{formatCurrency(project.actual - project.budget)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Progress */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Tiến độ</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tien do</span>
                   <span className="font-medium">{project.progress}%</span>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${project.progress}%` }}
-                  />
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${project.progress}%` }} />
                 </div>
               </div>
 
-              {/* Footer */}
               {project.alertCount > 0 && (
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm text-destructive font-medium">
-                    {project.alertCount} cảnh báo
-                  </span>
+                <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm font-medium">{project.alertCount} canh bao</span>
                 </div>
               )}
             </div>
           ))}
         </div>
       ) : (
-        /* List View */
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Dự án</th>
-                <th>Trạng thái</th>
-                <th>Giai đoạn</th>
-                <th className="text-right">Dự toán</th>
-                <th className="text-right">Thực chi</th>
-                <th>Tiến độ</th>
-                <th>Cảnh báo</th>
+                <th>Du an</th>
+                <th>Trang thai</th>
+                <th>Du toan</th>
+                <th>Tien do</th>
+                <th>Canh bao</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {filteredProjects.map((project) => (
-                <tr 
-                  key={project.id} 
-                  className="cursor-pointer"
-                  onClick={() => navigate(getProjectPath(location.pathname, project.id))}
-                >
+                <tr key={project.id}>
                   <td>
                     <div>
                       <p className="font-medium">{project.name}</p>
@@ -612,73 +375,25 @@ const Projects: React.FC = () => {
                     </div>
                   </td>
                   <td>
-                    <StatusBadge status={getStatusBadgeType(project.status)}>
+                    <StatusBadge
+                      status={
+                        project.status === "active"
+                          ? "active"
+                          : project.status === "paused"
+                            ? "warning"
+                            : "neutral"
+                      }
+                    >
                       {projectStatusLabels[project.status]}
                     </StatusBadge>
                   </td>
+                  <td className="font-medium">{formatCurrency(project.budget)}</td>
+                  <td>{project.progress}%</td>
+                  <td>{project.alertCount}</td>
                   <td>
-                    <StatusBadge status={getStageBadgeType(project.stage)} dot={false}>
-                      {projectStageLabels[project.stage]}
-                    </StatusBadge>
-                  </td>
-                  <td className="text-right font-medium">{formatCurrency(project.budget)}</td>
-                  <td className={cn(
-                    "text-right font-medium",
-                    project.actual > project.budget && "text-destructive"
-                  )}>
-                    {formatCurrency(project.actual)}
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${project.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-sm">{project.progress}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    {project.alertCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-destructive">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        {project.alertCount}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(getProjectPath(location.pathname, project.id))}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Xem chi tiết
-                        </DropdownMenuItem>
-                        {canEdit && (
-                          <>
-                            <DropdownMenuItem onClick={(e) => handleEditProject(project, e as unknown as React.MouseEvent)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Chỉnh sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={(e) => handleDeleteProject(project, e as unknown as React.MouseEvent)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Xóa dự án
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button variant="ghost" size="sm" onClick={() => navigate(getProjectPath(location.pathname, project.id))}>
+                      Xem
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -687,27 +402,29 @@ const Projects: React.FC = () => {
         </div>
       )}
 
-      {/* Project Form Dialog */}
       <ProjectFormDialog
-        open={projectDialogOpen}
-        onOpenChange={setProjectDialogOpen}
-        mode={projectDialogMode}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        mode={dialogMode}
         initialData={selectedProject}
-        onSubmit={handleProjectSubmit}
+        onSubmit={handleSubmitProject}
       />
 
-      {/* Delete Confirmation Dialog */}
       {projectToDelete && (
         <DeleteProjectDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
+          open={Boolean(projectToDelete)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setProjectToDelete(null);
+            }
+          }}
           projectName={projectToDelete.name}
           projectCode={projectToDelete.code}
-          onConfirm={handleConfirmDelete}
+          onConfirm={handleDeleteProject}
         />
       )}
     </div>
   );
 };
 
-export default Projects;
+export default DemoProjects;

@@ -1,8 +1,8 @@
 import { users } from "@/data/mockData";
 import { DEMO_STORAGE_PREFIX } from "@/lib/demoStorage";
 
-export const DEMO_USERS = users;
-export const DEFAULT_DEMO_USER_ID = "user-super";
+export const DEMO_USERS = users.filter((user) => user.tenantId === "tenant-a");
+export const DEFAULT_DEMO_USER_ID = "user-a1";
 
 const LEGACY_DEMO_SESSION_KEY = "demo_auth_session";
 export const DEMO_SESSION_KEY = `${DEMO_STORAGE_PREFIX}session`;

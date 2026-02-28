@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 
 import { DEFAULT_DEMO_USER_ID } from "@/auth/demoAuth";
 import { useAuth } from "@/contexts/AuthContext";
+import { demoCompanyData } from "@/lib/data/demo/fixtures/company";
 
 import AppSidebar from "./AppSidebar";
 import AppTopbar from "./AppTopbar";
@@ -39,7 +40,7 @@ const DemoLayout: React.FC = () => {
         <main className="custom-scrollbar flex-1 overflow-auto">
           <div className="px-6 pt-4">
             <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-              Demo mode - data is not saved.
+              Demo mode - data is not saved. Company: {demoCompanyData.name}
             </div>
           </div>
           <Outlet />
