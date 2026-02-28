@@ -170,7 +170,7 @@ const App = () => {
             />
             <Route path="/demo" element={<DemoLayout />}>
               <Route path="login" element={<DemoLogin />} />
-              <Route index element={<Navigate to="/demo/dashboard" replace />} />
+              <Route index element={<Navigate to="/demo/login" replace />} />
               <Route path="dashboard" element={<DemoDashboard />} />
               <Route path="projects" element={<DemoProjects />} />
               <Route path="company" element={<PlatformTenants />} />

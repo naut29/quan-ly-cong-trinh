@@ -129,6 +129,10 @@ const DemoLogin: React.FC = () => {
             <p className="text-muted-foreground mt-1">Chọn tài khoản demo để trải nghiệm.</p>
           </div>
 
+          <div className="mb-6 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
+            Demo mode - data is not saved.
+          </div>
+
           {/* Quick Login (Demo) */}
           <div className="mb-6 p-4 rounded-xl bg-muted/50 border border-border">
             <p className="text-sm font-medium text-foreground mb-3">Demo: Đăng nhập nhanh</p>

@@ -207,7 +207,7 @@ const AppLogin: React.FC = () => {
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
             <div className="flex justify-end">
-              <Link to="/demo" className={auxiliaryLinkClassName}>
+              <Link to="/demo/login" className={auxiliaryLinkClassName}>
                 Dùng thử Demo
               </Link>
             </div>
