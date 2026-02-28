@@ -52,24 +52,25 @@ import AdminBilling from "./pages/app/AdminBilling";
 import InviteAccept from "./pages/app/InviteAccept";
 
 import DemoDashboard from "./pages/demo/Dashboard";
-import DemoProjects from "./pages/demo/Projects";
-import DemoProjectOverview from "./pages/demo/ProjectOverview";
-import DemoMaterials from "./pages/demo/Materials";
-import DemoNorms from "./pages/demo/Norms";
-import DemoWBS from "./pages/demo/WBS";
-import DemoBOQ from "./pages/demo/BOQ";
-import DemoCosts from "./pages/demo/Costs";
-import DemoProgress from "./pages/demo/Progress";
-import DemoPayments from "./pages/demo/Payments";
-import DemoContracts from "./pages/demo/Contracts";
-import DemoApprovals from "./pages/demo/Approvals";
-import DemoReports from "./pages/demo/Reports";
 import DemoAdminUsers from "./pages/demo/AdminUsers";
 import DemoAdminRoles from "./pages/demo/AdminRoles";
 import DemoAdminCompany from "./pages/demo/AdminCompany";
 import DemoAdminAuditLog from "./pages/demo/AdminAuditLog";
 import DemoAdminBilling from "./pages/demo/AdminBilling";
 import DemoAdminIntegrations from "./pages/demo/AdminIntegrations";
+import DemoLegacyProjectLayout from "./demo-legacy/projects/DemoLegacyProjectLayout";
+import DemoLegacyProjects from "./demo-legacy/projects/Projects";
+import DemoLegacyProjectOverview from "./demo-legacy/projects/ProjectOverview";
+import DemoLegacyMaterials from "./demo-legacy/projects/Materials";
+import DemoLegacyNorms from "./demo-legacy/projects/Norms";
+import DemoLegacyWBS from "./demo-legacy/projects/WBS";
+import DemoLegacyBOQ from "./demo-legacy/projects/BOQ";
+import DemoLegacyCosts from "./demo-legacy/projects/Costs";
+import DemoLegacyProgress from "./demo-legacy/projects/Progress";
+import DemoLegacyPayments from "./demo-legacy/projects/Payments";
+import DemoLegacyContracts from "./demo-legacy/projects/Contracts";
+import DemoLegacyApprovals from "./demo-legacy/projects/Approvals";
+import DemoLegacyReports from "./demo-legacy/projects/Reports";
 
 import PlatformTenants from "./pages/platform/Tenants";
 import PlatformUsers from "./pages/platform/Users";
@@ -182,24 +183,25 @@ const App = () => {
               <Route path="login" element={<DemoLogin />} />
               <Route index element={<Navigate to="/demo/login" replace />} />
               <Route path="dashboard" element={<DemoDashboard />} />
-              <Route path="projects" element={<DemoProjects />} />
+              <Route path="projects" element={<DemoLegacyProjects />} />
               <Route path="company" element={<Navigate to="/demo/admin/company" replace />} />
               <Route path="users" element={<Navigate to="/demo/admin/users" replace />} />
               <Route path="billing" element={<Navigate to="/demo/admin/billing" replace />} />
 
-              <Route path="projects/:id" element={<Outlet />}>
-                <Route index element={<DemoProjectOverview />} />
-                <Route path="overview" element={<Navigate to=".." replace />} />
-                <Route path="wbs" element={<DemoWBS />} />
-                <Route path="boq" element={<DemoBOQ />} />
-                <Route path="materials" element={<DemoMaterials />} />
-                <Route path="norms" element={<DemoNorms />} />
-                <Route path="costs" element={<DemoCosts />} />
-                <Route path="contracts" element={<DemoContracts />} />
-                <Route path="payments" element={<DemoPayments />} />
-                <Route path="approvals" element={<DemoApprovals />} />
-                <Route path="progress" element={<DemoProgress />} />
-                <Route path="reports" element={<DemoReports />} />
+              <Route path="projects/:id" element={<DemoLegacyProjectLayout />}>
+                <Route index element={<DemoLegacyProjectOverview />} />
+                <Route path="overview" element={<DemoLegacyProjectOverview />} />
+                <Route path="wbs" element={<DemoLegacyWBS />} />
+                <Route path="budget" element={<DemoLegacyBOQ />} />
+                <Route path="boq" element={<DemoLegacyBOQ />} />
+                <Route path="materials" element={<DemoLegacyMaterials />} />
+                <Route path="norms" element={<DemoLegacyNorms />} />
+                <Route path="costs" element={<DemoLegacyCosts />} />
+                <Route path="contracts" element={<DemoLegacyContracts />} />
+                <Route path="payments" element={<DemoLegacyPayments />} />
+                <Route path="approvals" element={<DemoLegacyApprovals />} />
+                <Route path="progress" element={<DemoLegacyProgress />} />
+                <Route path="reports" element={<DemoLegacyReports />} />
               </Route>
 
               <Route path="admin/company" element={<DemoAdminCompany />} />
