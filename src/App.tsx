@@ -47,7 +47,7 @@ import AdminUsers from "./pages/app/AdminUsers";
 import AdminRoles from "./pages/app/AdminRoles";
 import AdminCompany from "./pages/app/AdminCompany";
 import AdminAuditLog from "./pages/app/AdminAuditLog";
-import AdminIntegrations from "./pages/app/AdminIntegrations";
+import { AppIntegrationsPage } from "./pages/app/AdminIntegrations";
 import AdminBilling from "./pages/app/AdminBilling";
 import InviteAccept from "./pages/app/InviteAccept";
 
@@ -68,7 +68,6 @@ import DemoAdminUsers from "./pages/demo/AdminUsers";
 import DemoAdminRoles from "./pages/demo/AdminRoles";
 import DemoAdminCompany from "./pages/demo/AdminCompany";
 import DemoAdminAuditLog from "./pages/demo/AdminAuditLog";
-import DemoAdminIntegrations from "./pages/demo/AdminIntegrations";
 import DemoAdminBilling from "./pages/demo/AdminBilling";
 
 import PlatformTenants from "./pages/platform/Tenants";
@@ -206,7 +205,7 @@ const App = () => {
               <Route path="admin/users" element={<DemoAdminUsers />} />
               <Route path="admin/roles" element={<DemoAdminRoles />} />
               <Route path="admin/audit-log" element={<DemoAdminAuditLog />} />
-              <Route path="admin/integrations" element={<DemoAdminIntegrations />} />
+              <Route path="admin/integrations" element={<AppIntegrationsPage mode="demo" />} />
               <Route path="admin/billing" element={<DemoAdminBilling />} />
               <Route path="*" element={<Navigate to="/demo/dashboard" replace />} />
             </Route>
@@ -384,7 +383,7 @@ const App = () => {
                   path="admin/integrations"
                   element={
                     <RequireRole allowed={["owner", "admin"]}>
-                      <AdminIntegrations />
+                      <AppIntegrationsPage />
                     </RequireRole>
                   }
                 />

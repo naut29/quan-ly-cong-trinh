@@ -2,21 +2,63 @@ import type { IntegrationSummary } from "@/lib/data/types";
 
 export const demoIntegrations: IntegrationSummary[] = [
   {
-    id: "misa",
-    name: "MISA AMIS",
+    id: "google-drive",
+    name: "Google Drive",
     status: "connected",
-    description: "Dong bo cong no va hoa don o che do demo.",
+    description: "Luu tru va dong bo tai lieu du an trong demo.",
   },
   {
-    id: "r2",
-    name: "R2 Storage",
-    status: "demo-only",
-    description: "Upload duoc mo phong, khong ghi file that.",
+    id: "dropbox",
+    name: "Dropbox",
+    status: "available",
+    description: "Sao luu va chia se file trong demo mode.",
+  },
+  {
+    id: "database-backup",
+    name: "Database Backup",
+    status: "connected",
+    description: "Sao luu co so du lieu bang fixtures.",
+  },
+  {
+    id: "gmail",
+    name: "Gmail / SMTP",
+    status: "connected",
+    description: "Gui email thong bao tu payload mo phong.",
   },
   {
     id: "slack",
     name: "Slack",
     status: "available",
-    description: "Canh bao va thong bao duoc mo phong bang mock payload.",
+    description: "Thong bao va cong tac nhom bang mock state.",
+  },
+  {
+    id: "zalo",
+    name: "Zalo OA",
+    status: "warning",
+    description: "Kenh canh bao demo, khong goi request that.",
+  },
+  {
+    id: "vnpay",
+    name: "VNPay",
+    status: "connected",
+    description: "Thanh toan truc tuyen duoc mo phong.",
+  },
+  {
+    id: "momo",
+    name: "MoMo",
+    status: "available",
+    description: "Thanh toan qua vi dien tu bang mock state.",
+  },
+  {
+    id: "google-sheets",
+    name: "Google Sheets",
+    status: "connected",
+    description: "Xuat bao cao tu du lieu fixture.",
+  },
+  {
+    id: "google-calendar",
+    name: "Google Calendar",
+    status: "available",
+    description: "Dong bo lich va deadline tren memory state.",
   },
 ];

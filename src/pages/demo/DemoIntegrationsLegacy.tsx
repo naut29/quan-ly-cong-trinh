@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link2, Plug } from "lucide-react";
+
+import { showDemoNotSavedToast } from "@/components/demo/DemoPlaceholderPage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDataProvider } from "@/lib/data/DataProvider";
 import type { IntegrationSummary } from "@/lib/data/types";
-import { showDemoNotSavedToast } from "@/components/demo/DemoPlaceholderPage";
 
-const DemoAdminIntegrations: React.FC = () => {
+const DemoIntegrationsLegacy: React.FC = () => {
   const dataProvider = useDataProvider();
   const [items, setItems] = useState<IntegrationSummary[]>([]);
 
@@ -20,7 +21,7 @@ const DemoAdminIntegrations: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Tich hop</h1>
-          <p className="text-muted-foreground">Tat ca ket noi trong /demo chi la mock, khong goi service that.</p>
+          <p className="text-muted-foreground">Legacy demo cards layout, khong con duoc route toi.</p>
         </div>
         <Button onClick={showDemoNotSavedToast}>
           <Plug className="mr-2 h-4 w-4" />
@@ -63,4 +64,4 @@ const DemoAdminIntegrations: React.FC = () => {
   );
 };
 
-export default DemoAdminIntegrations;
+export default DemoIntegrationsLegacy;
