@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { completeUpload, createUpload, getDownloadUrl, type ProjectFileRecord } from "@/lib/api/uploads";
+import { appFetch } from "@/lib/runtime/appFetch";
 import { supabase } from "@/lib/supabaseClient";
 
 interface UploadWidgetProps {
@@ -71,7 +72,7 @@ const UploadWidget: React.FC<UploadWidgetProps> = ({ projectId }) => {
         size: file.size,
       });
 
-      const putResponse = await fetch(createResponse.uploadUrl, {
+      const putResponse = await appFetch(createResponse.uploadUrl, {
         method: "PUT",
         headers: {
           "Content-Type": contentType,

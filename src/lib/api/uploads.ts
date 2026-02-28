@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { appFetch } from "@/lib/runtime/appFetch";
 
 export interface ProjectFileRecord {
   id: string;
@@ -54,7 +55,7 @@ const getAccessToken = async () => {
 
 const authorizedFetch = async (url: string, init: RequestInit = {}) => {
   const accessToken = await getAccessToken();
-  const response = await fetch(url, {
+  const response = await appFetch(url, {
     ...init,
     headers: {
       ...(init.headers ?? {}),

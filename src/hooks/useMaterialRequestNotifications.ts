@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { appFetch } from '@/lib/runtime/appFetch';
 
 interface MaterialRequest {
   id: string;
@@ -65,7 +66,7 @@ export const useMaterialRequestNotifications = (
       };
 
       try {
-        await fetch(webhookUrl, {
+        await appFetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           mode: 'no-cors',

@@ -11,8 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "demo:guard": "node --experimental-strip-types scripts/demo-no-supabase-guard.ts",
     "i18n:vi-guard": "node --experimental-strip-types scripts/vi-diacritics-guard.ts",
-    "prebuild": "npm run i18n:vi-guard && node scripts/check-encoding.mjs src public index.html"
+    "prebuild": "npm run demo:guard && npm run i18n:vi-guard && node scripts/check-encoding.mjs src public index.html"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.999.0",

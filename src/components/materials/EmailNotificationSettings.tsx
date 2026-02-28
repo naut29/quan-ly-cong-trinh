@@ -21,6 +21,7 @@ import {
   Loader2 
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { appFetch } from '@/lib/runtime/appFetch';
 
 interface EmailNotificationSettingsProps {
   open: boolean;
@@ -63,7 +64,7 @@ const EmailNotificationSettings: React.FC<EmailNotificationSettingsProps> = ({
 
     setTestLoading(true);
     try {
-      await fetch(localUrl, {
+      await appFetch(localUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         mode: 'no-cors',

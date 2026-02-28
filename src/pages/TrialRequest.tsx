@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { appFetch } from '@/lib/runtime/appFetch';
 
 const companySizeOptions = [
   { value: '1-10', label: '1-10' },
@@ -101,7 +102,7 @@ const TrialRequest: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/contact', {
+      const response = await appFetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

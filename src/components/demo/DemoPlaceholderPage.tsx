@@ -3,13 +3,9 @@ import { Eye, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { toast } from "@/hooks/use-toast";
+import { showDemoModeToast } from "@/lib/runtime/demoToast";
 
-export const showDemoNotSavedToast = () =>
-  toast({
-    title: "Demo mode",
-    description: "Demo mode - data is not saved.",
-  });
+export const showDemoNotSavedToast = () => showDemoModeToast();
 
 interface DemoPlaceholderStat {
   label: string;
